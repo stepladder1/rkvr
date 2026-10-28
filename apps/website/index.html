@@ -261,7 +261,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     <div>
       <p class="display" style="font-size:34px">Book the experts.<br>All under one roof.</p>
       <p class="note" style="margin-top:12px">Now open: 1640 Camino Del Rio N, Ste 206, San Diego, CA 92108, inside Phenix Salon Suites. Austin and Dallas coming soon. RKVR is a brand of Phenix Salon Suites and SalonHQ.</p>
-      <p class="note" style="margin-top:6px"><span class="preview-pill">Preview</span> Sample providers, prices and hours. Nothing is charged.</p>
+      <p class="note" style="margin-top:6px">Online payment and membership checkout open soon. Nothing is charged when you book.</p>
     </div>
     <div><h4>Visit</h4><button data-go="locations">Find a location</button><button data-go="services">Services</button><button data-go="book">Book</button></div>
     <div><h4>Shop and care</h4><button data-go="shop">Shop</button><button data-go="care">TeleWellness</button><button data-go="account">My RKVR</button></div>
@@ -271,6 +271,8 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
 <div id="overlay"></div>
 <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
 
+<script src="config.js"></script>
+<script src="rkvr-client.js"></script>
 <script>
 (function () {
   /* ---------------- data (sample) ---------------- */
@@ -289,7 +291,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     { id: 'soco', city: 'Austin', name: 'South Congress', area: 'Austin, TX', open: false, lat: 30.247, lng: -97.750, suites: [] },
     { id: 'uptown', city: 'Dallas', name: 'Uptown', area: 'Dallas, TX', open: false, lat: 32.800, lng: -96.801, suites: [] }
   ];
-  const OPEN = LOCS.filter(l => l.open), SOON = LOCS.filter(l => !l.open);
+  let OPEN = LOCS.filter(l => l.open), SOON = LOCS.filter(l => !l.open);
   const CAT_NAMES = { cryo: 'Cryotherapy', red: 'Red light', iv: 'IV therapy', tw: 'TeleWellness', wl: 'Weight loss' };
   const IV_MENU = [
     ['Myers’ Cocktail', 'High-dose B-complex, vitamin B12, vitamin C, calcium and magnesium. The classic drip for energy and general wellness.', 199],
@@ -320,7 +322,8 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
   ];
   const DEPOSIT = 40;
   const PLAN = { name: 'RKVR Membership', founding: 99, price: 129, services: 12, cutoff: 'Dec 31, 2026' };
-  const TODAY = new Date(2026, 9, 21); // sample "today": Wed Oct 21, 2026
+  const LIVE = !!window.RKVR_CLOUD, C = window.RKVR_CLOUD;
+  const TODAY = LIVE ? (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })() : new Date(2026, 9, 21); // preview uses a fixed sample day
   const SLOT_TIMES = ['9:00 AM', '10:30 AM', '12:00 PM', '1:30 PM', '3:00 PM', '4:30 PM', '6:00 PM'];
 
   /* ---------------- state ---------------- */
@@ -334,7 +337,8 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     if (id.startsWith('svc:')) { const x = svcByKey(id.slice(4)); if (!x) return null; return { id, kind: 'svc', key: x.key, name: x.name, sub: 'À la carte · ' + x.min + ' min · ' + x.suite.pro + ' · book any time', price: x.price, cat: ({ cryo: 'Cryo', red: 'Red', iv: 'IV', tw: 'Tele', wl: 'WL' })[x.cat] || '' }; }
     const p = PRODUCTS.find(q => q.id === id); return p ? Object.assign({ kind: 'prod' }, p) : null;
   }
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (_) {} };
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(LIVE ? { cart: S.cart, notify: S.notify } : S)); } catch (_) {} };
+  if (LIVE) Object.assign(S, { user: null, member: null, prepaid: [], bookings: [], orders: [] });
   const ui = { view: 'home', near: null, nearQuery: '', svcFilter: 'all', shopCat: 'All', drawer: null, acct: 'visits', calOffset: 0, calDay: null,
     bk: { step: 0, loc: null, sel: [], day: 0, slot: null, repeat: 'once', done: null, pay: null }, joinMsg: '', joinPlan: 'member' };
 
@@ -389,6 +393,119 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       orders: [{ id: 'WH-40188', items: ['GLP-1 Program'], total: 249, date: 'Oct 2', status: 'Delivered' }, { id: 'WH-40102', items: ['Retinol 0.5 Serum', 'Lip Treatment'], total: 100, date: 'Sep 18', status: 'Delivered' }],
       member: { rate: PLAN.founding, since: 'Oct 2026', renews: 'Nov 1' },
       cart: S.cart, waitlist: false };
+  }
+
+  /* ---------------- live data (Supabase) ---------------- */
+  const SVC_KEY = {}, SVC_ID = {};   // service uuid -> key, key -> uuid
+  const busy = {};                   // 'slug|YYYY-MM-DD' -> [{ s, e, cat }] in spa-local minutes
+  function tzParts(ts, tz) { const p = {}; new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date(ts)).forEach(x => { if (x.type !== 'literal') p[x.type] = +x.value; }); return p; }
+  function tzOffset(ts, tz) { const p = tzParts(ts, tz); return Date.UTC(p.year, p.month - 1, p.day, p.hour % 24, p.minute, p.second) - ts; }
+  function zonedToUtc(dateStr, mins, tz) { const [y, m, d] = dateStr.split('-').map(Number); const guess = Date.UTC(y, m - 1, d, 0, mins); let ts = guess - tzOffset(guess, tz); ts = guess - tzOffset(ts, tz); return new Date(ts).toISOString(); }
+  function utcToZoned(iso, tz) { const p = tzParts(Date.parse(iso), tz); return { date: p.year + '-' + String(p.month).padStart(2, '0') + '-' + String(p.day).padStart(2, '0'), mins: (p.hour % 24) * 60 + p.minute }; }
+  async function loadCatalog() {
+    const [spas, svcs] = await Promise.all([
+      C.rest('spas?select=id,slug,name,market,city,state,zip,address,time_zone,lat,lng,hours,status&status=in.(open,coming_soon)&order=name'),
+      C.rest('services?select=id,spa_id,name,category,minutes,price_cents,sort,providers(name,title)&active=eq.true&order=sort')
+    ]);
+    if (!spas || !spas.length) return;
+    LOCS.length = 0;
+    spas.sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1)).forEach(sp => {
+      const groups = {};
+      (svcs || []).filter(v => v.spa_id === sp.id).forEach(v => { (groups[v.category] = groups[v.category] || []).push(v); });
+      const suites = Object.keys(CAT_NAMES).filter(c => groups[c]).map(c => {
+        const gid = sp.slug + '-' + c;
+        const prov = Array.from(new Set(groups[c].map(v => v.providers && v.providers.name).filter(Boolean)));
+        groups[c].forEach((v, i) => { SVC_KEY[v.id] = gid + ':' + i; SVC_ID[gid + ':' + i] = v.id; });
+        return { id: gid, no: 0, studio: CAT_NAMES[c], pro: prov.length ? prov.join(', ') : 'the RKVR team', what: CAT_NAMES[c],
+          svcs: groups[c].map(v => [v.name, v.minutes, v.price_cents / 100, v.category, v.id]) };
+      });
+      LOCS.push({ id: sp.slug, uuid: sp.id, city: sp.market || sp.city, name: sp.name, area: [sp.city, sp.state].filter(Boolean).join(', '), open: sp.status === 'open',
+        tz: sp.time_zone, lat: sp.lat, lng: sp.lng, hours: sp.hours || '', suites,
+        address: sp.address ? [sp.address, sp.city, [sp.state, sp.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ') : [sp.city, sp.state].filter(Boolean).join(', ') });
+    });
+    OPEN = LOCS.filter(l => l.open); SOON = LOCS.filter(l => !l.open);
+  }
+  function profileToUser(p) {
+    if (!p) return null;
+    return { id: p.id, name: p.full_name || (p.email || '').split('@')[0], email: p.email || '', phone: p.phone || '', sms: !!p.sms_opt_in,
+      home: (LOCS.find(l => l.uuid === p.home_spa_id) || {}).id || '', since: new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) };
+  }
+  async function loadMyBookings() {
+    const rows = await C.rest('bookings?select=id,spa_id,starts_at,repeat,pay_method,status,booking_items(service_id,position)&status=neq.canceled&order=starts_at');
+    S.bookings = (rows || []).map(r => {
+      const l = LOCS.find(x => x.uuid === r.spa_id) || LOCS[0], z = utcToZoned(r.starts_at, l.tz);
+      return { id: r.id, svcs: (r.booking_items || []).slice().sort((a, b) => a.position - b.position).map(i => SVC_KEY[i.service_id]).filter(Boolean),
+        date: z.date, time: fmtT(z.mins), repeat: r.repeat, loc: l.id, pay: r.pay_method };
+    }).filter(b => b.svcs.length);
+  }
+  async function loadBusy(slug, d) {
+    const k = slug + '|' + ymd(d); if (busy[k]) return;
+    busy[k] = [];
+    const l = locById(slug);
+    try { const rows = await C.rpc('spa_busy', { spa_slug: slug, day: ymd(d) }); busy[k] = (rows || []).map(r => { const z = utcToZoned(r.starts_at, l.tz); return { s: z.mins, e: z.mins + r.minutes, cat: r.category }; }); }
+    catch (e) { delete busy[k]; return; }
+    if (ui.view === 'book' && ui.bk.step === 2) render();
+  }
+  function liveSlotTaken(dayIdx, t) {
+    const b = ui.bk, d = bkDays()[dayIdx], list = busy[b.loc + '|' + ymd(d)];
+    if (!list) { loadBusy(b.loc, d); return false; }
+    let at = parseT(t);
+    return b.sel.some(k => { const x = svcByKey(k), st = at, en = at + x.min; at = en; return list.some(r => r.cat === x.cat && st < r.e && r.s < en); });
+  }
+  async function sendLinkUI(email, data, returnTo, btn) {
+    if (btn) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = 'Sending…'; }
+    try { await C.sendLink(email, data, returnTo); ui.linkSent = { email, forBooking: returnTo === 'book' }; go('join'); }
+    catch (e) {
+      toast(e.status === 429 ? 'Too many sign-in emails were sent just now. Please try again in a little while.' : 'Couldn’t send the link: ' + e.message);
+      if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label; }
+    }
+  }
+  async function confirmLive() {
+    const b = ui.bk, l = locById(b.loc), d = bkDays()[b.day], dateStr = ymd(d);
+    if (!S.user) {
+      const f = $('#quick-join'); if (!f.reportValidity()) return;
+      try { localStorage.setItem('rkvr-pending-booking', JSON.stringify({ loc: b.loc, sel: b.sel, date: dateStr, slot: b.slot, repeat: b.repeat })); } catch (_) {}
+      sendLinkUI($('#qj-email').value.trim(), { full_name: $('#qj-name').value.trim(), phone: $('#qj-phone').value.trim(), sms_opt_in: $('#qj-sms').checked, home_spa: b.loc }, 'book', $('#bk-confirm'));
+      return;
+    }
+    const btn = $('#bk-confirm'); if (btn) { btn.disabled = true; btn.textContent = 'Booking…'; }
+    let at = parseT(b.slot);
+    const items = b.sel.map((k, i) => { const x = svcByKey(k), it = { service_id: SVC_ID[k], position: i + 1, starts_at: zonedToUtc(dateStr, at, l.tz), minutes: x.min, price_cents: Math.round(x.price * 100), uses_member_service: false }; at += x.min; return it; });
+    const total = items.reduce((a, x) => a + x.price_cents, 0);
+    let created = null;
+    try {
+      const rows = await C.rest('bookings', { method: 'POST', prefer: 'return=representation',
+        body: { client_id: S.user.id, spa_id: l.uuid, starts_at: items[0].starts_at, repeat: b.repeat, pay_method: 'card', status: 'booked', deposit_cents: 0, balance_cents: total } });
+      created = rows[0];
+      await C.rest('booking_items', { method: 'POST', prefer: 'return=minimal', body: items.map(it => Object.assign({ booking_id: created.id }, it)) });
+      await loadMyBookings();
+      Object.keys(busy).forEach(k => delete busy[k]);
+      ui.bk.done = S.bookings.find(x => x.id === created.id) || { id: created.id, svcs: b.sel.slice(), date: dateStr, time: b.slot, repeat: b.repeat, loc: b.loc, pay: 'card' };
+      render(); window.scrollTo({ top: 0 });
+    } catch (e) {
+      if (created) { try { await C.rpc('cancel_booking', { booking: created.id }); } catch (_) {} }
+      toast('Couldn’t book that time: ' + e.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Confirm booking'; }
+    }
+  }
+  async function bootLive() {
+    try { await loadCatalog(); } catch (e) { console.warn('[RKVR] menu not loaded', e); }
+    if (C.linkError) toast(C.linkError);
+    if (C.signedIn) {
+      try { S.user = profileToUser(await C.loadProfile()); if (S.user) await loadMyBookings(); } catch (e) { console.warn('[RKVR] account not loaded', e); }
+    }
+    if (C.linkType && S.user) {
+      const ret = C.takeReturn();
+      let pending = null; try { pending = JSON.parse(localStorage.getItem('rkvr-pending-booking') || 'null'); localStorage.removeItem('rkvr-pending-booking'); } catch (_) {}
+      if (ret === 'book' && pending && pending.sel && pending.sel.every(k => svcByKey(k))) {
+        const di = bkDays().findIndex(x => ymd(x) === pending.date);
+        ui.bk = { step: di >= 0 ? 3 : 2, loc: pending.loc, sel: pending.sel, day: Math.max(0, di), slot: di >= 0 ? pending.slot : null, repeat: pending.repeat || 'once', done: null, pay: 'card' };
+        ui.view = 'book'; toast(di >= 0 ? 'You’re signed in. Check the details and confirm your visit.' : 'You’re signed in. That day has passed, so pick a new time.');
+      } else if (ret === 'cart') { ui.view = 'home'; ui.drawer = 'cart'; toast('You’re signed in.'); }
+      else { ui.view = 'account'; ui.acct = 'visits'; toast('Welcome, ' + S.user.name.split(' ')[0] + '. You’re signed in.'); }
+      try { history.replaceState(null, '', '#' + ui.view); } catch (_) {}
+    }
+    render();
   }
 
   /* ---------------- shell ---------------- */
@@ -502,7 +619,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
             <h3 class="loc-name">${l.name}</h3>
             <p><b>${esc(l.address)}</b><br><span class="muted small">Inside Phenix Salon Suites</span></p>
             <p class="muted small">${l.hours}</p>
-            <p class="small" style="font-weight:700;margin-top:4px">Your team</p><div class="suites">${l.suites.map(s => `<div><b>${esc(s.pro)}</b><span class="muted">${esc(s.what)}</span></div>`).join('')}</div>
+            <p class="small" style="font-weight:700;margin-top:4px">${LIVE ? 'What’s here' : 'Your team'}</p><div class="suites">${l.suites.map(s => LIVE ? `<div><b>${esc(s.what)}</b><span class="muted">${s.svcs.length} ${s.svcs.length === 1 ? 'service' : 'services'} · from ${money(Math.min(...s.svcs.map(v => v[2])))}</span></div>` : `<div><b>${esc(s.pro)}</b><span class="muted">${esc(s.what)}</span></div>`).join('')}</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
             ${d != null ? `<span class="dist">${fmtD(d)}</span>` : ''}
@@ -531,7 +648,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
 
   /* booking */
   function bkDays() { return Array.from({ length: 10 }, (_, i) => addDays(TODAY, i + 1)); }
-  function slotTaken(dayIdx, t) { return ((dayIdx * 3 + SLOT_TIMES.indexOf(t)) % 5) === 1; }
+  function slotTaken(dayIdx, t) { return LIVE ? liveSlotTaken(dayIdx, t) : ((dayIdx * 3 + SLOT_TIMES.indexOf(t)) % 5) === 1; }
   function vBook() {
     const b = ui.bk; if (ui.bk.done) return bookedView();
     const steps = ['Location', 'Services', 'Time', 'Confirm'];
@@ -564,23 +681,25 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
         <p class="note" style="margin-top:8px">${repNote}</p>
         ${payChoice(d)}
         <h3 style="margin-top:22px">${S.user ? 'Booking as' : 'Your details'}</h3>
-        ${S.user ? `<div class="kv"><span>${esc(S.user.name)}</span><span class="muted">${esc(S.user.email)}</span></div><div class="kv"><span>${bkPay() === 'member' ? 'Membership' : 'Pay deposit with'}</span><span>${bkPay() === 'member' ? rateLine() : 'Visa ···· 4242 <span class="preview-pill">Sample</span>'}</span></div>`
+        ${S.user ? `<div class="kv"><span>${esc(S.user.name)}</span><span class="muted">${esc(S.user.email)}</span></div>${LIVE ? '' : `<div class="kv"><span>${bkPay() === 'member' ? 'Membership' : 'Pay deposit with'}</span><span>${bkPay() === 'member' ? rateLine() : 'Visa ···· 4242 <span class="preview-pill">Sample</span>'}</span></div>`}`
           : `<form id="quick-join" class="form-grid" style="margin-top:8px">
               <div class="field"><label for="qj-name">Full name</label><input class="input" id="qj-name" required autocomplete="name"></div>
               <div class="field"><label for="qj-email">Email</label><input class="input" id="qj-email" type="email" required autocomplete="email"></div>
               <div class="field"><label for="qj-phone">Mobile</label><input class="input" id="qj-phone" type="tel" required autocomplete="tel"></div>
               <div class="field" style="align-content:end"><label class="check"><input type="checkbox" id="qj-sms" checked> Text me reminders and visit updates. Reply STOP any time.</label></div>
-              <p class="note" style="grid-column:1/-1">This creates your RKVR account. Already a member? <button type="button" class="linkish" data-sample-member>Sign in</button></p>
+              <p class="note" style="grid-column:1/-1">${LIVE ? 'We’ll email you a sign-in link. Open it on this device and your visit will be ready to confirm. Already have an account? Use the same email.' : 'This creates your RKVR account. Already a member? <button type="button" class="linkish" data-sample-member>Sign in</button>'}</p>
             </form>`}
-        <div class="notice ice" style="margin-top:18px">Payment connects through Stripe at launch. In this preview, nothing is charged.</div>
-        <div style="margin-top:18px"><button class="btn btn-primary" id="bk-confirm">${bkPay() === 'prepaid' ? 'Confirm · use prepaid' : bkPay() === 'member' ? (S.member ? 'Confirm · uses ' + b.sel.length + ' of my services' : 'Join for $' + PLAN.founding + '/month and book') : 'Confirm and pay $' + DEPOSIT + ' deposit'}</button></div>
-        <p class="note" style="margin-top:10px">${bkPay() === 'member' ? 'Free to move or cancel up to 24 hours before. After that, the services count as used.' : 'Free to move or cancel up to 24 hours before. After that the deposit is kept.'}</p>`;
+        ${LIVE ? '' : '<div class="notice ice" style="margin-top:18px">Payment connects through Stripe at launch. In this preview, nothing is charged.</div>'}
+        <div style="margin-top:18px"><button class="btn btn-primary" id="bk-confirm">${LIVE ? (S.user ? 'Confirm booking' : 'Email me a link to confirm') : bkPay() === 'prepaid' ? 'Confirm · use prepaid' : bkPay() === 'member' ? (S.member ? 'Confirm · uses ' + b.sel.length + ' of my services' : 'Join for $' + PLAN.founding + '/month and book') : 'Confirm and pay $' + DEPOSIT + ' deposit'}</button></div>
+        <p class="note" style="margin-top:10px">${LIVE ? 'Free to move or cancel up to 24 hours before your visit.' : bkPay() === 'member' ? 'Free to move or cancel up to 24 hours before. After that, the services count as used.' : 'Free to move or cancel up to 24 hours before. After that the deposit is kept.'}</p>`;
     }
     return `<section class="band"><div class="wrap">${stepper}<div class="book"><div style="min-width:0">${body}</div>${b.step > 0 ? bkSummary() : ''}</div></div></section>`;
   }
   function prepaidCovers(sel) { const pool = (S.prepaid || []).map(x => x.name); return sel.length > 0 && sel.every(k => { const n = svcByKey(k).name, i = pool.indexOf(n); if (i < 0) return false; pool.splice(i, 1); return true; }); }
-  function bkPay() { const b = ui.bk; if (b.pay && !(b.pay === 'prepaid' && !prepaidCovers(b.sel))) return b.pay; if (prepaidCovers(b.sel)) return 'prepaid'; if (S.member) { const d = bkDays()[b.day]; return memberLeft(d) >= b.sel.length ? 'member' : 'card'; } return 'card'; }
+  function bkPay() { if (LIVE) return 'card'; const b = ui.bk; if (b.pay && !(b.pay === 'prepaid' && !prepaidCovers(b.sel))) return b.pay; if (prepaidCovers(b.sel)) return 'prepaid'; if (S.member) { const d = bkDays()[b.day]; return memberLeft(d) >= b.sel.length ? 'member' : 'card'; } return 'card'; }
   function payChoice(d) {
+    if (LIVE) { const tot = ui.bk.sel.reduce((a, k) => a + svcByKey(k).price, 0);
+      return `<h3 style="margin-top:22px">How to pay</h3><div class="kv"><span>Pay at your visit</span><b>${money(tot)}</b></div><p class="note">Online payment and the ${PLAN.name} open soon. For now, nothing is charged when you book.</p>`; }
     const b = ui.bk, n = b.sel.length, left = S.member ? memberLeft(d) : PLAN.services, ok = left >= n, pay = bkPay();
     const total = b.sel.reduce((a, k) => a + svcByKey(k).price, 0);
     return `<h3 style="margin-top:22px">How to pay</h3><div style="display:grid;gap:8px;margin-top:8px">
@@ -597,9 +716,10 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     const total = b.sel.reduce((a, k) => a + svcByKey(k).price, 0);
     return `<aside class="card summary" aria-label="Your visit"><p class="eyebrow">Your visit</p><h3 class="display" style="font-size:30px">${l.name}</h3><p class="muted small">${l.city}${d ? ' · ' + DOW[d.getDay()] + ', ' + MON[d.getMonth()] + ' ' + d.getDate() : ''}${b.repeat !== 'once' && b.step === 3 ? ' · repeats ' + b.repeat : ''}</p>
       ${rows || '<p class="muted small">No services yet.</p>'}
-      ${b.sel.length && b.step === 3 && bkPay() === 'prepaid' ? `<div class="total"><span>Prepaid</span><b>${money(total)}</b></div><p class="note">Paid from your cart. Nothing due at your visit.</p>` : b.sel.length ? (b.step === 3 && bkPay() === 'member' ? `<div class="total"><span>Membership</span><b>${b.sel.length} of ${PLAN.services}</b></div><p class="note">Included in your membership. No deposit. À la carte value ${money(total)}.</p>` : `<div class="total"><span>Total</span><b>${money(total)}</b></div><p class="note">$${DEPOSIT} deposit today, ${money(Math.max(0, total - DEPOSIT))} at your visit.${S.member ? '' : ' Members pay $' + PLAN.founding + '/month for ' + PLAN.services + ' services.'}</p>`) : ''}</aside>`;
+      ${b.sel.length && b.step === 3 && bkPay() === 'prepaid' ? `<div class="total"><span>Prepaid</span><b>${money(total)}</b></div><p class="note">Paid from your cart. Nothing due at your visit.</p>` : b.sel.length ? (b.step === 3 && bkPay() === 'member' ? `<div class="total"><span>Membership</span><b>${b.sel.length} of ${PLAN.services}</b></div><p class="note">Included in your membership. No deposit. À la carte value ${money(total)}.</p>` : `<div class="total"><span>Total</span><b>${money(total)}</b></div><p class="note">${LIVE ? 'Pay at your visit.' : '$' + DEPOSIT + ' deposit today, ' + money(Math.max(0, total - DEPOSIT)) + ' at your visit.' + (S.member ? '' : ' Members pay $' + PLAN.founding + '/month for ' + PLAN.services + ' services.')}</p>`) : ''}</aside>`;
   }
   function confirmBooking() {
+    if (LIVE) { confirmLive(); return; }
     const b = ui.bk;
     if (!S.user) {
       const f = $('#quick-join'); if (!f.reportValidity()) return;
@@ -618,7 +738,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       <div class="success"><p class="eyebrow" style="color:var(--accent)">Booked</p><p class="display" style="margin-top:10px">${DOW[d.getDay()]}, ${MON[d.getMonth()]} ${d.getDate()}<br>${v.time}</p>
         <p style="margin-top:12px">${esc(visitTitle(v))}</p><p style="margin-top:4px">RKVR ${l.name} · ${esc(l.address)}</p>
         ${v.repeat !== 'once' ? `<p style="margin-top:6px;font-weight:700">Repeats every ${v.repeat === 'weekly' ? 'week' : 'month'}</p>` : ''}
-        <p style="margin-top:6px">${v.pay === 'prepaid' ? 'Prepaid · nothing due at your visit' : v.pay === 'member' ? 'Included in your membership · ' + memberLeft(d) + ' of ' + PLAN.services + ' left in ' + MONTHS[d.getMonth()] : '$' + DEPOSIT + ' deposit · ' + money(Math.max(0, visitPrice(v) - DEPOSIT)) + ' at your visit'}</p></div>
+        <p style="margin-top:6px">${LIVE ? 'Pay at your visit · ' + money(visitPrice(v)) : v.pay === 'prepaid' ? 'Prepaid · nothing due at your visit' : v.pay === 'member' ? 'Included in your membership · ' + memberLeft(d) + ' of ' + PLAN.services + ' left in ' + MONTHS[d.getMonth()] : '$' + DEPOSIT + ' deposit · ' + money(Math.max(0, visitPrice(v) - DEPOSIT)) + ' at your visit'}</p></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="btn btn-primary" data-ics="${v.id}">Add to my calendar</button><button class="btn" data-go="account" data-acct="calendar">See my calendar</button><button class="btn" id="bk-again">Book something else</button></div>
       <p class="note" id="ics-note" style="margin-top:10px">${S.user && S.user.sms ? 'We’ll text a reminder the day before.' : ''}</p>
     </div></section>`;
@@ -644,7 +764,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px">${items.length ? items.map((p, i) => `<div class="line-item">${thumb(p)}<span><b>${esc(p.name)}</b><br><span class="muted small">${esc(p.sub)}</span></span><span style="text-align:right"><b>${money(p.price)}${p.per || ''}</b><br><button class="linkish small" data-remove="${i}">Remove</button></span></div>`).join('')
         : `<p class="muted">Your cart is empty.</p><div style="display:grid;gap:8px">${S.member ? '' : `<button class="btn" data-add="${CART_MEMBER}">Add membership · $${PLAN.founding}/month</button>`}<button class="btn" data-go="services">Browse services</button><button class="btn" data-go="shop">Shop products</button></div>`}
         ${items.length && !hasMember && !S.member ? `<div class="notice" style="margin-top:4px"><b>Members get ${PLAN.services} services a month for $${PLAN.founding}.</b> <button class="linkish" data-add="${CART_MEMBER}">Add membership</button></div>` : ''}</div>
-      ${items.length ? `<div class="total"><span>Due today</span><b>${money(total)}</b></div><p class="note">${hasMember ? 'Membership renews monthly at $' + PLAN.founding + ' (founding rate). ' : ''}${items.some(p => p.kind === 'svc') ? 'Services are prepaid; book them any time in My RKVR. ' : ''}${goods ? (goods >= 50 ? 'Free shipping on products. ' : 'Add ' + money(50 - goods) + ' in products for free shipping. ') : ''}Nothing is charged in this preview.</p><button class="btn btn-primary" id="checkout">${S.user ? 'Check out · ' + money(total) : 'Sign in to check out'}</button>` : ''}
+      ${items.length ? `<div class="total"><span>Due today</span><b>${money(total)}</b></div><p class="note">${hasMember ? 'Membership renews monthly at $' + PLAN.founding + ' (founding rate). ' : ''}${items.some(p => p.kind === 'svc') ? 'Services are prepaid; book them any time in My RKVR. ' : ''}${goods ? (goods >= 50 ? 'Free shipping on products. ' : 'Add ' + money(50 - goods) + ' in products for free shipping. ') : ''}Nothing is charged in this preview.</p><button class="btn btn-primary" id="checkout">${S.user ? (LIVE ? 'Online checkout opens soon' : 'Check out · ' + money(total)) : 'Sign in to check out'}</button>` : ''}
     </aside>`;
   }
 
@@ -659,6 +779,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
   }
 
   function vJoin() {
+    if (LIVE) return vJoinLive();
     return `<section class="band"><div class="wrap" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px">
       <div><p class="eyebrow">Join RKVR</p><h2 class="display" style="font-size:clamp(44px,6vw,72px);margin-top:10px">Make an account</h2>
         <p class="muted" style="margin-top:12px;max-width:44ch">Book and manage visits, see your calendar, reorder products and message your care team, on the website or in the app.</p>
@@ -678,6 +799,34 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
           <p class="note">We’ll email a sign-in link; no password needed. In this preview, the account lives in this browser only.</p>
         </form>
         <div style="border-top:1px solid var(--line);padding-top:12px;margin-top:4px"><p class="small">Already a member? <button class="linkish" data-sample-member>Sign in as the sample member</button></p></div>`}
+      </div>
+    </div></section>`;
+  }
+
+  function vJoinLive() {
+    if (S.user) return `<section class="band"><div class="wrap" style="max-width:640px"><div class="card"><h3>You’re signed in as ${esc(S.user.name)}</h3><p class="muted">${esc(S.user.email)}</p><button class="btn btn-primary" style="align-self:flex-start" data-go="account">Go to My RKVR</button></div></div></section>`;
+    if (ui.linkSent) return `<section class="band"><div class="wrap" style="max-width:640px"><div class="card">
+      <p class="eyebrow">Check your email</p><h2 class="display" style="font-size:48px">Your link is on its way</h2>
+      <p>We sent a sign-in link to <b>${esc(ui.linkSent.email)}</b>. Open it on this device${ui.linkSent.forBooking ? ' and your visit will be ready to confirm' : ' to finish'}.</p>
+      <p class="muted small">It can take a minute. Check spam or promotions if you don’t see it. The link works once and expires after an hour.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px"><button class="btn" id="link-again">Use a different email</button></div></div></div></section>`;
+    return `<section class="band"><div class="wrap" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px">
+      <div><p class="eyebrow">Join RKVR</p><h2 class="display" style="font-size:clamp(44px,6vw,72px);margin-top:10px">Make an account</h2>
+        <p class="muted" style="margin-top:12px;max-width:44ch">Book and manage visits and see your calendar, on the website or in the app. No password: we email you a link each time you sign in.</p>
+        <div class="notice" style="margin-top:18px"><b>Membership is coming: $${PLAN.founding}/month for ${PLAN.services} services.</b> Online checkout for the membership opens soon. Make a free account now and book à la carte.</div>
+        <div class="card" style="margin-top:22px"><h3>Already have an account?</h3>
+          <form id="signin-form" style="display:grid;gap:10px"><div class="field"><label for="s-email">Email</label><input class="input" id="s-email" type="email" required autocomplete="email"></div>
+          <button class="btn" type="submit">Email me a sign-in link</button></form></div></div>
+      <div class="card">
+        <form id="join-form" style="display:grid;gap:12px">
+          <div class="field"><label for="j-name">Full name</label><input class="input" id="j-name" required autocomplete="name"></div>
+          <div class="field"><label for="j-email">Email</label><input class="input" id="j-email" type="email" required autocomplete="email"></div>
+          <div class="field"><label for="j-phone">Mobile</label><input class="input" id="j-phone" type="tel" required autocomplete="tel"></div>
+          <div class="field"><label for="j-home">Home location</label><select class="input" id="j-home">${LOCS.map(l => `<option value="${l.id}">${l.name}, ${l.city}${l.open ? '' : ' (coming soon)'}</option>`).join('')}</select></div>
+          <label class="check"><input type="checkbox" id="j-sms" checked> Text me reminders and visit updates. Reply STOP any time.</label>
+          <button class="btn btn-primary" type="submit">Create my account</button>
+          <p class="note">We’ll email you a link to finish. Open it on this device.</p>
+        </form>
       </div>
     </div></section>`;
   }
@@ -723,7 +872,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
 
   /* account */
   function vAccount() {
-    if (!S.user) return `<section class="band"><div class="wrap" style="max-width:640px"><h2 class="display" style="font-size:56px">My RKVR</h2><p class="muted" style="margin-top:10px">Sign in to see your visits, calendar, orders and care.</p><div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="btn btn-primary" data-go="join">Join or sign in</button><button class="btn" data-sample-member>See the sample member view</button></div></div></section>`;
+    if (!S.user) return `<section class="band"><div class="wrap" style="max-width:640px"><h2 class="display" style="font-size:56px">My RKVR</h2><p class="muted" style="margin-top:10px">Sign in to see your visits, calendar, orders and care.</p><div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="btn btn-primary" data-go="join">Join or sign in</button>${LIVE ? '' : '<button class="btn" data-sample-member>See the sample member view</button>'}</div></div></section>`;
     const tabs = [['visits', 'Visits'], ['calendar', 'Calendar'], ['orders', 'Orders'], ['care', 'TeleWellness'], ['membership', 'Membership'], ['settings', 'Settings']];
     const pane = { visits: aVisits, calendar: aCalendar, orders: aOrders, care: aCare, membership: aMembership, settings: aSettings }[ui.acct]();
     return `<section class="band"><div class="wrap">
@@ -788,7 +937,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     const u = S.user;
     return `<div class="card"><h3>Your details</h3><div class="kv"><span>Name</span><span>${esc(u.name)}</span></div><div class="kv"><span>Email</span><span>${esc(u.email)}</span></div><div class="kv"><span>Mobile</span><span>${esc(u.phone)}</span></div><div class="kv"><span>Home location</span><span>${esc((locById(u.home) || LOCS[0]).name)}</span></div>
       <label class="check" style="margin-top:8px"><input type="checkbox" id="set-sms" ${u.sms ? 'checked' : ''}> Text me reminders and visit updates</label>
-      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-sm" id="sign-out">Sign out</button><button class="btn btn-sm" id="reset-demo">Reset preview data</button></div></div>`;
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-sm" id="sign-out">Sign out</button>${LIVE ? '' : '<button class="btn btn-sm" id="reset-demo">Reset preview data</button>'}</div></div>`;
   }
 
   /* ---------------- iCal ---------------- */
@@ -813,6 +962,13 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
   document.addEventListener('click', e => {
     const t = e.target.closest('button, [data-close]'); if (!t) return;
     const d = t.dataset;
+    if (LIVE) {
+      if (t.id === 'link-again') { ui.linkSent = null; render(); return; }
+      if (t.id === 'sign-out') { C.signOut().then(() => { S.user = null; S.bookings = []; save(); go('home'); toast('Signed out'); }); return; }
+      if (d.cancel) { C.rpc('cancel_booking', { booking: d.cancel }).then(loadMyBookings).then(() => { Object.keys(busy).forEach(k => delete busy[k]); render(); toast('Cancelled.'); }, err => toast('Couldn’t cancel: ' + err.message)); return; }
+      if (t.id === 'checkout' && S.user) { toast('Online checkout opens soon. Your cart is saved on this device.'); return; }
+      if (d.plan === 'member') { if (!S.cart.includes(CART_MEMBER)) S.cart = S.cart.concat([CART_MEMBER]); save(); ui.drawer = 'cart'; render(); return; }
+    }
     if (d.close !== undefined) { ui.drawer = null; render(); return; }
     if (d.go) { const extra = {}; if (d.acct) extra.acct = d.acct; if (d.go === 'book' && !ui.bk.done && ui.view !== 'book') {} if (d.go === 'book' && ui.bk.done) ui.bk = { step: 0, loc: null, sel: [], day: 0, slot: null, repeat: 'once', done: null }; ui.drawer = null; go(d.go, extra); return; }
     if (d.drawer) { ui.drawer = d.drawer; render(); return; }
@@ -863,10 +1019,13 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     if (t.id === 'sign-out') { S.user = null; save(); go('home'); toast('Signed out'); return; }
     if (t.id === 'reset-demo') { S = blank(); save(); go('home'); toast('Preview data cleared'); return; }
   });
-  document.addEventListener('change', e => { if (e.target.id === 'set-sms' && S.user) { S.user.sms = e.target.checked; save(); toast(e.target.checked ? 'Text updates on' : 'Text updates off'); } });
+  document.addEventListener('change', e => { if (LIVE && e.target.id === 'set-sms' && S.user) { const on = e.target.checked; C.updateProfile({ sms_opt_in: on }).then(() => { S.user.sms = on; toast(on ? 'Text updates on' : 'Text updates off'); }, () => toast('Couldn’t save that. Try again.')); return; }
+    if (e.target.id === 'set-sms' && S.user) { S.user.sms = e.target.checked; save(); toast(e.target.checked ? 'Text updates on' : 'Text updates off'); } });
   document.addEventListener('submit', e => {
     e.preventDefault();
     const f = e.target;
+    if (LIVE && f.id === 'signin-form') { sendLinkUI($('#s-email').value.trim(), {}, 'account', f.querySelector('button')); return; }
+    if (LIVE && f.id === 'join-form') { sendLinkUI($('#j-email').value.trim(), { full_name: $('#j-name').value.trim(), phone: $('#j-phone').value.trim(), sms_opt_in: $('#j-sms').checked, home_spa: $('#j-home').value }, ui.afterJoin || S.cart.length ? 'cart' : 'account', f.querySelector('button[type=submit]')); return; }
     if (f.id === 'finder') { ui.nearQuery = $('#near-q').value; ui.near = place(ui.nearQuery); go('locations'); return; }
     if (f.id === 'join-form') { S.user = { name: $('#j-name').value.trim(), email: $('#j-email').value.trim(), phone: $('#j-phone').value.trim(), sms: $('#j-sms').checked, home: $('#j-home').value, since: 'Oct 2026' }; if (ui.afterJoin || S.cart.length) { ui.afterJoin = false; save(); ui.drawer = 'cart'; go('account'); toast('Account created. Finish checking out.'); return; } if (ui.joinPlan === 'member' && !S.cart.includes(CART_MEMBER)) S.member = { rate: PLAN.founding, since: 'Oct 2026', renews: 'Nov 1' }; save(); ui.acct = S.member ? 'membership' : 'visits'; go('account'); toast(S.member ? 'Welcome, member. Your founding rate is locked in.' : 'Welcome to RKVR'); return; }
     if (f.id === 'owner-form') { ui.ownerSent = true; render(); return; }
@@ -877,6 +1036,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
   const h = (location.hash || '').replace('#', '');
   if (VIEWS.includes(h)) ui.view = h;
   render();
+  if (LIVE) bootLive();
 })();
 </script>
 </body></html>
