@@ -4,7 +4,7 @@ Project: `https://inoyndkciffwqquhvsid.supabase.co`
 
 ## Applying the database setup
 
-Run the files in `migrations/` once, in order, in the Supabase dashboard:
+Easiest: run `setup-all-in-one.sql` (both migrations in one file, safe to re-run while there is no real data) in the Supabase dashboard. Or run the files in `migrations/` once, in order:
 **SQL Editor → New query → paste the file → Run**.
 
 1. `20261028000001_schema.sql` – tables, access rules (row level security) and helper functions
