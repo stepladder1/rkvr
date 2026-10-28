@@ -1,0 +1,4 @@
+# Used by the Netlify site whose base directory is the repo root (/):
+# that site is the public website.
+[build]
+  publish = "apps/website"

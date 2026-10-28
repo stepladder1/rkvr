@@ -1,0 +1,3 @@
+# Used when a Netlify site has its base directory set to apps/client.
+[build]
+  publish = "."

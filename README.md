@@ -14,7 +14,7 @@ All four apps currently run on built-in sample data. They are being connected to
 
 ## Deploying (Netlify)
 
-Create one Netlify site per app from this repo. For each site set:
+Create one Netlify site per app from this repo. The public website can use the repo root as its base directory (the root `netlify.toml` publishes `apps/website`). For the other apps set:
 
 - **Base directory:** the app folder, for example `apps/website`
 - **Build command:** leave empty
