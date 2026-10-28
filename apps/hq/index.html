@@ -358,6 +358,15 @@ tr.cat-row .cat-name { font: 800 17px/1 var(--font-display); text-transform: upp
 .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 13px; z-index: 40; max-width: calc(100% - 32px); }
 
 .section[hidden] { display: none !important; }
+body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important; }
+.gate { min-height: 70vh; display: grid; place-items: center; padding: 24px 0; }
+.gate-card { width: min(420px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px; display: flex; flex-direction: column; gap: 12px; }
+.gate-card h1 { font-family: var(--font-display); font-size: 40px; text-transform: uppercase; line-height: 1; }
+.gate-form { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.gate-form .btn-primary { margin-top: 10px; justify-content: center; }
+.gate-form .linkish { align-self: flex-start; margin-top: 4px; }
+.gate-msg { font-size: 13px; padding: 10px 12px; border-radius: 8px; background: var(--ice-bg); color: var(--fg); }
+.gate-msg.bad { background: var(--bad-bg); color: var(--bad); }
 .foot { margin-top: 28px; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 </style>
 
@@ -383,6 +392,8 @@ tr.cat-row .cat-name { font: 800 17px/1 var(--font-display); text-transform: upp
 
 <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
 
+<script src="config.js"></script>
+<script src="cloud.js"></script>
 <script>
 (function () {
   'use strict';
@@ -1091,7 +1102,7 @@ tr.cat-row .cat-name { font: 800 17px/1 var(--font-display); text-transform: upp
         ${flagOn('textToBook') ? '<div class="phone-card"><b>Text-to-book on</b>Reply with a day and time</div>' : ''}
         <div class="phone-tabs">${cTabs.map(t => `<span>${t}</span>`).join('')}</div></div>
       <div class="phone" aria-label="RKVR Pro preview"><div class="phone-title">RKVR Pro · Spa</div>
-        ${flagOn('rent') ? `<div class="phone-card"><b>Rent invoice · $1,102</b>${flagOn('rentWeekly') ? 'Monthly or weekly billing' : 'Monthly billing'}${flagOn('rentAutopay') ? ' · autopay' : ''}<div class="mini-btns">${methods.map((x, i) => `<span class="${i ? 'alt' : ''}">Pay by ${x}</span>`).join('')}</div></div>` : '<div class="phone-off">Rent invoices are hidden</div>'}
+        ${flagOn('rent') ? `<div class="phone-card"><b>Rent invoice · $3,450</b>${flagOn('rentWeekly') ? 'Monthly or weekly billing' : 'Monthly billing'}${flagOn('rentAutopay') ? ' · autopay' : ''}<div class="mini-btns">${methods.map((x, i) => `<span class="${i ? 'alt' : ''}">Pay by ${x}</span>`).join('')}</div></div>` : '<div class="phone-off">Rent invoices are hidden</div>'}
         ${flagOn('requests') ? '<div class="phone-card"><b>Service requests</b>File a repair request</div>' : ''}
         ${flagOn('marketing') ? '<div class="phone-card"><b>2 open slots this afternoon</b>Send a last-minute offer</div>' : ''}
         <div class="phone-tabs">${pTabs.map(t => `<span>${t}</span>`).join('')}</div></div>
@@ -1696,12 +1707,58 @@ tr.cat-row .cat-name { font: 800 17px/1 var(--font-display); text-transform: upp
     if (await writeDoc('config/marketing', state.mkRules)) { toast('Saved'); addLog('Changed owner marketing ' + changes.join(', ')); }
   }
 
+  /* ---------------- sign-in (Supabase) ---------------- */
+  function gate(html) {
+    document.body.classList.add('gated');
+    $('#main').innerHTML = `<section class="gate"><div class="gate-card">${html}</div></section>`;
+  }
+  function showLogin(msg, isError) {
+    gate(`<h1>Sign in</h1><p class="cell-sub">RKVR HQ is for RKVR corporate staff.</p>
+      ${msg ? `<div class="gate-msg ${isError ? 'bad' : ''}" role="${isError ? 'alert' : 'status'}">${esc(msg)}</div>` : ''}
+      <form id="login-form" class="gate-form">
+        <label class="label" for="li-email">Email</label><input class="input" id="li-email" type="email" autocomplete="username" required>
+        <label class="label" for="li-pass">Password</label><input class="input" id="li-pass" type="password" autocomplete="current-password" required>
+        <button class="btn btn-primary" type="submit">Sign in</button>
+        <button class="linkish" type="button" id="li-forgot">Forgot password?</button>
+      </form>`);
+    const em = $('#li-email'); if (em) em.focus();
+  }
+  function showSetPassword() {
+    gate(`<h1>Set your password</h1><p class="cell-sub">Choose a password for RKVR HQ. At least 8 characters.</p>
+      <form id="pw-form" class="gate-form">
+        <label class="label" for="pw-new">New password</label><input class="input" id="pw-new" type="password" autocomplete="new-password" minlength="8" required>
+        <button class="btn btn-primary" type="submit">Save password</button>
+      </form>`);
+  }
+  function showNoAccess(p) {
+    gate(`<h1>No HQ access</h1><p>${esc((p && (p.email || p.full_name)) || 'This account')} is signed in, but it isn’t set up as RKVR HQ staff.</p>
+      <p class="cell-sub">Ask an RKVR admin to give this account HQ access, then sign in again.</p>
+      <button class="btn" type="button" data-signout="1">Sign out</button>`);
+  }
+  function ungate() { document.body.classList.remove('gated'); }
+
   async function connect() {
-    try {
-      user = window.claude && window.claude.use ? await window.claude.use('user') : null;
-      db = window.claude && window.claude.use ? await window.claude.use('db') : null;
-    } catch (e) { db = null; }
-    if (user) {
+    const C = window.RKVR_CLOUD;
+    if (C) {
+      let p = null;
+      try { p = await C.ensureSession(); }
+      catch (e) { showLogin('Can’t reach the RKVR database right now. Check your connection and try again.', true); return; }
+      if (C.linkType && C.linkType.startsWith('error:')) { showLogin(C.linkType.slice(6), true); return; }
+      if (!p) { showLogin(); return; }
+      if (C.linkType === 'recovery' || C.linkType === 'invite') { showSetPassword(); return; }
+      if (p.role !== 'hq_admin') { showNoAccess(p); return; }
+      ungate();
+      user = C.user; db = C.db;
+      const w = $('#who');
+      w.innerHTML = `<span>${esc(p.full_name || p.email)} · Admin</span><button class="btn btn-sm" type="button" data-signout="1">Sign out</button>`;
+      renderLocSelect();
+    } else {
+      try {
+        user = window.claude && window.claude.use ? await window.claude.use('user') : null;
+        db = window.claude && window.claude.use ? await window.claude.use('db') : null;
+      } catch (e) { db = null; }
+    }
+    if (user && !window.RKVR_CLOUD) {
       try {
         const me = await user.me();
         state.me = me.id;
@@ -1736,6 +1793,13 @@ tr.cat-row .cat-name { font: 800 17px/1 var(--font-display); text-transform: upp
   document.addEventListener('click', e => {
     const t = e.target.closest('button');
     if (!t) return;
+    if (t.dataset.signout) { window.RKVR_CLOUD.signOut().then(() => location.reload()); return; }
+    if (t.id === 'li-forgot') {
+      const em = ($('#li-email').value || '').trim();
+      if (!em) { showLogin('Enter your email first, then tap Forgot password.', true); return; }
+      window.RKVR_CLOUD.resetPassword(em).then(() => showLogin('If that email has an account, a reset link is on its way.'), err => showLogin(err.message, true));
+      return;
+    }
     if (t.dataset.tab) { state.tab = t.dataset.tab; try { history.replaceState(null, '', '#' + state.tab); } catch (_) {} render(); window.scrollTo({ top: 0 }); return; }
     if (t.dataset.goto) { state.tab = t.dataset.goto; try { history.replaceState(null, '', '#' + state.tab); } catch (_) {} render(); window.scrollTo({ top: 0 }); return; }
     if (t.dataset.flag) { toggleFlag(t.dataset.flag); return; }
@@ -1810,12 +1874,26 @@ tr.cat-row .cat-name { font: 800 17px/1 var(--font-display); text-transform: upp
   });
   $('#loc').addEventListener('change', e => { state.loc = e.target.value; try { localStorage.setItem('rkvr-hq-loc', state.loc); } catch (_) {} render(); });
 
+  document.addEventListener('submit', async e => {
+    if (e.target.id === 'login-form') {
+      e.preventDefault();
+      const b = e.target.querySelector('button[type=submit]'); b.disabled = true; b.textContent = 'Signing in…';
+      try { await window.RKVR_CLOUD.signIn($('#li-email').value.trim(), $('#li-pass').value); location.reload(); }
+      catch (err) { showLogin(err.status === 400 ? 'That email and password don’t match.' : err.message, true); }
+    }
+    if (e.target.id === 'pw-form') {
+      e.preventDefault();
+      try { await window.RKVR_CLOUD.updatePassword($('#pw-new').value); location.reload(); }
+      catch (err) { toast(err.message); }
+    }
+  });
+
   /* ---------------- boot ---------------- */
   const fromHash = (location.hash || '').replace('#', '');
   if (TABS.some(t => t.id === fromHash)) state.tab = fromHash;
   try { const l = localStorage.getItem('rkvr-hq-loc'); if (l && (l === 'all' || LOCS[+l])) state.loc = l; } catch (_) {}
   renderLocSelect();
-  render();
+  if (window.RKVR_CLOUD) { document.body.classList.add('gated'); $('#main').innerHTML = '<section class="gate"><p class="cell-sub">Loading…</p></section>'; } else render();
   connect();
 })();
 </script>

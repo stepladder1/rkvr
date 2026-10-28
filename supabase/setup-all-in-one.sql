@@ -3,7 +3,7 @@
 -- real data yet), then creates the tables, access rules and starting data.
 
 drop trigger if exists on_auth_user_created on auth.users;
-drop table if exists public.audit_log, public.settings, public.feature_flags, public.campaigns,
+drop table if exists public.hq_items, public.hq_docs, public.audit_log, public.settings, public.feature_flags, public.campaigns,
   public.request_messages, public.service_requests, public.invoice_lines, public.invoices,
   public.order_items, public.prepaid_services, public.orders, public.products, public.booking_items,
   public.bookings, public.memberships, public.membership_plans, public.services, public.providers,
@@ -624,3 +624,36 @@ insert into public.settings (key, value) values
   ('membership', '{"planPrice": 99, "regularPrice": 129, "servicesPerMonth": 12, "foundingCutoff": "2026-12-31"}'),
   ('payments',   '{"depositCents": 4000, "cardFeePct": 3, "operatorPayoutPerMemberServiceCents": 1200}'),
   ('marketing',  '{"perWeek": 2, "maxDiscount": 20, "quietStart": "21:00", "quietEnd": "09:00", "chText": true, "chPush": true, "chEmail": true, "approvePromos": false, "tplSlots": true, "tplPromo": true, "tplWinback": true, "tplNews": true}');
+
+-- Storage for the RKVR HQ dashboard's own state: feature switches, settings,
+-- paused spas, hidden products, recommendation history, request replies, the
+-- change log and sent campaigns. Only HQ staff can read or write it.
+-- Switches and settings are also copied into feature_flags and settings,
+-- which the apps read.
+
+create table if not exists public.hq_docs (
+  path       text primary key,                 -- e.g. 'config/features'
+  data       jsonb not null default '{}'::jsonb,
+  updated_by uuid references public.profiles (id) on delete set null,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.hq_items (
+  id         uuid primary key default gen_random_uuid(),
+  collection text not null,                    -- e.g. 'campaigns'
+  data       jsonb not null,
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+create index if not exists hq_items_collection_time on public.hq_items (collection, created_at desc);
+
+alter table public.hq_docs  enable row level security;
+alter table public.hq_items enable row level security;
+
+drop policy if exists "hq docs" on public.hq_docs;
+drop policy if exists "hq items" on public.hq_items;
+create policy "hq docs"  on public.hq_docs  for all using (public.is_hq()) with check (public.is_hq());
+create policy "hq items" on public.hq_items for all using (public.is_hq()) with check (public.is_hq());
+
+grant select, insert, update, delete on public.hq_docs, public.hq_items to authenticated;
+grant all on public.hq_docs, public.hq_items to service_role;
