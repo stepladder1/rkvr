@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RKVR</title>
+<meta name="theme-color" content="#0E1216">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RKVR">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#0E1216;height:100%}#app{height:100%}</style>
+
+
+<style>/* Modernist — design-system tokens and component classes. This file is the source of truth for the system's look; retune it here and see readme.md. */
+/* vietnamese */
+
+/* latin-ext */
+
+/* latin */
+
+/* vietnamese */
+
+/* latin-ext */
+
+/* latin */
+
+/* vietnamese */
+
+/* latin-ext */
+
+/* latin */
+
+
+
+:root {
+  --color-bg: #f3f2f2;
+  --color-surface: #eae9e9;
+  --color-text: #201e1d;
+  --color-accent: #ec3013;
+  --color-accent-2: #e15b47;
+  --color-divider: rgba(32,30,29,0.400);
+
+  /* Tonal ramps — generated in OKLCH on one shared lightness scale, so the
+     same step of any role matches the others in visual value. */
+  --color-neutral-100: #f8f4f4;
+  --color-neutral-200: #eae7e7;
+  --color-neutral-300: #d7d3d3;
+  --color-neutral-400: #bab6b6;
+  --color-neutral-500: #9b9797;
+  --color-neutral-600: #7d7979;
+  --color-neutral-700: #605d5d;
+  --color-neutral-800: #444141;
+  --color-neutral-900: #2d2b2b;
+
+  --color-accent-100: #fff2ef;
+  --color-accent-200: #ffe0d9;
+  --color-accent-300: #ffc4b8;
+  --color-accent-400: #ff9783;
+  --color-accent-500: #ff563c;
+  --color-accent-600: #dd2b0f;
+  --color-accent-700: #ae1800;
+  --color-accent-800: #7c1405;
+  --color-accent-900: #4d170e;
+
+  --color-accent-2-100: #fff2ef;
+  --color-accent-2-200: #ffe0da;
+  --color-accent-2-300: #ffc4b9;
+  --color-accent-2-400: #ff9784;
+  --color-accent-2-500: #ef6853;
+  --color-accent-2-600: #c94b39;
+  --color-accent-2-700: #9e3526;
+  --color-accent-2-800: #71261b;
+  --color-accent-2-900: #471d16;
+
+  --font-heading: 'Instrument Sans', system-ui, sans-serif;
+  --font-heading-weight: 800;
+  --font-body: 'Instrument Sans', system-ui, sans-serif;
+
+  --space-1: 4.0px;
+  --space-2: 8.0px;
+  --space-3: 12.0px;
+  --space-4: 16.0px;
+  --space-6: 24.0px;
+  --space-8: 32.0px;
+
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+
+  /* Elevation — derived from the ground: soft ink-tinted shadows on a
+     light theme, a hairline edge + ambient darkness on a dark one. */
+  --shadow-sm: 0 1px 2px rgba(45,43,43,0.140);
+  --shadow-md: 0 3px 10px rgba(45,43,43,0.160);
+  --shadow-lg: 0 12px 32px rgba(45,43,43,0.220);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: var(--font-heading-weight); }
+
+.grayscale{filter:grayscale(1) contrast(1.08)}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Components — built with the tokens above. Plain CSS
+   on plain HTML: no JavaScript, no build step. Each class is documented in
+   readme.md and demonstrated in foundations/ and components/.
+   ══════════════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-size: 15px; line-height: 1.55; font-weight: 400; }
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 var(--space-2);
+}
+h1 { font-size: 42px; }
+h2 { font-size: 32px; }
+h3 { font-size: 25px; }
+h4 { font-size: 20px; }
+h5 { font-size: 16px; }
+h6 { font-size: 13px; }
+h6 { letter-spacing: 0.08em; text-transform: uppercase; }
+p { margin: 0 0 var(--space-3); }
+a { color: var(--color-accent); text-underline-offset: 3px; }
+img { display: block; max-width: 100%; }
+figure { margin: 0; }
+figcaption {
+  font-size: 11px; margin-top: var(--space-1);
+  color: rgba(242,240,234,0.550);
+}
+.text-muted { color: rgba(242,240,234,0.550); }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+::selection { background: rgba(242,84,45,0.300); }
+
+/* — rules — */
+.hr {
+  height: 2px; border: 0; margin: var(--space-4) 0;
+  background: var(--color-divider);
+}
+
+/* — buttons — */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer; text-decoration: none;
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 14px; line-height: 1.2; color: var(--color-text); /* matches the .input's 14px —
+     the pair sits side by side in sign-up rows */
+  background: transparent; border: 1px solid transparent;
+  padding: var(--space-2) calc(var(--space-3) * 1.2);
+  border-radius: var(--radius-md);
+}
+.btn svg { display: block; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--color-accent); color: var(--color-bg); }
+.btn-primary:hover { background: var(--color-accent-600); }
+.btn-primary:active { background: var(--color-accent-700); }
+.btn-secondary { border-color: var(--color-divider); }
+.btn-secondary:hover { background: rgba(242,240,234,0.070); }
+.btn-secondary:active { background: rgba(242,240,234,0.140); }
+.btn-ghost { color: var(--color-accent); padding-inline: var(--space-1); }
+.btn-ghost:hover { background: rgba(242,84,45,0.100); }
+.btn-ghost:active { background: rgba(242,84,45,0.180); }
+.btn-icon { width: 36px; height: 36px; padding: 0; }
+.btn-block { width: 100%; margin-top: var(--space-2); justify-content: flex-start; text-align: left; }
+
+/* — forms — */
+.field > label {
+  display: block; font-size: 12px; margin-bottom: 5px;
+  color: rgba(242,240,234,0.700);
+}
+.input {
+  width: 100%; min-height: 36px; padding: 6px 10px; font: inherit;
+  font-size: 14px; color: var(--color-text); caret-color: var(--color-accent);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+}
+.input:hover { border-color: rgba(242,240,234,0.450); }
+.input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
+textarea.input { min-height: 90px; resize: vertical; }
+.radio { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
+.radio input, .seg-opt input {
+  position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
+}
+.radio .dot {
+  width: 16px; height: 16px; flex: none; border-radius: 50%;
+  border: 1.5px solid var(--color-divider);
+}
+.radio:hover .dot { border-color: var(--color-accent); }
+.radio input:checked + .dot {
+  border-color: var(--color-accent); background: var(--color-accent);
+  box-shadow: inset 0 0 0 4px var(--color-bg);
+}
+.radio input:focus-visible + .dot { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.seg {
+  display: inline-flex; overflow: hidden;
+  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+}
+.seg-opt {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; font-size: 13px; cursor: pointer;
+}
+.seg-opt + .seg-opt { border-left: 1px solid var(--color-divider); }
+.seg-opt:has(input:checked) { background: var(--color-accent); color: var(--color-bg); }
+.seg-opt:not(:has(input:checked)):hover { background: rgba(242,240,234,0.070); }
+.seg-opt:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+
+/* — cards — */
+.card {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface);
+}
+.card-kicker { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); }
+.card-title {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 17px; line-height: 1.2;
+}
+.card-body { margin: 0; font-size: 13px; opacity: 0.8; flex: 1; }
+.card-meta {
+  display: flex; align-items: center; gap: 6px; font-size: 11px;
+  color: rgba(242,240,234,0.500);
+}
+.elev-sm { box-shadow: var(--shadow-sm); }
+.elev-md { box-shadow: var(--shadow-md); }
+.elev-lg { box-shadow: var(--shadow-lg); }
+
+/* — tags — */
+.tag {
+  display: inline-flex; align-items: center; font-size: 11px;
+  letter-spacing: 0.02em; padding: 3px 10px;
+  border-radius: calc(var(--radius-md) * 0.75);
+}
+.tag-accent { background: var(--color-accent-100); color: var(--color-accent-800); }
+.tag-accent-2 { background: var(--color-accent-2-100); color: var(--color-accent-2-800); }
+.tag-neutral { background: var(--color-neutral-100); color: var(--color-neutral-800); }
+.tag-outline { border: 1px solid var(--color-accent); color: var(--color-accent); }
+
+/* — navigation — */
+.nav {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 2px solid var(--color-divider);
+}
+.nav-brand {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 18px; margin-right: auto;
+}
+.nav a { color: inherit; text-decoration: none; font-size: 14px; }
+.nav a:hover, .nav a[aria-current='page'] { color: var(--color-accent); }
+
+/* — tables — */
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th {
+  text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: rgba(242,240,234,0.600);
+  padding: var(--space-2); border-bottom: 2px solid var(--color-divider);
+}
+.table td {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-divider);
+}
+.table tbody tr:hover { background: rgba(242,240,234,0.040); }
+
+/* — dialog — */
+.dialog-backdrop {
+  position: fixed; inset: 0; display: grid; place-items: center;
+  padding: var(--space-4);
+  background: rgba(14,18,22,0.500);
+}
+.dialog {
+  width: min(440px, 100%); display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4); border-radius: var(--radius-lg);
+  background: var(--color-surface); box-shadow: var(--shadow-lg);
+}
+.dialog-title {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 20px;
+}
+.dialog-body { font-size: 14px; opacity: 0.85; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
+
+</style>
+<style>
+body{margin:0;background:#dedbdb}
+.dv-turn{padding:40px 44px 32px;border-bottom:2px solid rgba(32,30,29,.4);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#201e1d;color:#f3f2f2;text-decoration:none}
+.dv-tname{font:800 13px/1.2 'Instrument Sans',system-ui,-apple-system,sans-serif,system-ui,sans-serif;color:#201e1d;letter-spacing:.02em}
+.dv-opts{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(32,30,29,.12);color:#201e1d;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 'Instrument Sans',system-ui,-apple-system,sans-serif,system-ui,sans-serif;color:rgba(32,30,29,.6)}
+.dv-opt:target .dv-oid{background:#ec3013;color:#fff}
+.dv-next{margin:24px 0 0;font:400 12px/1.6 'Instrument Sans',system-ui,-apple-system,sans-serif,system-ui,sans-serif;color:rgba(32,30,29,.6)}
+.dv-brief{padding:40px 44px 34px;border-bottom:2px solid rgba(32,30,29,.4);max-width:1180px}
+.ph{width:390px;height:844px;background:var(--color-bg);border:2px solid var(--color-text);display:flex;flex-direction:column;overflow:hidden;color:var(--color-text)}
+.ph *{box-sizing:border-box}
+.sb{display:flex;align-items:center;justify-content:space-between;padding:9px 14px 5px;font:600 11px 'Instrument Sans',system-ui,-apple-system,sans-serif,sans-serif;letter-spacing:.03em;flex:none}
+.bd{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+.bd::-webkit-scrollbar{width:0}
+.tb{display:grid;grid-template-columns:repeat(5,1fr);border-top:2px solid var(--color-text);flex:none}
+.tbi{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:10px 9px 14px;background:none;border:0;border-left:1px solid var(--color-divider);cursor:pointer;font:600 8.5px 'Instrument Sans',system-ui,-apple-system,sans-serif,sans-serif;letter-spacing:.09em;text-transform:uppercase;text-align:left}
+.tbi:first-child{border-left:0}
+.tbi:hover{background:rgba(242,240,234,0.060)}
+.sl{font:600 10px 'Instrument Sans',system-ui,-apple-system,sans-serif,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:rgba(242,240,234,0.520)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:13px 0;background:none;border:0;border-bottom:1px solid var(--color-divider);cursor:pointer;text-align:left;color:inherit;font:inherit}
+.row:hover{background:rgba(242,240,234,0.050)}
+.img{background:repeating-linear-gradient(135deg,var(--color-neutral-200) 0 5px,var(--color-neutral-300) 5px 10px);display:flex;align-items:flex-end;padding:6px}
+.imgl{font:400 8px ui-monospace,Menlo,monospace;color:var(--color-neutral-700)}
+.kp{background:var(--color-bg);border:0;border-left:1px solid var(--color-divider);border-top:1px solid var(--color-divider);padding:14px 0;font:800 22px 'Instrument Sans',system-ui,-apple-system,sans-serif,sans-serif;cursor:pointer;color:inherit}
+.kp:hover{background:rgba(242,240,234,0.070)}
+</style>
+
+<style>
+/* RKVR brand layer */
+:root{
+  --color-bg:#0E1216; --color-surface:#2A323A; --color-text:#F2F0EA; --color-accent:#F2542D;
+  --color-ice:#7CCBFF; --color-muted:#A9B1B8;
+  --color-divider:rgba(242,240,234,0.200);
+  --color-accent-100:#301c19;
+  --color-accent-600:#DE4420; --color-accent-700:#BF3818; --color-accent-800:#FF9B83;
+  --color-neutral-100:#2A323A; --color-neutral-400:#5F6A74; --color-neutral-800:#F2F0EA;
+  --font-heading:'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif; --font-heading-weight:800; --font-body:'Instrument Sans',system-ui,-apple-system,sans-serif;
+}
+h1,h2,h3,h4{font-family:'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif!important;font-weight:800;text-transform:uppercase;letter-spacing:.01em;line-height:1}
+h4{font-size:24px}
+.ph h3{font-size:32px}
+.btn{font-family:'Instrument Sans',system-ui,-apple-system,sans-serif;font-weight:600}
+.btn-primary{color:#0E1216}
+.tbi{font-family:'Instrument Sans',system-ui,-apple-system,sans-serif!important;font-weight:600!important}
+.sl,.card-kicker{font-family:'Instrument Sans',system-ui,-apple-system,sans-serif}
+input[type=checkbox]{accent-color:#F2542D}
+</style>
+
+<style>
+html,body{height:100%;background:var(--color-bg)!important;overscroll-behavior:none}
+body{margin:0;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;color:var(--color-text);font-family:var(--font-body)}
+.ph{width:100%!important;height:100%!important;max-width:520px;margin:0 auto;border:0!important;box-shadow:none!important;padding-top:env(safe-area-inset-top,0px)}
+.ph>.sb{display:none!important}
+.tb{padding-bottom:env(safe-area-inset-bottom,0px)}
+.tbi{font-size:9.5px!important;padding:11px 9px 12px!important;min-height:52px}
+.tbi:hover{background:none}
+.tbi:active{background:rgba(242,240,234,0.080)}
+button,input,textarea{touch-action:manipulation}
+input,textarea{font-size:16px!important}
+@media (min-width:521px){html,body{background:#2A323A!important}.ph{border-left:1px solid var(--color-divider)!important;border-right:1px solid var(--color-divider)!important}}
+</style>
+
+<style>:root{--color-neutral-200:#1A2026;--color-neutral-300:#222A31;--color-neutral-700:#7F8A93}</style>
+</head>
+<body>
+<div id="app"></div>
+<template id="app-template">
+<div class="ph" data-screen-label="Client app">
+<div class="sb"><span>9:41</span><span style="letter-spacing:.14em">▮▮▮ ⏵ ▰</span></div>
+
+<sc-if value="{{ c_walletSoon }}">
+<div class="bd" data-screen-label="Client / Membership coming soon">
+<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:2px solid var(--color-text)">
+<button class="btn btn-icon btn-secondary" data-click="{{ goHome }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0 6-6m-6 6 6 6"></path></svg></button>
+<h4 style="margin:0">Membership</h4>
+</div>
+<div style="padding:24px 16px 22px;background:var(--color-surface)">
+<span class="tag tag-accent">Coming soon</span>
+<h3 style="margin:16px 0 8px;font-size:40px">RKVR Membership</h3>
+<p style="font-size:13.5px;line-height:1.5;opacity:.8;margin:0">12 services a month, any service, for $99 a month (founding rate). À la carte is always an option.</p>
+<sc-if value="{{ wNotJoined }}"><button class="btn btn-primary btn-block" data-click="{{ wJoin }}" style="margin-top:18px">Join the waitlist</button>
+<p style="font-size:11px;opacity:.6;margin:10px 0 0">We'll let you know the day memberships open. No charge, no commitment.</p></sc-if>
+<sc-if value="{{ wJoined }}"><div style="margin-top:18px;padding:12px 14px;border-left:3px solid var(--color-accent);background:var(--color-accent-100)">
+<div style="font:600 13.5px 'Instrument Sans',system-ui,-apple-system,sans-serif">You're on the list</div>
+<div style="font-size:12px;opacity:.8;margin-top:2px">We'll send you an app notification the day memberships open.</div></div></sc-if>
+</div>
+<div style="padding:22px 16px 28px">
+<div class="sl">Until then</div>
+<p style="font-size:13px;line-height:1.5;opacity:.8;margin:8px 0 0">Book and pay per visit. A $40 deposit holds your time, and the rest is paid at your visit.</p>
+<button class="btn btn-secondary btn-block" data-click="{{ goBook }}" style="margin-top:14px;justify-content:flex-start">Book a service</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ c_wallet }}">
+<div class="bd" data-screen-label="Client / Membership wallet">
+<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:2px solid var(--color-text)">
+<button class="btn btn-icon btn-secondary" data-click="{{ goHome }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0 6-6m-6 6 6 6"></path></svg></button>
+<h4 style="margin:0">Wallet</h4>
+<span style="margin-left:auto;font:600 10.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.1em;opacity:.55">{{ wPlan }}</span>
+</div>
+<div style="padding:20px 16px 18px;background:var(--color-surface)">
+<div class="card-kicker">Services this month</div>
+<div style="display:flex;align-items:baseline;gap:10px;margin-top:8px">
+<span style="font:800 72px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1">{{ wCredits }}</span>
+<span style="font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif;opacity:.75">of {{ wMonthly }} left</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin-top:14px" aria-hidden="true">
+<sc-for list="{{ wDots }}" as="d"><span style="height:10px;background:{{ d.bg }};border:1px solid {{ d.bd }}"></span></sc-for>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;margin-top:16px;border-top:1px solid var(--color-divider)">
+<div style="padding:10px 10px 0 0"><div style="font:800 24px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1">{{ wUsed }}</div><div style="font:600 9px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.1em;text-transform:uppercase;opacity:.6;margin-top:3px">Used</div></div>
+<div style="padding:10px 10px 0;border-left:1px solid var(--color-divider)"><div style="font:800 24px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1;color:var(--color-accent)">{{ wExpiring }}</div><div style="font:600 9px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.1em;text-transform:uppercase;opacity:.6;margin-top:3px">Reset</div></div>
+<div style="padding:10px 0 0 10px;border-left:1px solid var(--color-divider)"><div style="font:800 24px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1">{{ wRenews }}</div><div style="font:600 9px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.1em;text-transform:uppercase;opacity:.6;margin-top:3px">Renews</div></div>
+</div>
+</div>
+<sc-if value="{{ wHasExpiring }}">
+<div style="margin:16px 16px 0;padding:12px 14px;border-left:3px solid var(--color-accent);background:var(--color-accent-100)">
+<div style="font:600 13.5px 'Instrument Sans',system-ui,-apple-system,sans-serif">Use them before they go</div>
+<div style="font-size:12px;opacity:.8;margin-top:2px">Your 12 reset on Nov 1. Unused services don't roll over.</div>
+<button class="btn btn-primary" data-click="{{ wBookNow }}" style="margin-top:10px">Book with membership</button>
+</div>
+</sc-if>
+<div style="padding:20px 16px 0">
+<div class="sl">Any service counts as one</div>
+<div style="margin-top:8px">
+<sc-for list="{{ wRates }}" as="r">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:11px 0;border-bottom:1px solid var(--color-divider);font-size:13px"><span style="flex:1;font-weight:600">{{ r.name }}</span><span style="opacity:.5;font-size:11.5px;text-decoration:line-through">{{ r.retail }}</span><span style="font-weight:600;color:var(--color-accent);min-width:64px;text-align:right">{{ r.cr }}</span></div>
+</sc-for>
+</div>
+<p style="font-size:11.5px;opacity:.65;margin:10px 0 0">Used all 12? Extra services book at the regular à la carte price until Nov 1.</p>
+</div>
+<div style="padding:22px 16px 0">
+<div class="sl">Activity</div>
+<div style="margin-top:8px">
+<sc-for list="{{ wLedger }}" as="l">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:11px 0;border-bottom:1px solid var(--color-divider);font-size:13px"><span style="width:46px;opacity:.55;font-size:11.5px">{{ l.date }}</span><span style="flex:1">{{ l.what }}</span><span style="font-weight:700;color:{{ l.color }}">{{ l.amount }}</span></div>
+</sc-for>
+</div>
+</div>
+<div style="padding:22px 16px 28px">
+<div class="sl">Your plan</div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:11px 0;border-bottom:1px solid var(--color-divider);font-size:13px;margin-top:8px"><span style="opacity:.65">Plan</span><span style="font-weight:600">{{ wPlan }} · {{ wMonthly }} services / month</span></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:11px 0;border-bottom:1px solid var(--color-divider);font-size:13px"><span style="opacity:.65">Price</span><span style="font-weight:600">{{ wPrice }} / month · founding rate</span></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:11px 0;border-bottom:1px solid var(--color-divider);font-size:13px"><span style="opacity:.65">Next charge</span><span style="font-weight:600">{{ wRenews }} · Visa ···· 4242</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+<button class="btn btn-secondary" style="justify-content:flex-start">Change plan</button>
+<button class="btn btn-secondary" style="justify-content:flex-start">Pause a month</button>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ c_cal }}">
+<div class="bd" data-screen-label="Client / Calendar">
+<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:2px solid var(--color-text)">
+<button class="btn btn-icon btn-secondary" data-click="{{ back }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0 6-6m-6 6 6 6"></path></svg></button>
+<h4 style="margin:0">Your calendar</h4>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px">
+<button class="btn btn-icon btn-secondary" data-click="{{ calPrev }}" aria-label="Previous month" style="opacity:{{ calPrevOp }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 6-6 6 6 6"></path></svg></button>
+<span style="font:800 26px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1;text-transform:uppercase">{{ calTitle }}</span>
+<button class="btn btn-icon btn-secondary" data-click="{{ calNext }}" aria-label="Next month" style="opacity:{{ calNextOp }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"></path></svg></button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;padding:0 16px">
+<sc-for list="{{ calDow }}" as="w"><span style="text-align:center;font:600 9.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.08em;opacity:.55;padding:4px 0">{{ w }}</span></sc-for>
+<sc-for list="{{ calCells }}" as="d"><button data-click="{{ d.pick }}" aria-label="{{ d.aria }}" style="height:44px;border:1px solid {{ d.bd }};background:{{ d.bg }};color:{{ d.fg }};opacity:{{ d.op }};cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:600 13px 'Instrument Sans',system-ui,-apple-system,sans-serif;padding:0">{{ d.num }}<span style="width:6px;height:6px;border-radius:50%;background:{{ d.dot }}"></span></button></sc-for>
+</div>
+<div style="padding:18px 16px 0">
+<div style="display:flex;justify-content:space-between;align-items:center"><div class="sl">{{ calListTitle }}</div><sc-if value="{{ calHasDay }}"><button class="btn btn-ghost" data-click="{{ calAll }}" style="font-size:12px">Whole month</button></sc-if></div>
+<div style="margin-top:6px">
+<sc-for list="{{ calList }}" as="v">
+<div style="display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--color-divider);opacity:{{ v.op }}">
+<span style="width:40px;flex:none;text-align:center;border:1px solid var(--color-divider);padding:5px 0"><span style="display:block;font:600 8.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.09em;opacity:.65">{{ v.dow }}</span><span style="display:block;font:800 20px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1;margin-top:2px">{{ v.num }}</span></span>
+<span style="flex:1;min-width:0"><span style="font:600 13.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block">{{ v.title }}</span><span style="font-size:11px;opacity:.65">{{ v.when }}</span></span>
+<sc-if value="{{ v.rep }}"><span class="tag tag-outline" style="flex:none">{{ v.repText }}</span></sc-if>
+</div>
+</sc-for>
+<sc-if value="{{ calEmpty }}"><p style="font-size:12.5px;opacity:.65;margin:10px 0 0">Nothing booked yet.</p></sc-if>
+</div>
+<button class="btn btn-primary btn-block" data-click="{{ goBook }}" style="margin-top:14px">Book a visit</button>
+</div>
+<div style="padding:24px 16px 28px">
+<div class="sl">Add to your calendar</div>
+<p style="font-size:12px;line-height:1.5;opacity:.75;margin:6px 0 0">Subscribe once and your RKVR visits show up in Google, Apple or Outlook Calendar. They stay up to date when you book, move or cancel.</p>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px">
+<button class="btn btn-secondary" data-click="{{ calGoogle }}" style="justify-content:center;font-size:12.5px">Google</button>
+<button class="btn btn-secondary" data-click="{{ calApple }}" style="justify-content:center;font-size:12.5px">Apple</button>
+<button class="btn btn-secondary" data-click="{{ calOutlook }}" style="justify-content:center;font-size:12.5px">Outlook</button>
+</div>
+<sc-if value="{{ calSyncNote }}"><div style="margin-top:10px;padding:10px 12px;border-left:3px solid var(--color-accent);background:var(--color-accent-100);font-size:11.5px;line-height:1.45">Live sync turns on when your RKVR account is connected. Until then, download your visits below and open the file to add them.</div></sc-if>
+<button class="btn btn-secondary btn-block" data-click="{{ calDownload }}" style="margin-top:10px;justify-content:flex-start">Download all visits (.ics)</button>
+<p style="font-size:10.5px;opacity:.55;margin:8px 0 0">Works with any calendar app. Repeating visits come through as repeating events.</p>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ c_home }}">
+<div class="bd" data-screen-label="Client / Home">
+<div style="padding:18px 16px 0">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><svg viewBox="-4 -32 380 140" width="60" height="22" role="img" aria-label="RKVR" style="display:block;width:60px;height:22px"><g fill="#F2F0EA"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g><g fill="#F2F0EA" transform="translate(96 0)"><rect x="0" y="0" width="24" height="100"/><polygon points="24,50 51.5,0 79.5,0 52,50 79.5,100 51.5,100"/></g><g transform="translate(183 0)"><polygon fill="#F2F0EA" points="0,0 26,0 58,100 32,100"/><polygon fill="#F2542D" points="78.32,-26 104.32,-26 64,100 38,100"/></g><g fill="#F2F0EA" transform="translate(287 0)"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g></svg></div>
+<div class="sl">Thursday, 27 August</div>
+<h3 style="margin:6px 0 0;font-size:32px">Good morning,<br>Ava.</h3>
+</div>
+<div style="height:2px;background:var(--color-divider);margin:18px 0 0"></div>
+<div style="padding:16px;background:var(--color-surface)">
+<div class="card-kicker">Next visit · in 6 hours</div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:8px 0 4px">
+<div style="font:800 26px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1;line-height:1.15">Myers’ Cocktail</div>
+<div style="font:600 15px 'Instrument Sans',system-ui,-apple-system,sans-serif">$199</div>
+</div>
+<div style="font-size:12.5px;opacity:.7">3:00 PM · 45 min · RKVR Mission Valley</div>
+<div style="display:flex;gap:8px;margin-top:14px">
+<button class="btn btn-secondary" style="flex:1;justify-content:flex-start">Directions</button>
+<button class="btn btn-secondary" style="flex:1;justify-content:flex-start">Reschedule</button>
+</div>
+</div>
+<div style="height:2px;background:var(--color-text)"></div>
+<sc-if value="{{ cr }}">
+<button data-click="{{ goWallet }}" style="display:block;width:100%;text-align:left;background:none;border:0;color:inherit;cursor:pointer;padding:16px 16px 18px;border-bottom:2px solid var(--color-text)">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<span class="card-kicker">Membership · {{ wPlan }}</span>
+<span style="font:600 11px 'Instrument Sans',system-ui,-apple-system,sans-serif;color:var(--color-accent)">Wallet →</span>
+</div>
+<div style="display:flex;align-items:baseline;gap:8px;margin-top:10px">
+<span style="font:800 52px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1">{{ wCredits }}</span>
+<span style="font:600 13px 'Instrument Sans',system-ui,-apple-system,sans-serif;opacity:.75">{{ wCreditsWord }} left of {{ wMonthly }} this month</span>
+</div>
+<div style="height:6px;background:var(--color-surface);margin-top:12px"><div style="height:6px;width:{{ wBarPct }};background:var(--color-accent)"></div></div>
+<sc-if value="{{ wHasExpiring }}"><div style="font-size:12px;margin-top:10px;opacity:.85"><span style="color:var(--color-accent);font-weight:600">$99/month founding rate.</span> {{ wMonthly }} new services on {{ wRenews }}.</div></sc-if>
+</button>
+</sc-if>
+<sc-if value="{{ noCr }}">
+<button data-click="{{ goWallet }}" style="display:block;width:100%;text-align:left;background:none;border:0;color:inherit;cursor:pointer;padding:16px 16px 18px;border-bottom:2px solid var(--color-text)">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<span class="card-kicker">Membership · Coming soon</span>
+<span style="font:600 11px 'Instrument Sans',system-ui,-apple-system,sans-serif;color:var(--color-accent)">{{ wSoonCta }}</span>
+</div>
+<div style="font:800 30px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1.05;margin-top:10px;text-transform:uppercase">12 services for $99 a month</div>
+<div style="font-size:12px;margin-top:6px;opacity:.75">Founding rate, locked in when you join by Dec 31.</div>
+</button>
+</sc-if>
+<div style="display:grid;grid-template-columns:1fr 1fr">
+<button data-click="{{ goBook }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:22px;padding:16px 14px;background:none;border:0;border-right:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider);cursor:pointer;color:inherit;text-align:left">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg>
+<span><span style="font:600 15px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block">Book</span><span style="font-size:11px;opacity:.6">Cryo, red light, IV drips</span></span>
+</button>
+<button data-click="{{ goShop }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:22px;padding:16px 14px;background:none;border:0;border-bottom:1px solid var(--color-divider);cursor:pointer;color:inherit;text-align:left">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6.5V21h18V6.5L18 2z"></path><path d="M3 6.5h18"></path><path d="M16 10.5a4 4 0 0 1-8 0"></path></svg>
+<span><span style="font:600 15px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block">Shop</span><span style="font-size:11px;opacity:.6">Weight loss, skin, beauty</span></span>
+</button>
+<button data-click="{{ goCare }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:22px;padding:16px 14px;background:none;border:0;border-right:1px solid var(--color-divider);cursor:pointer;color:inherit;text-align:left">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7.5 16 12l7 4.5z"></path><rect x="1" y="5" width="15" height="14"></rect></svg>
+<span><span style="font:600 15px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block">TeleWellness</span><span style="font-size:11px;opacity:.6">Consults and prescriptions</span></span>
+</button>
+<button data-click="{{ goMe }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:22px;padding:16px 14px;background:none;border:0;cursor:pointer;color:inherit;text-align:left">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14"></rect><path d="M2 10h20"></path></svg>
+<span><span style="font:600 15px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block">Pay</span><span style="font-size:11px;opacity:.6">Cards, plans, receipts</span></span>
+</button>
+</div>
+<div style="height:2px;background:var(--color-text)"></div>
+<div style="padding:16px">
+<div class="sl">Refill due</div>
+<div style="display:flex;gap:12px;margin-top:12px;align-items:stretch">
+<img src="products/glp1.webp" style="display:block;object-fit:cover;background:#1F262C;width:74px;height:74px;flex:none" alt="GLP-1 Program">
+<div style="flex:1">
+<div style="font:600 16px 'Instrument Sans',system-ui,-apple-system,sans-serif">GLP-1 Program</div>
+<div style="font-size:11.5px;opacity:.65;margin-top:2px">Week 4 of 4 · refill by Sep 2</div>
+<div style="height:4px;background:var(--color-neutral-300);margin-top:10px"><div style="width:88%;height:4px;background:var(--color-accent)"></div></div>
+</div>
+</div>
+<button class="btn btn-primary btn-block" data-click="{{ reorderGlp }}" style="margin-top:14px">Reorder — $249</button>
+</div>
+<div style="height:2px;background:var(--color-divider)"></div>
+<div style="padding:16px 16px 28px">
+<div class="sl">Your care team</div>
+<div style="display:flex;gap:10px;margin-top:12px">
+<div style="flex:1;border:1px solid var(--color-divider);padding:10px 12px">
+<div style="font:600 13px 'Instrument Sans',system-ui,-apple-system,sans-serif">Naomi Fields, NP</div>
+<div style="font-size:10.5px;opacity:.6;margin-top:2px">Prescriber</div>
+</div>
+<div style="flex:1;border:1px solid var(--color-divider);padding:10px 12px">
+<div style="font:600 13px 'Instrument Sans',system-ui,-apple-system,sans-serif">Lena Ortiz, RN</div>
+<div style="font-size:10.5px;opacity:.6;margin-top:2px">IV nurse · Mission Valley</div>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ c_shop }}">
+<div class="bd" data-screen-label="Client / Shop">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;border-bottom:2px solid var(--color-text)">
+<h4 style="margin:0">Shop</h4>
+<button class="btn btn-ghost" data-click="{{ goCart }}" style="gap:6px">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6.5V21h18V6.5L18 2z"></path><path d="M3 6.5h18"></path></svg>{{ cartCount }}</button>
+</div>
+<div style="display:flex;gap:0;overflow:auto;border-bottom:1px solid var(--color-divider)">
+<sc-for list="{{ cats }}" as="c">
+<button data-click="{{ c.pick }}" style="flex:1 0 auto;padding:11px 10px;background:none;border:0;border-right:1px solid var(--color-divider);cursor:pointer;font:600 10.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:{{ c.color }}">{{ c.name }}</button>
+</sc-for>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr">
+<sc-for list="{{ shopList }}" as="p">
+<button data-click="{{ p.open }}" style="display:block;text-align:left;background:none;border:0;border-right:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider);padding:0 0 14px;cursor:pointer;color:inherit">
+<img src="{{ p.img }}" style="display:block;object-fit:cover;background:#1F262C;width:100%;height:132px" alt="{{ p.name }}">
+<div style="padding:11px 12px 0">
+<div style="font:600 9px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)">{{ p.cat }}</div>
+<div style="font:600 14.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;line-height:1.15;margin-top:5px">{{ p.name }}</div>
+<div style="font-size:10.5px;opacity:.6;margin-top:3px">{{ p.sub }}</div>
+<div style="font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif;margin-top:8px">{{ p.priceText }}</div>
+</div>
+</button>
+</sc-for>
+</div>
+<p style="font-size:11px;opacity:.6;padding:14px 16px 26px;margin:0">Prescription items ship after a licensed provider reviews your intake. Consults are included.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{ c_prod }}">
+<div class="bd" data-screen-label="Client / Product detail">
+<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:2px solid var(--color-text)">
+<button class="btn btn-icon btn-secondary" data-click="{{ back }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0 6-6m-6 6 6 6"></path></svg></button>
+<span style="font:600 10.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.1em;text-transform:uppercase;opacity:.6">{{ prodCat }}</span>
+</div>
+<img src="{{ prodImg }}" style="display:block;object-fit:cover;background:#1F262C;width:100%;height:250px" alt="{{ prodName }}">
+<div style="padding:18px 16px 0">
+<sc-if value="{{ prodRx }}"><span class="tag tag-outline">Prescription</span></sc-if>
+<h3 style="margin:12px 0 4px;font-size:30px">{{ prodName }}</h3>
+<div style="font-size:12.5px;opacity:.7">{{ prodSub }}</div>
+<div style="height:2px;background:var(--color-divider);margin:16px 0"></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline">
+<span class="sl">{{ prodUnit }}</span><span style="font:800 33px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1">{{ prodPrice }}</span>
+</div>
+<div style="height:2px;background:var(--color-divider);margin:16px 0"></div>
+<p style="font-size:13px;opacity:.85;margin:0">{{ prodDesc }}</p>
+<sc-if value="{{ prodRx }}"><div style="border:1px solid var(--color-divider);padding:12px;margin:16px 0 0;display:flex;gap:10px">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;color:var(--color-accent)"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v.01M12 11v5"></path></svg>
+<span style="font-size:11.5px;opacity:.8">A 4-minute telehealth intake is required before your first shipment.</span>
+</div></sc-if>
+</div>
+<div style="padding:16px 16px 26px">
+<button class="btn btn-primary btn-block" data-click="{{ addToCart }}">Add to cart — {{ prodPrice }}</button>
+<sc-if value="{{ prodRx }}"><button class="btn btn-secondary btn-block" data-click="{{ goCare }}">Talk to a provider first</button></sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ c_cart }}">
+<div class="bd" data-screen-label="Client / Cart">
+<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:2px solid var(--color-text)">
+<button class="btn btn-icon btn-secondary" data-click="{{ back }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0 6-6m-6 6 6 6"></path></svg></button>
+<h4 style="margin:0">Cart</h4>
+</div>
+<div style="padding:0 16px">
+<sc-for list="{{ cartLines }}" as="l">
+<div style="display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--color-divider);align-items:center">
+<img src="{{ l.img }}" style="display:block;object-fit:cover;background:#1F262C;width:56px;height:56px;flex:none" alt="{{ l.name }}">
+<div style="flex:1">
+<div style="font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif">{{ l.name }}</div>
+<div style="font-size:11px;opacity:.6;margin-top:2px">{{ l.sub }}</div>
+</div>
+<div style="text-align:right">
+<div style="font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif">{{ l.priceText }}</div>
+<button class="btn btn-ghost" data-click="{{ l.remove }}" style="font-size:11px;padding:2px 0">Remove</button>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{ cartEmpty }}">
+<p style="font-size:13px;opacity:.6;padding:26px 0">Nothing here yet. Your program and refills will show up in this list.</p>
+</sc-if>
+</div>
+<sc-if value="{{ cartAny }}">
+<div style="padding:16px">
+<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0"><span style="opacity:.7">Subtotal</span><span>{{ subtotal }}</span></div>
+<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0"><span style="opacity:.7">Provider review</span><span>Included</span></div>
+<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0"><span style="opacity:.7">Shipping</span><span>Free</span></div>
+<div style="height:2px;background:var(--color-text);margin:10px 0"></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span class="sl">Total</span><span style="font:800 31px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1">{{ subtotal }}</span></div>
+<button class="btn btn-primary btn-block" data-click="{{ goCheckout }}" style="margin-top:18px">Checkout</button>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ c_co }}">
+<div class="bd" data-screen-label="Client / Checkout">
+<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:2px solid var(--color-text)">
+<button class="btn btn-icon btn-secondary" data-click="{{ goCart }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0 6-6m-6 6 6 6"></path></svg></button>
+<h4 style="margin:0">Checkout</h4>
+<span style="margin-left:auto;font:600 10.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.1em;opacity:.55">STEP 2 / 3</span>
+</div>
+<div style="padding:18px 16px 0">
+<div class="sl">Pay with</div>
+<div style="margin-top:12px;border-top:1px solid var(--color-divider)">
+<label class="radio" style="display:flex;width:100%;padding:13px 0;border-bottom:1px solid var(--color-divider)"><input type="radio" name="pm-a" checked="checked"><span class="dot"></span><span style="flex:1"><span style="font:600 13.5px 'Instrument Sans',system-ui,-apple-system,sans-serif">Visa ···· 4242</span><span style="display:block;font-size:11px;opacity:.6">Default · expires 04/29</span></span></label>
+<label class="radio" style="display:flex;width:100%;padding:13px 0;border-bottom:1px solid var(--color-divider)"><input type="radio" name="pm-a"><span class="dot"></span><span style="font:600 13.5px 'Instrument Sans',system-ui,-apple-system,sans-serif">Apple Pay</span></label>
+<label class="radio" style="display:flex;width:100%;padding:13px 0;border-bottom:1px solid var(--color-divider)"><input type="radio" name="pm-a"><span style="flex:none" class="dot"></span><span style="flex:1"><span style="font:600 13.5px 'Instrument Sans',system-ui,-apple-system,sans-serif">Split into 4 payments</span><span style="display:block;font-size:11px;opacity:.6">$62.25 today, then every 2 weeks</span></span></label>
+</div>
+<div style="height:2px;background:var(--color-divider);margin:18px 0"></div>
+<div class="sl">Ship to</div>
+<div class="field" style="margin-top:12px"><label>Address</label><input class="input" value="4120 Adams Ave, Apt 6"></div>
+<div style="display:flex;gap:10px;margin-top:12px">
+<div class="field" style="flex:1"><label>City</label><input class="input" value="San Diego"></div>
+<div class="field" style="width:96px"><label>ZIP</label><input class="input" value="92116"></div>
+</div>
+<div class="field" style="margin-top:12px"><label>Note for your provider (optional)</label><textarea class="input" style="min-height:64px" placeholder="Anything Naomi should know before she reviews"></textarea></div>
+</div>
+<div style="padding:20px 16px 26px">
+<div style="height:2px;background:var(--color-text);margin-bottom:12px"></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span class="sl">Charged today</span><span style="font:800 31px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1">{{ subtotal }}</span></div>
+<button class="btn btn-primary btn-block" data-click="{{ placeOrder }}" style="margin-top:16px">Place order</button>
+<p style="font-size:10.5px;opacity:.55;margin:12px 0 0">Your card is charged after a provider approves the prescription. You'll get a text either way.</p>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ c_done }}">
+<div class="bd" data-screen-label="Client / Order confirmed">
+<div style="padding:0">
+<div style="background:var(--color-accent);color:var(--color-bg);padding:34px 16px 30px">
+<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m4 12.5 5 5L20 6"></path></svg>
+<h3 style="margin:20px 0 6px;font-size:34px;color:var(--color-bg)">Order in.<br>Naomi takes it from here.</h3>
+<div style="font-size:12.5px;opacity:.9">Order WH-40218 · placed 9:41 AM</div>
+</div>
+<div style="padding:18px 16px">
+<div style="display:flex;gap:12px;align-items:center;padding-bottom:16px;border-bottom:1px solid var(--color-divider)">
+<img src="{{ lastOrderImg }}" style="display:block;object-fit:cover;background:#1F262C;width:52px;height:52px;flex:none" alt="{{ lastOrderName }}">
+<div style="flex:1"><div style="font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif">{{ lastOrderName }}</div><div style="font-size:11px;opacity:.6">Under provider review</div></div>
+<span class="tag tag-accent">24 h</span>
+</div>
+<div class="sl" style="display:block;margin:18px 0 12px">What happens next</div>
+<div style="display:grid;gap:0;border-top:1px solid var(--color-divider)">
+<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--color-divider)"><span style="font:600 12px 'Instrument Sans',system-ui,-apple-system,sans-serif;color:var(--color-accent);width:18px">01</span><span style="font-size:12.5px">Naomi reviews your intake and approves or messages you.</span></div>
+<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--color-divider)"><span style="font:600 12px 'Instrument Sans',system-ui,-apple-system,sans-serif;color:var(--color-accent);width:18px">02</span><span style="font-size:12.5px">The pharmacy ships cold-chain, 2-day, signature required.</span></div>
+<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--color-divider)"><span style="font:600 12px 'Instrument Sans',system-ui,-apple-system,sans-serif;color:var(--color-accent);width:18px">03</span><span style="font-size:12.5px">Your first check-in books itself for week four.</span></div>
+</div>
+<button class="btn btn-secondary btn-block" data-click="{{ goShop }}" style="margin-top:20px">Back to shop</button>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ b0 }}">
+<div class="bd" data-screen-label="Client / Book — services">
+<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:2px solid var(--color-text)"><h4 style="margin:0">Book</h4><button class="btn btn-secondary" data-click="{{ goCal }}" style="margin-left:auto;font-size:12px;padding:7px 11px">Calendar</button></div>
+<div style="padding:16px 16px 0">
+<div style="display:flex;justify-content:space-between;align-items:center"><div class="sl">RKVR Mission Valley</div><sc-if value="{{ cr }}"><button data-click="{{ goWallet }}" class="tag tag-accent" style="border:0;cursor:pointer">{{ wCredits }} left</button></sc-if></div>
+<p style="font-size:12.5px;opacity:.7;margin:8px 0 0">Pick up to 3 services for one visit. We book them back to back, in the order you choose.</p>
+</div>
+<div style="padding:8px 16px 0">
+<sc-for list="{{ services }}" as="s">
+<button class="row" data-click="{{ s.pick }}" style="opacity:{{ s.op }}">
+<span style="flex:none;width:22px;height:22px;border:2px solid {{ s.boxBd }};background:{{ s.boxBg }};display:grid;place-items:center;font:700 12px 'Instrument Sans',system-ui,-apple-system,sans-serif;color:var(--color-bg)">{{ s.num }}</span>
+<span style="flex:1"><span style="font:600 15px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block">{{ s.name }}</span><span style="font-size:11.5px;opacity:.6">{{ s.meta }}</span></span>
+<span style="text-align:right"><span style="font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block;color:{{ s.creditColor }}">{{ s.mainText }}</span><span style="font-size:11px;opacity:.5">{{ s.altText }}</span></span>
+</button>
+</sc-for>
+</div>
+<sc-if value="{{ bMulti }}">
+<div style="padding:18px 16px 0">
+<div class="sl">Your order</div>
+<p style="font-size:11.5px;opacity:.6;margin:4px 0 4px">Move a service up to have it first.</p>
+<sc-for list="{{ bOrder }}" as="o">
+<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--color-divider)">
+<span style="font:800 24px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1;width:20px;color:var(--color-accent)">{{ o.n }}</span>
+<span style="flex:1;min-width:0"><span style="font:600 13.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block">{{ o.name }}</span><span style="font-size:11px;opacity:.6">{{ o.meta }}</span></span>
+<button class="btn btn-icon btn-secondary" data-click="{{ o.up }}" aria-label="Move up" style="width:32px;height:32px;opacity:{{ o.upOp }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 15 6-6 6 6"></path></svg></button>
+<button class="btn btn-icon btn-secondary" data-click="{{ o.down }}" aria-label="Move down" style="width:32px;height:32px;opacity:{{ o.downOp }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<div style="padding:18px 16px 0">
+<button class="btn btn-primary btn-block" data-click="{{ bGoTime }}" style="opacity:{{ bGoOp }}">{{ bGoLabel }}</button>
+<p style="font-size:10.5px;opacity:.55;margin:10px 0 0">{{ bPickHint }}</p>
+</div>
+<div style="padding:20px 16px 26px">
+<div style="display:flex;justify-content:space-between;align-items:center"><div class="sl">Upcoming</div><button class="btn btn-ghost" data-click="{{ goCal }}" style="font-size:12px">See calendar</button></div>
+<sc-for list="{{ upcoming }}" as="u">
+<div style="background:var(--color-surface);padding:12px 13px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+<span style="min-width:0"><span style="font:600 13.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block">{{ u.title }}</span><span style="font-size:11px;opacity:.65">{{ u.when }}</span></span>
+<sc-if value="{{ u.rep }}"><span class="tag tag-outline" style="flex:none">{{ u.repText }}</span></sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ b1 }}">
+<div class="bd" data-screen-label="Client / Book — time">
+<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:2px solid var(--color-text)">
+<button class="btn btn-icon btn-secondary" data-click="{{ bBack }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0 6-6m-6 6 6 6"></path></svg></button>
+<span style="font:600 15px 'Instrument Sans',system-ui,-apple-system,sans-serif;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ bTitle }}</span>
+<span style="margin-left:auto;font:600 10.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.1em;opacity:.55">STEP 2 / 3</span>
+</div>
+<div style="display:flex;border-bottom:1px solid var(--color-divider)">
+<sc-for list="{{ days }}" as="d">
+<button data-click="{{ d.pick }}" style="flex:1;padding:12px 4px;background:{{ d.bg }};color:{{ d.fg }};border:0;border-right:1px solid var(--color-divider);cursor:pointer;text-align:left;padding-left:10px">
+<span style="display:block;font:600 9px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.09em;opacity:.7">{{ d.dow }}</span>
+<span style="display:block;font:800 22px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1;margin-top:3px">{{ d.num }}</span>
+</button>
+</sc-for>
+</div>
+<div style="padding:16px 16px 0"><div class="sl">{{ bWho }} · {{ bDayLabel }}</div><p style="font-size:11.5px;opacity:.65;margin:6px 0 0">{{ bDurText }}</p></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;margin-top:14px;border-top:1px solid var(--color-divider)">
+<sc-for list="{{ slots }}" as="t">
+<button data-click="{{ t.pick }}" style="padding:15px 14px;background:{{ t.bg }};color:{{ t.fg }};border:0;border-right:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider);cursor:pointer;text-align:left;font:600 16px 'Instrument Sans',system-ui,-apple-system,sans-serif">{{ t.label }}<span style="display:block;font:400 10px 'Instrument Sans',system-ui,-apple-system,sans-serif;opacity:.6;margin-top:3px">{{ t.note }}</span></button>
+</sc-for>
+</div>
+<div style="padding:20px 16px 26px">
+<sc-if value="{{ bSlotPicked }}">
+<button class="btn btn-primary btn-block" data-click="{{ bNext }}">Hold {{ bSlotLabel }}</button>
+</sc-if>
+<p style="font-size:10.5px;opacity:.55;margin:12px 0 0">Times shown are live from the spa calendar. A hold lasts 10 minutes.</p>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ b2 }}">
+<div class="bd" data-screen-label="Client / Book — confirm">
+<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:2px solid var(--color-text)">
+<button class="btn btn-icon btn-secondary" data-click="{{ bBack }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0 6-6m-6 6 6 6"></path></svg></button>
+<h4 style="margin:0">Confirm</h4>
+<span style="margin-left:auto;font:600 10.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.1em;opacity:.55">STEP 3 / 3</span>
+</div>
+<div style="padding:18px 16px 0">
+<h3 style="margin:0 0 2px;font-size:29px">{{ bTitle }}</h3>
+<div style="font-size:13px;opacity:.7">{{ bSvcMeta }}</div>
+<div style="height:2px;background:var(--color-divider);margin:16px 0 4px"></div>
+<sc-for list="{{ bTimeline }}" as="t">
+<div style="display:flex;gap:12px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:13px"><span style="width:64px;flex:none;font-weight:600;color:var(--color-accent)">{{ t.time }}</span><span style="flex:1;min-width:0"><span style="font-weight:600;display:block">{{ t.name }}</span><span style="font-size:11px;opacity:.6">{{ t.who }} · {{ t.dur }}</span></span><span style="font-weight:600">{{ t.price }}</span></div>
+</sc-for>
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--color-divider);font-size:13px"><span style="opacity:.65">When</span><span style="font-weight:600">{{ bDayLabel }} · {{ bSlotLabel }}</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--color-divider);font-size:13px"><span style="opacity:.65">Where</span><span style="font-weight:600">RKVR Mission Valley</span></div>
+<div class="sl" style="margin-top:16px">Repeat</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"><sc-for list="{{ bReps }}" as="r"><button data-click="{{ r.pick }}" style="padding:8px 11px;border:1px solid var(--color-divider);cursor:pointer;font:600 12px 'Instrument Sans',system-ui,-apple-system,sans-serif;background:{{ r.bg }};color:{{ r.fg }}">{{ r.name }}</button></sc-for></div>
+<p style="font-size:11.5px;opacity:.7;margin:8px 0 0">{{ bRepeatNote }}</p>
+<div style="height:2px;background:var(--color-divider);margin:16px 0 4px"></div>
+<div class="sl" style="margin-top:12px">Pay with</div>
+<div style="margin-top:6px;border-top:1px solid var(--color-divider)">
+<sc-if value="{{ cr }}"><button data-click="{{ bPickCredit }}" style="display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--color-divider);color:inherit;cursor:pointer;padding:13px 0"><span style="flex:none;width:16px;height:16px;border-radius:50%;border:2px solid var(--color-text);display:grid;place-items:center;margin-top:2px"><span style="width:8px;height:8px;border-radius:50%;background:{{ bDotCredit }}"></span></span><span style="flex:1"><span style="font:600 13.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block">Use my membership</span>
+<sc-if value="{{ bCanCredit }}"><span style="font-size:11.5px;opacity:.65">Uses {{ bCr }} {{ bCrWord }} · {{ bLeftAfter }} left after this · no deposit</span></sc-if>
+<sc-if value="{{ bCantCredit }}"><span style="font-size:11.5px;color:var(--color-accent)">Needs {{ bCr }} {{ bCrWord }}, you have {{ wCredits }} left this month</span></sc-if>
+</span><span style="font:600 13.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;color:var(--color-accent)">{{ bCr }} of 12</span></button></sc-if>
+<button data-click="{{ bPickCard }}" style="display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--color-divider);color:inherit;cursor:pointer;padding:13px 0"><span style="flex:none;width:16px;height:16px;border-radius:50%;border:2px solid var(--color-text);display:grid;place-items:center;margin-top:2px"><span style="width:8px;height:8px;border-radius:50%;background:{{ bDotCard }}"></span></span><span style="flex:1"><span style="font:600 13.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block">{{ bCardLabel }}</span><span style="font-size:11.5px;opacity:.65">$40 deposit now, rest at your visit · Visa ···· 4242</span></span><span style="text-align:right"><span style="font:600 13.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block">{{ bMemberPrice }}</span><sc-if value="{{ cr }}"><span style="font-size:11px;opacity:.5;text-decoration:line-through">{{ bRetail }}</span></sc-if></span></button>
+</div>
+<div style="height:2px;background:var(--color-divider);margin:6px 0 16px"></div>
+<div class="field"><label>Add a note for your provider</label><textarea class="input" style="min-height:60px" placeholder="Sensitive skin this week"></textarea></div>
+</div>
+<div style="padding:18px 16px 26px">
+<button class="btn btn-primary btn-block" data-click="{{ bConfirm }}">{{ bConfirmLabel }}</button>
+<p style="font-size:10.5px;opacity:.55;margin:12px 0 0">{{ bCancelNote }}</p>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ b3 }}">
+<div class="bd" data-screen-label="Client / Booked">
+<div style="background:var(--color-text);color:var(--color-bg);padding:32px 16px 28px">
+<span class="tag" style="background:var(--color-accent);color:var(--color-bg)">Booked</span>
+<h3 style="margin:18px 0 8px;font-size:35px;color:var(--color-bg)">{{ bDayLabel }},<br>{{ bSlotLabel }}.</h3>
+<div style="font-size:13px;opacity:.85">{{ bWithLine }}</div>
+<sc-if value="{{ bDoneRep }}"><div style="font-size:12px;margin-top:6px;opacity:.85">↻ {{ bDoneRepText }}</div></sc-if>
+<div style="font-size:12px;font-weight:600;margin-top:10px;color:var(--color-bg)">{{ bPaidNote }}</div>
+</div>
+<div style="padding:18px 16px 26px">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<button class="btn btn-secondary" data-click="{{ bAddCal }}" style="justify-content:flex-start">Add to calendar</button>
+<button class="btn btn-secondary" style="justify-content:flex-start">Get directions</button>
+</div>
+<button class="btn btn-ghost" data-click="{{ goCal }}" style="margin-top:10px;font-size:12.5px">See your calendar →</button>
+<div style="height:2px;background:var(--color-divider);margin:18px 0"></div>
+<div class="sl">Prepare</div>
+<p style="font-size:12.5px;opacity:.8;margin:10px 0 0">Drink plenty of water beforehand and wear comfortable clothes. Your provider sends a short health form the morning of.</p>
+<button class="btn btn-ghost btn-block" data-click="{{ bReset }}" style="margin-top:16px">Book something else</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ care0 }}">
+<div class="bd" data-screen-label="Client / Care">
+<div style="padding:14px 16px 12px;border-bottom:2px solid var(--color-text)"><h4 style="margin:0">TeleWellness</h4></div>
+<div style="padding:16px;background:var(--color-surface)">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+<div>
+<div class="card-kicker">Open visit</div>
+<div style="font:800 23px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1;margin-top:7px">GLP-1 follow-up</div>
+<div style="font-size:12px;opacity:.7;margin-top:3px">Submitted yesterday · Naomi Fields, NP</div>
+</div>
+<span class="tag tag-accent">In review</span>
+</div>
+<div style="display:flex;gap:3px;margin-top:16px">
+<div style="flex:1;height:5px;background:var(--color-accent)"></div>
+<div style="flex:1;height:5px;background:var(--color-accent)"></div>
+<div style="flex:1;height:5px;background:var(--color-neutral-300)"></div>
+<div style="flex:1;height:5px;background:var(--color-neutral-300)"></div>
+</div>
+<div style="display:flex;justify-content:space-between;font:600 9px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.08em;text-transform:uppercase;opacity:.6;margin-top:7px"><span>Intake</span><span>Review</span><span>Rx</span><span>Ship</span></div>
+</div>
+<div style="height:2px;background:var(--color-text)"></div>
+<div style="padding:16px">
+<div class="sl">Start something new</div>
+<div style="display:grid;gap:0;margin-top:12px;border-top:1px solid var(--color-divider)">
+<button class="row" data-click="{{ careStart }}"><span style="flex:1"><span style="font:600 14.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block">Async visit</span><span style="font-size:11.5px;opacity:.6">Answer questions, provider replies in 24 h · $0</span></span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.4"><path d="m9 6 6 6-6 6"></path></svg></button>
+<button class="row"><span style="flex:1"><span style="font:600 14.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block">Live video visit</span><span style="font-size:11.5px;opacity:.6">Next opening today 4:20 PM · $65</span></span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.4"><path d="m9 6 6 6-6 6"></path></svg></button>
+<button class="row"><span style="flex:1"><span style="font:600 14.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;display:block">Message your provider</span><span style="font-size:11.5px;opacity:.6">Naomi usually replies within a day</span></span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.4"><path d="m9 6 6 6-6 6"></path></svg></button>
+</div>
+</div>
+<div style="height:2px;background:var(--color-divider)"></div>
+<div style="padding:16px 16px 28px">
+<div class="sl">Prescriptions</div>
+<table class="table" style="margin-top:10px">
+<tbody>
+<tr><td style="padding-left:0"><span style="font-weight:600">Semaglutide 0.5 mg</span><span style="display:block;font-size:11px;opacity:.6">2 refills left</span></td><td style="text-align:right;padding-right:0"><span class="tag tag-accent">Active</span></td></tr>
+<tr><td style="padding-left:0"><span style="font-weight:600">BPC-157 5 mg</span><span style="display:block;font-size:11px;opacity:.6">Expired Aug 2</span></td><td style="text-align:right;padding-right:0"><span class="tag tag-neutral">Expired</span></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ care1 }}">
+<div class="bd" data-screen-label="Client / Telehealth intake">
+<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:2px solid var(--color-text)">
+<button class="btn btn-icon btn-secondary" data-click="{{ careBack }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0 6-6m-6 6 6 6"></path></svg></button>
+<h4 style="margin:0">Intake</h4>
+<span style="margin-left:auto;font:600 10.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.1em;opacity:.55">4 MIN</span>
+</div>
+<div style="padding:18px 16px 0">
+<p style="font-size:13px;opacity:.8;margin:0 0 18px">Take your time. Everything here goes straight to Naomi and nowhere else.</p>
+<div class="sl">01 · What are you working toward?</div>
+<div style="display:grid;gap:0;margin-top:10px;border-top:1px solid var(--color-divider)">
+<label class="radio" style="display:flex;padding:12px 0;border-bottom:1px solid var(--color-divider)"><input type="radio" name="goal" checked="checked"><span class="dot"></span><span style="font-size:13.5px">Continue weight loss program</span></label>
+<label class="radio" style="display:flex;padding:12px 0;border-bottom:1px solid var(--color-divider)"><input type="radio" name="goal"><span class="dot"></span><span style="font-size:13.5px">Adjust my dose</span></label>
+<label class="radio" style="display:flex;padding:12px 0;border-bottom:1px solid var(--color-divider)"><input type="radio" name="goal"><span class="dot"></span><span style="font-size:13.5px">Something new — peptides or recovery</span></label>
+</div>
+<div class="sl" style="display:block;margin:20px 0 10px">02 · Vitals</div>
+<div style="display:flex;gap:10px">
+<div class="field" style="flex:1"><label>Weight (lb)</label><input class="input" value="164"></div>
+<div class="field" style="flex:1"><label>Resting BP</label><input class="input" value="118/74"></div>
+</div>
+<div class="sl" style="display:block;margin:20px 0 10px">03 · Anything else</div>
+<div class="field"><label>Current medications and side effects</label><textarea class="input" style="min-height:78px" placeholder="Nausea eased off in week three"></textarea></div>
+<label class="radio" style="display:flex;padding:14px 0;margin-top:6px;border-top:1px solid var(--color-divider)"><input type="checkbox"><span class="dot" style="border-radius:0"></span><span style="font-size:12px;opacity:.8">I confirm the answers above are accurate and consent to a telehealth visit.</span></label>
+</div>
+<div style="padding:8px 16px 26px">
+<button class="btn btn-primary btn-block" data-click="{{ careSubmit }}">Send to Naomi</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ care2 }}">
+<div class="bd" data-screen-label="Client / Intake sent">
+<div style="padding:34px 16px 0">
+<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--color-accent)"><path d="m4 12.5 5 5L20 6"></path></svg>
+<h3 style="margin:18px 0 8px;font-size:32px">Sent. Naomi has it.</h3>
+<p style="font-size:13px;opacity:.75;margin:0">You'll hear back by tomorrow 5:00 PM. If she needs a closer look she'll offer you a video slot.</p>
+<div style="height:2px;background:var(--color-divider);margin:20px 0"></div>
+<div class="sl">While you wait</div>
+<div style="margin-top:12px;border-top:1px solid var(--color-divider)">
+<button class="row" data-click="{{ goShop }}"><span style="font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif">Browse the shop</span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.4"><path d="m9 6 6 6-6 6"></path></svg></button>
+<button class="row" data-click="{{ goBook }}"><span style="font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif">Book a recovery visit</span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.4"><path d="m9 6 6 6-6 6"></path></svg></button>
+</div>
+<button class="btn btn-secondary btn-block" data-click="{{ careBack }}" style="margin-top:20px">Back to Care</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ c_me }}">
+<div class="bd" data-screen-label="Client / Account">
+<div style="padding:14px 16px 12px;border-bottom:2px solid var(--color-text)"><h4 style="margin:0">Ava Reyes</h4></div>
+<div style="padding:16px">
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid var(--color-divider)">
+<div style="padding:12px;border-right:1px solid var(--color-divider)"><div style="font:800 24px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1">$1,284</div><div style="font:600 8.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.09em;text-transform:uppercase;opacity:.6;margin-top:3px">Spent 2026</div></div>
+<div style="padding:12px;border-right:1px solid var(--color-divider)"><div style="font:800 24px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1">14</div><div style="font:600 8.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.09em;text-transform:uppercase;opacity:.6;margin-top:3px">Visits</div></div>
+<div style="padding:12px"><div style="font:800 24px 'Big Shoulders Display','Barlow Condensed','Arial Narrow',sans-serif;line-height:1;color:var(--color-accent)">2</div><div style="font:600 8.5px 'Instrument Sans',system-ui,-apple-system,sans-serif;letter-spacing:.09em;text-transform:uppercase;opacity:.6;margin-top:3px">Active Rx</div></div>
+</div>
+<div style="margin-top:20px;border-top:1px solid var(--color-divider)">
+<button class="row" data-click="{{ goWallet }}"><span style="flex:1;font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif">Membership</span><sc-if value="{{ cr }}"><span class="tag tag-accent">{{ wCredits }} left</span></sc-if><sc-if value="{{ noCr }}"><span class="tag tag-outline">Coming soon</span></sc-if></button>
+<button class="row" data-click="{{ goCal }}"><span style="flex:1;font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif">Your calendar</span><span style="font-size:11.5px;opacity:.55">{{ calCountText }}</span></button>
+<button class="row"><span style="flex:1;font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif">Payment methods</span><span style="font-size:11.5px;opacity:.55">Visa ···· 4242</span></button>
+<button class="row"><span style="flex:1;font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif">Orders and receipts</span><span style="font-size:11.5px;opacity:.55">6</span></button>
+<button class="row"><span style="flex:1;font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif">Payment plans</span><span class="tag tag-accent">1 active</span></button>
+<button class="row"><span style="flex:1;font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif">Prescriptions</span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.4"><path d="m9 6 6 6-6 6"></path></svg></button>
+<button class="row"><span style="flex:1;font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif">Your spa</span><span style="font-size:11.5px;opacity:.55">Mission Valley</span></button>
+<button class="row" style="border-bottom:0"><span style="flex:1;font:600 14px 'Instrument Sans',system-ui,-apple-system,sans-serif">Notifications</span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.4"><path d="m9 6 6 6-6 6"></path></svg></button>
+</div>
+</div>
+</div>
+</sc-if>
+
+<div class="tb">
+<button class="tbi" data-click="{{ goHome }}" style="color:{{ tHome }}">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.8 12 3l9 6.8V21H3z"></path></svg>Home</button>
+<button class="tbi" data-click="{{ goShop }}" style="color:{{ tShop }}">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6.5V21h18V6.5L18 2z"></path><path d="M3 6.5h18"></path><path d="M16 10.5a4 4 0 0 1-8 0"></path></svg>Shop</button>
+<button class="tbi" data-click="{{ goBook }}" style="color:{{ tBook }}">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg>Book</button>
+<button class="tbi" data-click="{{ goCare }}" style="color:{{ tCare }}">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7.5 16 12l7 4.5z"></path><rect x="1" y="5" width="15" height="14"></rect></svg>Care</button>
+<button class="tbi" data-click="{{ goMe }}" style="color:{{ tMe }}">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 21a7.5 7.5 0 0 1 15 0"></path></svg>You</button>
+</div>
+</div>
+</template>
+<script>
+(function(){
+  var tplEl=document.getElementById('app-template');
+  var root=document.getElementById('app');
+  function get(scope,path){var parts=path.split('.');var v=scope;for(var i=0;i<parts.length;i++){if(v==null)return undefined;v=v[parts[i]];}return v;}
+  var ONE=/^\s*\{\{\s*([\w.]+)\s*\}\}\s*$/, ANY=/\{\{\s*([\w.]+)\s*\}\}/g;
+  function interp(str,scope){return str.replace(ANY,function(_,p){var v=get(scope,p);return v==null?'':String(v);});}
+  function build(node,scope,out){
+    if(node.nodeType===3){out.appendChild(document.createTextNode(interp(node.nodeValue,scope)));return;}
+    if(node.nodeType!==1)return;
+    var tag=node.tagName.toLowerCase();
+    if(tag==='sc-if'){var m=ONE.exec(node.getAttribute('value')||'');if(m&&get(scope,m[1]))kids(node,scope,out);return;}
+    if(tag==='sc-for'){var m2=ONE.exec(node.getAttribute('list')||'');var list=m2?get(scope,m2[1]):[];var as=node.getAttribute('as');
+      (list||[]).forEach(function(item){var s=Object.create(scope);s[as]=item;kids(node,s,out);});return;}
+    var el=node.namespaceURI==='http://www.w3.org/2000/svg'?document.createElementNS(node.namespaceURI,node.tagName):document.createElement(tag);
+    for(var i=0;i<node.attributes.length;i++){var a=node.attributes[i];
+      if(a.name==='data-click'){var m3=ONE.exec(a.value);if(m3){var fn=get(scope,m3[1]);if(typeof fn==='function')el.addEventListener('click',fn);}continue;}
+      el.setAttribute(a.name,a.value.indexOf('{{')>-1?interp(a.value,scope):a.value);}
+    kids(node,scope,el);out.appendChild(el);
+  }
+  function kids(node,scope,out){var c=node.content?node.content.childNodes:node.childNodes;for(var i=0;i<c.length;i++)build(c[i],scope,out);}
+  window.DCLogic=function(){};
+  window.DCLogic.prototype.setState=function(p){for(var k in p)this.state[k]=p[k];schedule();};
+  var app, queued=false, lastKey='';
+  function schedule(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;render();});}
+  function render(){
+    var vals=app.renderVals();
+    var key=['c_cal','c_walletSoon','c_wallet','c_home','c_shop','c_prod','c_cart','c_co','c_done','c_me','b0','b1','b2','b3','care0','care1','care2','p_today','p_appt','p_sched','p_pay0','p_pay1','p_pay2','p_suite','p_req','p_supply'].filter(function(k){return vals[k];}).join();
+    var old=root.querySelector('.bd'), top=old&&key===lastKey?old.scrollTop:0;
+    var frag=document.createDocumentFragment(); kids(tplEl,vals,frag);
+    root.innerHTML=''; root.appendChild(frag);
+    var nb=root.querySelector('.bd'); if(nb) nb.scrollTop=top; lastKey=key;
+  }
+  window.__start=function(C){app=new C();render();};
+})();
+</script>
+<script>
+
+const PRODUCTS = [
+  {id:'glp1', cat:'Weight Loss', name:'GLP-1 Program', sub:'Semaglutide · 4 weeks', price:249, rx:true},
+  {id:'tirz', cat:'Weight Loss', name:'Tirzepatide Program', sub:'Compounded · 4 weeks', price:329, rx:true},
+  {id:'nad', cat:'Supplements', name:'NAD+ Injectable', sub:'100 mg/mL · 10 vials', price:189, rx:true},
+  {id:'b12', cat:'Supplements', name:'B12 + MIC Shots', sub:'Lipotropic · 4 doses', price:75, rx:false},
+  {id:'ret', cat:'Skin', name:'Retinol 0.5 Serum', sub:'Night treatment · 30 mL', price:68, rx:false},
+  {id:'eye', cat:'Skin', name:'Brightening Eye Cream', sub:'Caffeine + vitamin C · 15 mL', price:64, rx:false},
+  {id:'lash', cat:'Beauty', name:'Lash + Brow Serum', sub:'Growth serum · 4 mL', price:58, rx:false},
+  {id:'lip', cat:'Beauty', name:'Lip Treatment', sub:'Plumping balm · 10 mL', price:32, rx:false}
+];
+const CATS = ['All','Weight Loss','Skin','Supplements','Beauty'];
+const SERVICES = [
+  {id:'cryo', name:'Whole-Body Cryotherapy', meta:'15 min · Jordan Reid', price:45, cr:1},
+  {id:'red', name:'Full-Body Red Light', meta:'20 min · Priya Raman', price:49, cr:1},
+  {id:'myers', name:'Myers’ Cocktail IV', meta:'45 min · Lena Ortiz, RN', price:199, cr:1},
+  {id:'immunity', name:'Immunity Defense Drip', meta:'45 min · Lena Ortiz, RN', price:189, cr:1},
+  {id:'hydration', name:'Hydration and Hangover Drip', meta:'40 min · Lena Ortiz, RN', price:159, cr:1},
+  {id:'energy', name:'Energy and Recovery Drip', meta:'45 min · Lena Ortiz, RN', price:189, cr:1},
+  {id:'nad', name:'NAD+ Therapy', meta:'120 min · Lena Ortiz, RN', price:399, cr:1},
+  {id:'glow', name:'Beauty and Glow Drip', meta:'45 min · Lena Ortiz, RN', price:219, cr:1},
+  {id:'checkin', name:'Weight Loss Check-in', meta:'20 min · Naomi Fields, NP', price:45, cr:1}
+];
+const DAYS = [
+  {dow:'WED', num:'26', label:'Wed 26'},
+  {dow:'THU', num:'27', label:'Thu 27'},
+  {dow:'FRI', num:'28', label:'Fri 28'},
+  {dow:'SAT', num:'29', label:'Sat 29'},
+  {dow:'SUN', num:'30', label:'Sun 30'}
+];
+const SLOTS = [
+  {t:'9:00 AM', note:'Morning'},
+  {t:'10:30 AM', note:'Taken', off:true},
+  {t:'12:00 PM', note:'Lunch hour'},
+  {t:'1:30 PM', note:'Popular'},
+  {t:'3:00 PM', note:'Afternoon'},
+  {t:'4:30 PM', note:'Taken', off:true}
+];
+const AGENDA = [
+  {time:'9:00', client:'Ava Reyes', svc:'Signature Facial · 60 min', price:145, status:'Paid'},
+  {time:'10:30', client:'Maya Chen', svc:'Microneedling · 75 min', price:325, status:'Paid'},
+  {time:'1:30', client:'Dana Whitfield', svc:'Lash fill · 45 min', price:95, status:'Due'},
+  {time:'3:00', client:'Jordan Ellis', svc:'Telehealth · GLP-1 follow-up', price:45, status:'Due', hot:true}
+];
+const HOURS = [
+  {label:'9 AM', client:'Ava Reyes', svc:'Signature Facial'},
+  {label:'10 AM', client:'Maya Chen', svc:'Microneedling'},
+  {label:'11 AM'},
+  {label:'12 PM'},
+  {label:'1 PM', client:'Dana Whitfield', svc:'Lash fill'},
+  {label:'2 PM'},
+  {label:'3 PM', client:'Jordan Ellis', svc:'Telehealth · GLP-1'},
+  {label:'4 PM'}
+];
+const SUPPLY = [
+  {id:'ret', name:'Retinol 0.5 Serum', stock:'6 days left', price:31},
+  {id:'sera', name:'Hyaluronic ampoules', stock:'Par level', price:18},
+  {id:'nee', name:'Microneedling cartridges', stock:'2 days left', price:9},
+  {id:'b12', name:'B12 + MIC vials', stock:'Par level', price:24}
+];
+// Membership: 12 services a month. RKVR HQ's "Membership" switch controls this
+// once the apps run on the RKVR backend; until then flip it here.
+const FEATURES = {memberCredits: true};
+const PLAN = {name:'RKVR Membership', monthly:12, price:99, regular:129, founding:true, cutoff:'Dec 31', renews:'Nov 1', memberOff:0};
+const BASE_LEDGER = [
+  {date:'Oct 1', what:'12 services for October', delta:12},
+  {date:'Oct 4', what:'Whole-Body Cryotherapy · Jordan', delta:-1},
+  {date:'Oct 9', what:'Full-Body Red Light · Priya', delta:-1}
+];
+const money = n => '$' + n.toLocaleString('en-US');
+
+/* ---- visits, repeats and the calendar ---- */
+// Once the backend serves a per-client feed, set this (e.g. 'webcal://app.rkvr.com/cal/<token>.ics')
+// and the Google / Apple / Outlook buttons subscribe to it directly.
+const CAL_FEED = null;
+const CAL_TZ = 'America/Los_Angeles';
+const SUITE_PLACE = 'RKVR Mission Valley · 1640 Camino Del Rio N, Ste 206, San Diego, CA 92108';
+const CAL_START = {y:2026, m:7};   // August 2026 (month is 0-based)
+const TODAY = new Date(2026, 7, 27);
+const BASE_BOOKINGS = [
+  {id:'v1', svcs:['red'], date:'2026-08-06', time:'11:00 AM', repeat:'once'},
+  {id:'v2', svcs:['cryo', 'red'], date:'2026-08-13', time:'6:00 PM', repeat:'weekly'},
+  {id:'v3', svcs:['checkin'], date:'2026-08-20', time:'12:00 PM', repeat:'monthly'},
+  {id:'v4', svcs:['myers'], date:'2026-08-27', time:'3:00 PM', repeat:'once'}
+];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW3 = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const DOWFULL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const svcById = id => SERVICES.find(x => x.id === id) || SERVICES[0];
+const svcMin = x => parseInt((x.meta.match(/(\d+)\s*min/) || [0, 60])[1], 10);
+const svcWho = x => x.meta.split(' · ').slice(1).join(' · ');
+const parseTime = t => { const m = /(\d+):(\d+)\s*(AM|PM)/i.exec(t); let h = +m[1] % 12; if (/pm/i.test(m[3])) h += 12; return {h, m:+m[2]}; };
+const fmtTime = mins => { const h = Math.floor(mins / 60) % 24, mm = mins % 60; return ((h % 12) || 12) + ':' + String(mm).padStart(2, '0') + ' ' + (h < 12 ? 'AM' : 'PM'); };
+const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const dateOf = str => { const p = str.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); };
+const ordinal = n => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({1:'st', 2:'nd', 3:'rd'}[n % 10] || 'th'));
+const repText = r => r === 'weekly' ? 'Weekly' : r === 'monthly' ? 'Monthly' : '';
+function visitTitle(b) { return b.svcs.map(id => svcById(id).name).join(' + '); }
+function visitMins(b) { return b.svcs.reduce((a, id) => a + svcMin(svcById(id)), 0); }
+// every date a booking lands on in a given month
+function occurrences(b, y, m) {
+  const st = dateOf(b.date), out = [];
+  if (b.repeat === 'weekly') {
+    const first = new Date(y, m, 1), last = new Date(y, m + 1, 0);
+    let d = new Date(st);
+    if (d < first) { const wk = Math.ceil((first - d) / (7 * 864e5)); d = new Date(st.getFullYear(), st.getMonth(), st.getDate() + wk * 7); }
+    while (d <= last) { if (d >= st && d.getMonth() === m) out.push(new Date(d)); d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7); }
+  } else if (b.repeat === 'monthly') {
+    const k = (y * 12 + m) - (st.getFullYear() * 12 + st.getMonth());
+    const d = new Date(st.getFullYear(), st.getMonth() + k, st.getDate());
+    if (k >= 0 && d.getMonth() === m) out.push(d);
+  } else if (st.getFullYear() === y && st.getMonth() === m) out.push(st);
+  return out;
+}
+// iCalendar (.ics): one event per booking, repeating bookings carry an RRULE
+function icsEsc(t) { return String(t).replace(/\u00b7/g, '-').replace(/[\u2018\u2019]/g, "'").replace(/[\u2013\u2014]/g, '-').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n'); }
+function icsFold(line) { const out = []; while (line.length > 73) { out.push(line.slice(0, 73)); line = ' ' + line.slice(73); } out.push(line); return out.join('\r\n'); }
+function icsStamp(d, mins) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, mins); return ymd(x).replace(/-/g, '') + 'T' + String(x.getHours()).padStart(2, '0') + String(x.getMinutes()).padStart(2, '0') + '00'; }
+function buildIcs(list) {
+  const now = new Date(), stamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//RKVR//Client app//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:RKVR visits', 'X-WR-TIMEZONE:' + CAL_TZ];
+  list.forEach(b => {
+    const t = parseTime(b.time), start = t.h * 60 + t.m, d = dateOf(b.date);
+    let at = start;
+    const order = b.svcs.map((id, i) => { const x = svcById(id); const line = (i + 1) + '. ' + fmtTime(at) + ' ' + x.name + ' (' + svcWho(x) + ')'; at += svcMin(x); return line; });
+    L.push('BEGIN:VEVENT', 'UID:' + b.id + '@rkvr.app', 'DTSTAMP:' + stamp,
+      'DTSTART;TZID=' + CAL_TZ + ':' + icsStamp(d, start), 'DTEND;TZID=' + CAL_TZ + ':' + icsStamp(d, start + visitMins(b)),
+      'SUMMARY:' + icsEsc(visitTitle(b) + ' · RKVR'), 'LOCATION:' + icsEsc(SUITE_PLACE),
+      'DESCRIPTION:' + icsEsc('Your RKVR visit, in order:\n' + order.join('\n') + '\nManage it in the RKVR app.'));
+    if (b.repeat === 'weekly') L.push('RRULE:FREQ=WEEKLY');
+    if (b.repeat === 'monthly') L.push('RRULE:FREQ=MONTHLY');
+    L.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(visitTitle(b) + ' at RKVR'), 'TRIGGER:-PT2H', 'END:VALARM', 'END:VEVENT');
+  });
+  L.push('END:VCALENDAR');
+  return L.map(icsFold).join('\r\n') + '\r\n';
+}
+function downloadIcs(list, name) {
+  const blob = new Blob([buildIcs(list)], {type:'text/calendar;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+const ACC = 'var(--color-accent)';
+const INK = 'var(--color-text)';
+
+class Component extends DCLogic {
+  state = {
+    cTab:'home', cRoute:'', cProd:'glp1', cCat:'All', cart:[], lastOrder:'GLP-1 Program',
+    bStep:0, bSvc:'cryo', bDay:1, bSlot:null,
+    careStep:0,
+    bSel:[], bRepeat:'once', bookings: BASE_BOOKINGS.slice(), lastBooking:null, calMonth:0, calDay:null, calSync:false,
+    credits:10, payWith: FEATURES.memberCredits ? 'credit' : 'card', waitlisted:false, ledger:BASE_LEDGER.slice(), lastPaid:'',
+    pTab:'today', pRoute:'', pAppt:0,
+    amt:'', payStep:0, payClient:'Dana Whitfield', payFor:'Lash fill',
+    reqSent:false, qty:{ret:2, sera:0, nee:1, b12:0}
+  };
+
+  set(patch) { this.setState(patch); }
+
+  cTo(tab) { this.set({cTab:tab, cRoute:'', careStep:0}); }
+
+  renderVals() {
+    const s = this.state;
+    const tab = (n) => s.cTab === n && s.cRoute === '' ? ACC : INK;
+    const prod = PRODUCTS.find(p => p.id === s.cProd) || PRODUCTS[0];
+    const bundle = s.bSel.map(svcById);
+    const svc = bundle[0] || SERVICES[0];
+    const bPrice = bundle.reduce((a, x) => a + x.price, 0) || svc.price;
+    const bCrTotal = bundle.reduce((a, x) => a + x.cr, 0) || svc.cr;
+    const bMins = bundle.reduce((a, x) => a + svcMin(x), 0) || svcMin(svc);
+    const bWhoList = Array.from(new Set((bundle.length ? bundle : [svc]).map(svcWho)));
+    const calY = CAL_START.y + Math.floor((CAL_START.m + s.calMonth) / 12), calM = (CAL_START.m + s.calMonth) % 12;
+    const monthVisits = [];
+    s.bookings.forEach(b => occurrences(b, calY, calM).forEach(d => monthVisits.push({b, d})));
+    monthVisits.sort((p, q) => p.d - q.d || parseTime(p.b.time).h * 60 + parseTime(p.b.time).m - (parseTime(q.b.time).h * 60 + parseTime(q.b.time).m));
+    const upcomingAll = [];
+    for (let k = 0; k < 3; k++) { const yy = CAL_START.y + Math.floor((CAL_START.m + k) / 12), mm = (CAL_START.m + k) % 12; s.bookings.forEach(b => occurrences(b, yy, mm).forEach(d => { if (d >= TODAY) upcomingAll.push({b, d}); })); }
+    const tMin = b => { const t = parseTime(b.time); return t.h * 60 + t.m; };
+    upcomingAll.sort((p, q) => p.d - q.d || tMin(p.b) - tMin(q.b));
+    const day = DAYS[s.bDay];
+    const cartTotal = s.cart.reduce((a, id) => a + (PRODUCTS.find(p => p.id === id) || {price:0}).price, 0);
+    const amtNum = parseFloat(s.amt || '0') || 0;
+    const ptab = (n) => s.pTab === n && s.pRoute === '' ? ACC : INK;
+    const supplyTotal = SUPPLY.reduce((a, i) => a + i.price * (s.qty[i.id] || 0), 0);
+    const CR = FEATURES.memberCredits;
+    const useCredit = CR && s.payWith === 'credit' && s.credits >= bCrTotal;
+    const cardPrice = CR ? Math.round(bPrice * (1 - PLAN.memberOff)) : bPrice;
+
+    return {
+      // client nav
+      goHome: () => this.cTo('home'), goShop: () => this.cTo('shop'),
+      goBook: () => this.set({cTab:'book', cRoute:'', bStep:0}),
+      goCare: () => this.set({cTab:'care', cRoute:'', careStep:0}),
+      goMe: () => this.cTo('me'),
+      back: () => this.set({cRoute:''}),
+      tHome: tab('home'), tShop: tab('shop'), tBook: tab('book'), tCare: tab('care'), tMe: tab('me'),
+
+      c_home: s.cTab === 'home' && s.cRoute === '',
+      c_shop: s.cTab === 'shop' && s.cRoute === '',
+      c_prod: s.cRoute === 'product',
+      c_cart: s.cRoute === 'cart',
+      c_co: s.cRoute === 'co',
+      c_done: s.cRoute === 'done',
+      c_me: s.cTab === 'me' && s.cRoute === '',
+
+      cats: CATS.map(c => ({name:c, color: c === s.cCat ? ACC : INK, pick: () => this.set({cCat:c})})),
+      shopList: PRODUCTS.filter(p => s.cCat === 'All' || p.cat === s.cCat).map(p => ({
+        cat:p.cat, name:p.name, sub:p.sub, priceText: money(p.price), img: 'products/' + p.id + '.webp',
+        open: () => this.set({cRoute:'product', cProd:p.id})
+      })),
+      prodImg: 'products/' + prod.id + '.webp',
+      prodUnit: prod.rx ? 'Per month' : 'Price',
+      prodDesc: prod.rx
+        ? 'Everything in the program arrives together: the medication, the supplies, and a check-in with your prescriber every four weeks. Cancel any time, no fees.'
+        : 'Ships in 2 days, free over $50.',
+      prodName: prod.name, prodSub: prod.sub, prodCat: prod.cat, prodRx: prod.rx, prodPrice: money(prod.price),
+      addToCart: () => this.set({cart: s.cart.concat([prod.id]), cRoute:'cart'}),
+      reorderGlp: () => this.set({cTab:'shop', cart: s.cart.concat(['glp1']), cRoute:'cart'}),
+      goCart: () => this.set({cTab:'shop', cRoute:'cart'}),
+      cartCount: s.cart.length,
+      cartAny: s.cart.length > 0,
+      cartEmpty: s.cart.length === 0,
+      cartLines: s.cart.map((id, i) => {
+        const p = PRODUCTS.find(x => x.id === id);
+        return {name:p.name, sub:p.sub, priceText: money(p.price), img: 'products/' + p.id + '.webp',
+          remove: () => this.set({cart: s.cart.filter((_, j) => j !== i)})};
+      }),
+      subtotal: money(cartTotal),
+      goCheckout: () => this.set({cRoute:'co'}),
+      placeOrder: () => this.set({cRoute:'done', lastOrder: (PRODUCTS.find(x => x.id === s.cart[0]) || prod).name, cart:[]}),
+      lastOrderName: s.lastOrder,
+      lastOrderImg: 'products/' + ((PRODUCTS.find(x => x.name === s.lastOrder) || PRODUCTS[0]).id) + '.webp',
+
+
+      // membership wallet
+      cr: CR, noCr: !CR,
+      c_wallet: CR && s.cRoute === 'wallet',
+      c_walletSoon: !CR && s.cRoute === 'wallet',
+      wJoin: () => this.set({waitlisted:true}), wJoined: s.waitlisted, wNotJoined: !s.waitlisted,
+      wSoonCta: s.waitlisted ? 'On the waitlist ✓' : 'Join the waitlist →',
+      goWallet: () => this.set({cRoute:'wallet'}),
+      wPlan: PLAN.name, wMonthly: PLAN.monthly, wPrice: money(PLAN.price), wRenews: PLAN.renews,
+      wCredits: s.credits,
+      wCreditsWord: s.credits === 1 ? 'service' : 'services',
+      wBarPct: Math.round(100 * s.credits / PLAN.monthly) + '%',
+      wUsed: PLAN.monthly - s.credits,
+      wDots: Array.from({length: PLAN.monthly}, (_, i) => ({
+        bg: i < s.credits ? 'var(--color-accent)' : 'transparent',
+        bd: i < s.credits ? 'var(--color-accent)' : 'var(--color-divider)'})),
+      wExpiring: 'Nov 1',
+      wHasExpiring: s.credits > 0,
+      wLedger: s.ledger.slice().reverse().map(l => ({date:l.date, what:l.what,
+        amount: (l.delta > 0 ? '+' : '−') + Math.abs(l.delta),
+        color: l.delta > 0 ? 'var(--color-ice)' : INK})),
+      wRates: SERVICES.map(x => ({name:x.name, cr: '1 of 12',
+        retail: money(x.price)})),
+      wBookNow: () => this.set({cTab:'book', cRoute:'', bStep:0}),
+
+      // booking
+      b0: s.cTab === 'book' && s.cRoute === '' && s.bStep === 0,
+      b1: s.cTab === 'book' && s.cRoute === '' && s.bStep === 1,
+      b2: s.cTab === 'book' && s.cRoute === '' && s.bStep === 2,
+      b3: s.cTab === 'book' && s.cRoute === '' && s.bStep === 3,
+      services: SERVICES.map(x => {
+        const idx = s.bSel.indexOf(x.id), on = idx >= 0, full = s.bSel.length >= 3 && !on;
+        return {name:x.name, meta:x.meta, priceText: money(x.price),
+          mainText: CR && s.credits >= 1 ? 'Included' : money(x.price),
+          altText: CR ? 'or ' + money(x.price) : '',
+          creditColor: !CR ? INK : s.credits >= x.cr ? ACC : 'var(--color-muted)',
+          num: on ? idx + 1 : '', boxBg: on ? ACC : 'transparent', boxBd: on ? ACC : 'var(--color-divider)',
+          op: full ? '.4' : '1',
+          pick: () => { if (on) this.set({bSel: s.bSel.filter(id => id !== x.id)}); else if (!full) this.set({bSel: s.bSel.concat([x.id])}); }};
+      }),
+      bMulti: s.bSel.length > 1,
+      bOrder: bundle.map((x, i) => ({n: i + 1, name: x.name, meta: x.meta,
+        upOp: i === 0 ? '.3' : '1', downOp: i === bundle.length - 1 ? '.3' : '1',
+        up: () => { if (i === 0) return; const a = s.bSel.slice(); [a[i - 1], a[i]] = [a[i], a[i - 1]]; this.set({bSel:a}); },
+        down: () => { if (i === bundle.length - 1) return; const a = s.bSel.slice(); [a[i + 1], a[i]] = [a[i], a[i + 1]]; this.set({bSel:a}); }})),
+      bGoOp: s.bSel.length ? '1' : '.45',
+      bGoLabel: !s.bSel.length ? 'Pick a service' : s.bSel.length === 1 ? 'Choose a time' : 'Choose a time · ' + s.bSel.length + ' services',
+      bGoTime: () => { if (s.bSel.length) this.set({bStep:1, bSlot:null}); },
+      bPickHint: !s.bSel.length ? 'Up to 3 services per visit.' : s.bSel.length < 3 ? 'You can add ' + (3 - s.bSel.length) + ' more to this visit.' : 'That’s the most for one visit.',
+      upcoming: upcomingAll.slice(0, 3).map(o => ({title: visitTitle(o.b),
+        when: (ymd(o.d) === ymd(TODAY) ? 'Today' : DOW3[o.d.getDay()][0] + DOW3[o.d.getDay()].slice(1).toLowerCase() + ', ' + MONTHS[o.d.getMonth()].slice(0, 3) + ' ' + o.d.getDate()) + ', ' + o.b.time,
+        rep: o.b.repeat !== 'once', repText: repText(o.b.repeat)})),
+      days: DAYS.map((d, i) => ({dow:d.dow, num:d.num,
+        bg: i === s.bDay ? ACC : 'transparent', fg: i === s.bDay ? 'var(--color-bg)' : INK,
+        pick: () => this.set({bDay:i, bSlot:null})})),
+      slots: SLOTS.map(x => ({label:x.t, note: x.off ? 'Booked' : x.note,
+        bg: s.bSlot === x.t ? ACC : 'transparent',
+        fg: x.off ? 'color-mix(in srgb,var(--color-text) 35%,transparent)' : (s.bSlot === x.t ? 'var(--color-bg)' : INK),
+        pick: () => { if (!x.off) this.set({bSlot:x.t}); }})),
+      bSvcName: (bundle.length ? bundle : [svc]).map(x => x.name).join(' + '),
+      bTitle: bundle.length > 1 ? bundle.length + ' services' : svc.name,
+      bSvcMeta: bundle.length > 1 ? bMins + ' min · back to back · ' + money(bPrice) : svc.meta,
+      bWho: bWhoList.join(', '),
+      bDurText: bundle.length > 1 ? bundle.length + ' services, ' + bMins + ' min back to back. Times are when your first one starts.' : bMins + ' min.',
+      bTimeline: (() => { if (!s.bSlot) return []; const t = parseTime(s.bSlot); let at = t.h * 60 + t.m;
+        return (bundle.length ? bundle : [svc]).map(x => { const row = {time: fmtTime(at), name: x.name, who: svcWho(x), dur: svcMin(x) + ' min', price: money(x.price)}; at += svcMin(x); return row; }); })(),
+      bReps: [{id:'once', name:'Just once'}, {id:'weekly', name:'Every week'}, {id:'monthly', name:'Every month'}].map(r => ({name:r.name,
+        bg: s.bRepeat === r.id ? ACC : 'transparent', fg: s.bRepeat === r.id ? 'var(--color-bg)' : INK, pick: () => this.set({bRepeat:r.id})})),
+      bRepeatNote: (() => { const d = new Date(2026, 7, +day.num);
+        if (s.bRepeat === 'weekly') return 'Every ' + DOWFULL[d.getDay()] + ' at ' + (s.bSlot || '') + ', same services in the same order. ' + (s.payWith === 'credit' && CR ? 'Each visit uses services from that month’s 12.' : 'The first $40 deposit is charged now; each later visit’s deposit is charged 2 days before.') + ' Skip or stop any time.';
+        if (s.bRepeat === 'monthly') return 'On the ' + ordinal(d.getDate()) + ' of every month at ' + (s.bSlot || '') + ', same services in the same order. ' + (s.payWith === 'credit' && CR ? 'Each visit uses services from that month’s 12.' : 'The first $40 deposit is charged now; each later visit’s deposit is charged 2 days before.') + ' Skip or stop any time.';
+        return 'One visit. You can make it repeat later from your calendar.'; })(),
+      bDayLabel: day.label, bSlotLabel: s.bSlot || '', bSlotPicked: !!s.bSlot,
+      bWithLine: (bundle.length ? bundle : [svc]).map(x => x.name).join(' + ') + ' · ' + bWhoList.join(', ') + ' · Mission Valley',
+      bDoneRep: !!(s.lastBooking && s.lastBooking.repeat !== 'once'),
+      bDoneRepText: s.lastBooking ? (s.lastBooking.repeat === 'weekly' ? 'Repeats every week' : 'Repeats every month') + ' · see it in your calendar' : '',
+      bAddCal: () => { if (s.lastBooking) downloadIcs([s.lastBooking], 'rkvr-visit.ics'); },
+
+      bCr: bCrTotal, bCrWord: bCrTotal === 1 ? 'service' : 'services',
+      bCanCredit: s.credits >= bCrTotal,
+      bCantCredit: s.credits < bCrTotal,
+      bLeftAfter: s.credits - bCrTotal,
+      bMemberPrice: money(cardPrice),
+      bCardLabel: CR ? 'À la carte' : 'Card',
+      bCancelNote: 'Free to move or cancel up to 24 hours before. After that the deposit' + (CR ? ', or the service,' : '') + ' is kept.',
+      bRetail: cardPrice === bPrice ? '' : money(bPrice),
+      bPayCredit: useCredit,
+      bPayCard: !useCredit,
+      bDotCredit: useCredit ? ACC : 'transparent',
+      bDotCard: useCredit ? 'transparent' : ACC,
+      bPickCredit: () => { if (CR && s.credits >= bCrTotal) this.set({payWith:'credit'}); },
+      bPickCard: () => this.set({payWith:'card'}),
+      bConfirmLabel: useCredit
+        ? 'Confirm · uses ' + bCrTotal + ' of my services'
+        : 'Confirm and pay $40 deposit',
+      bPaidNote: s.lastPaid,
+      bBack: () => this.set({bStep: Math.max(0, s.bStep - 1)}),
+      bNext: () => this.set({bStep:2}),
+      bConfirm: () => {
+        const nb = {id: 'v' + Date.now(), svcs: s.bSel.slice(), date: '2026-08-' + day.num, time: s.bSlot, repeat: s.bRepeat};
+        const base = {bStep:3, bookings: s.bookings.concat([nb]), lastBooking: nb};
+        if (useCredit) {
+          const left = s.credits - bCrTotal;
+          this.set(Object.assign(base, {credits:left,
+            ledger: s.ledger.concat([{date:'Oct 14', what: visitTitle(nb) + ' · ' + day.label, delta:-bCrTotal}]),
+            lastPaid: 'Included in membership · ' + left + ' of 12 left this month'}));
+        } else {
+          this.set(Object.assign(base, {lastPaid:'$40 deposit paid · ' + money(cardPrice - 40) + ' at your visit' + (CR ? ' (member price)' : '')}));
+        }
+      },
+      bReset: () => this.set({bStep:0, bSlot:null, bSel:[], bRepeat:'once', payWith: CR ? 'credit' : 'card'}),
+
+      // calendar
+      c_cal: s.cRoute === 'cal',
+      goCal: () => this.set({cRoute:'cal', calDay:null, calSync:false}),
+      calTitle: MONTHS[calM] + ' ' + calY,
+      calPrevOp: s.calMonth > -1 ? '1' : '.3', calNextOp: s.calMonth < 5 ? '1' : '.3',
+      calPrev: () => { if (s.calMonth > -1) this.set({calMonth: s.calMonth - 1, calDay:null}); },
+      calNext: () => { if (s.calMonth < 5) this.set({calMonth: s.calMonth + 1, calDay:null}); },
+      calDow: ['S','M','T','W','T','F','S'],
+      calCells: (() => {
+        const first = new Date(calY, calM, 1).getDay(), n = new Date(calY, calM + 1, 0).getDate(), cells = [];
+        for (let i = 0; i < first; i++) cells.push({num:'', aria:'', bd:'transparent', bg:'transparent', fg:INK, op:'0', dot:'transparent', pick: () => {}});
+        for (let d = 1; d <= n; d++) {
+          const has = monthVisits.some(v => v.d.getDate() === d), sel = s.calDay === d;
+          const isToday = calY === 2026 && calM === 7 && d === 27;
+          cells.push({num:d, aria: MONTHS[calM] + ' ' + d + (has ? ', visit booked' : ''),
+            bd: isToday ? INK : 'var(--color-divider)', bg: sel ? ACC : 'transparent', fg: sel ? 'var(--color-bg)' : INK,
+            op: new Date(calY, calM, d) < TODAY && !has ? '.45' : '1',
+            dot: has ? (sel ? 'var(--color-bg)' : ACC) : 'transparent',
+            pick: () => this.set({calDay: sel ? null : d})});
+        }
+        return cells; })(),
+      calHasDay: s.calDay !== null,
+      calAll: () => this.set({calDay:null}),
+      calList: monthVisits.filter(v => s.calDay === null || v.d.getDate() === s.calDay).map(v => {
+        const t = parseTime(v.b.time), st = t.h * 60 + t.m;
+        return {dow: DOW3[v.d.getDay()], num: v.d.getDate(), title: visitTitle(v.b),
+          when: v.b.time + ' – ' + fmtTime(st + visitMins(v.b)) + ' · Mission Valley',
+          rep: v.b.repeat !== 'once', repText: repText(v.b.repeat), op: v.d < TODAY ? '.55' : '1'}; }),
+      calEmpty: !monthVisits.filter(v => s.calDay === null || v.d.getDate() === s.calDay).length,
+      calListTitle: s.calDay !== null ? DOWFULL[new Date(calY, calM, s.calDay).getDay()] + ', ' + MONTHS[calM].slice(0, 3) + ' ' + s.calDay
+        : MONTHS[calM] + ' · ' + monthVisits.length + (monthVisits.length === 1 ? ' visit' : ' visits'),
+      calCountText: upcomingAll.length + ' upcoming',
+      calSyncNote: s.calSync,
+      calGoogle: () => { if (CAL_FEED) window.open('https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(CAL_FEED), '_blank'); else this.set({calSync:true}); },
+      calApple: () => { if (CAL_FEED) window.location.href = CAL_FEED; else this.set({calSync:true}); },
+      calOutlook: () => { if (CAL_FEED) window.open('https://outlook.live.com/calendar/0/addfromweb?url=' + encodeURIComponent(CAL_FEED.replace(/^webcal:/, 'https:')) + '&name=RKVR%20visits', '_blank'); else this.set({calSync:true}); },
+      calDownload: () => downloadIcs(s.bookings, 'rkvr-visits.ics'),
+
+      // care
+      care0: s.cTab === 'care' && s.cRoute === '' && s.careStep === 0,
+      care1: s.cTab === 'care' && s.cRoute === '' && s.careStep === 1,
+      care2: s.cTab === 'care' && s.cRoute === '' && s.careStep === 2,
+      careStart: () => this.set({careStep:1}),
+      careSubmit: () => this.set({careStep:2}),
+      careBack: () => this.set({careStep:0}),
+
+      // pro
+      goToday: () => this.set({pTab:'today', pRoute:''}),
+      goSched: () => this.set({pTab:'sched', pRoute:''}),
+      goCollect: () => this.set({pTab:'collect', pRoute:'', payStep:0}),
+      goSuite: () => this.set({pTab:'suite', pRoute:'', reqSent:false}),
+      goSupply: () => this.set({pTab:'supply', pRoute:''}),
+      pBack: () => this.set({pRoute:''}),
+      pTodayC: ptab('today'), pSchedC: ptab('sched'), pPayC: ptab('collect'), pSuiteC: ptab('suite'), pSupC: ptab('supply'),
+
+      p_today: s.pTab === 'today' && s.pRoute === '',
+      p_appt: s.pRoute === 'appt',
+      p_sched: s.pTab === 'sched' && s.pRoute === '',
+      p_pay0: s.pTab === 'collect' && s.pRoute === '' && s.payStep === 0,
+      p_pay1: s.pTab === 'collect' && s.pRoute === '' && s.payStep === 1,
+      p_pay2: s.pTab === 'collect' && s.pRoute === '' && s.payStep === 2,
+      p_suite: s.pTab === 'suite' && s.pRoute === '',
+      p_req: s.pRoute === 'req',
+      p_supply: s.pTab === 'supply' && s.pRoute === '',
+
+      agenda: AGENDA.map((a, i) => ({time:a.time, client:a.client, svc:a.svc, status:a.status,
+        priceText: money(a.price), timeColor: a.hot ? ACC : INK,
+        open: () => this.set({pRoute:'appt', pAppt:i})})),
+      apptTime: AGENDA[s.pAppt].time, apptClient: AGENDA[s.pAppt].client, apptSvc: AGENDA[s.pAppt].svc,
+      apptPrice: money(AGENDA[s.pAppt].price), apptBalance: money(Math.max(0, AGENDA[s.pAppt].price - 40)),
+      collectFor: () => this.set({pTab:'collect', pRoute:'', payStep:0,
+        amt: String(Math.max(0, AGENDA[s.pAppt].price - 40)),
+        payClient: AGENDA[s.pAppt].client, payFor: AGENDA[s.pAppt].svc.split(' · ')[0]}),
+      hours: HOURS.map((h, i) => ({label:h.label, busy: !!h.client, client:h.client || '', svc:h.svc || '',
+        bg: h.client === 'Jordan Ellis' ? ACC : 'var(--color-surface)',
+        fg: h.client === 'Jordan Ellis' ? 'var(--color-bg)' : INK,
+        open: () => this.set({pRoute:'appt', pAppt: Math.min(3, AGENDA.findIndex(a => a.client === h.client) < 0 ? 0 : AGENDA.findIndex(a => a.client === h.client))})})),
+
+      amtText: '$' + (s.amt === '' ? '0' : s.amt),
+      payClient: s.payClient, payFor: s.payFor,
+      payoutText: money(Math.max(0, Math.round(amtNum + 18 - 2.83))),
+      quick: [{v:'145', label:'$145 facial'}, {v:'95', label:'$95 lash fill'}, {v:'325', label:'$325 microneedling'}]
+        .map(q => ({label:q.label, pick: () => this.set({amt:q.v})})),
+      keys: ['1','2','3','4','5','6','7','8','9','.','0','⌫'].map(k => ({label:k,
+        press: () => {
+          if (k === '⌫') return this.set({amt: s.amt.slice(0, -1)});
+          if (k === '.' && s.amt.includes('.')) return;
+          if (s.amt.length > 6) return;
+          this.set({amt: s.amt + k});
+        }})),
+      payNext: () => { if (amtNum > 0) this.set({payStep:1}); },
+      payDone: () => this.set({payStep:2}),
+      payReset: () => this.set({payStep:0, amt:''}),
+
+      payRent: () => this.set({pTab:'collect', pRoute:'', payStep:0, amt:'850', payClient:'RKVR Suites', payFor:'September rent'}),
+      newReq: () => this.set({pRoute:'req', reqSent:false}),
+      reqForm: !s.reqSent, reqSent: s.reqSent,
+      reqSubmit: () => this.set({reqSent:true}),
+
+      supply: SUPPLY.map(i => ({name:i.name, stock:i.stock, priceText: money(i.price), qty: s.qty[i.id] || 0,
+        inc: () => this.set({qty: Object.assign({}, s.qty, {[i.id]: (s.qty[i.id] || 0) + 1})}),
+        dec: () => this.set({qty: Object.assign({}, s.qty, {[i.id]: Math.max(0, (s.qty[i.id] || 0) - 1)})})})),
+      supplyTotal: money(supplyTotal)
+    };
+  }
+}
+
+
+window.__start(Component);
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').catch(function(){});
+}
+</script>
+</body></html>

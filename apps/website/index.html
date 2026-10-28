@@ -1,0 +1,882 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>RKVR · Recovery and Wellness</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky brand bar, then one view at a time (home, locations, services, book, shop, care, account, owners) in a 1180px column; booking and account are working tools, the rest are editorial. */
+:root {
+  --bg: #0E1216; --band: #13191E; --panel: #182027; --panel-2: #1F2830; --line: rgba(242,240,234,.12); --line-strong: rgba(242,240,234,.26);
+  --fg: #F2F0EA; --muted: #A9B1B8; --accent: #F2542D; --accent-text: #FF7A57; --on-accent: #0E1216; --ice: #7CCBFF; --good: #4FC38A;
+  --accent-bg: rgba(242,84,45,.14); --ice-bg: rgba(124,203,255,.12);
+  --display: 'Big Shoulders Display', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  --body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #F2F0EA; --band: #E9E6DE; --panel: #FBFAF6; --panel-2: #EFECE5; --line: rgba(14,18,22,.12); --line-strong: rgba(14,18,22,.28);
+    --fg: #0E1216; --muted: #4A535C; --accent: #E04A23; --accent-text: #B83A18; --on-accent: #0E1216; --ice: #1F6FA8; --good: #1E8A55;
+    --accent-bg: rgba(224,74,35,.1); --ice-bg: rgba(31,111,168,.1);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #F2F0EA; --band: #E9E6DE; --panel: #FBFAF6; --panel-2: #EFECE5; --line: rgba(14,18,22,.12); --line-strong: rgba(14,18,22,.28);
+  --fg: #0E1216; --muted: #4A535C; --accent: #E04A23; --accent-text: #B83A18; --on-accent: #0E1216; --ice: #1F6FA8; --good: #1E8A55;
+  --accent-bg: rgba(224,74,35,.1); --ice-bg: rgba(31,111,168,.1);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.display { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: .005em; line-height: .95; }
+.eyebrow { font-size: 12.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-text); }
+.muted { color: var(--muted); }
+.small { font-size: 13.5px; }
+
+/* header */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; gap: 22px; min-height: 64px; flex-wrap: wrap; padding-block: 8px; }
+.logo { display: flex; align-items: center; color: var(--fg); background: none; border: 0; padding: 0; }
+.logo svg { width: 84px; height: 31px; display: block; }
+.nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.nav button { background: none; border: 0; padding: 8px 10px; font-weight: 600; font-size: 15px; color: var(--muted); border-radius: 8px; }
+.nav button[aria-current="page"] { color: var(--fg); box-shadow: inset 0 -2px 0 var(--accent); border-radius: 0; }
+.nav button:hover { color: var(--fg); }
+.top-cta { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line-strong); background: transparent; border-radius: 0; padding: 10px 16px; font-weight: 700; font-size: 14.5px; letter-spacing: .01em; text-decoration: none; }
+.btn:hover { border-color: var(--fg); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn-primary:hover { filter: brightness(1.06); border-color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-sm { padding: 7px 12px; font-size: 13.5px; }
+.linkish { background: none; border: 0; padding: 0; color: var(--accent-text); font-weight: 700; }
+.cart-btn { position: relative; padding-inline: 10px; align-self: stretch; display: inline-flex; align-items: center; }
+.cart-btn svg { display: block; }
+.cart-btn .count { position: absolute; top: -7px; right: -7px; background: var(--accent); color: var(--on-accent); border-radius: 999px; font-size: 11px; line-height: 1; padding: 3px 6px; min-width: 18px; text-align: center; }
+@media (max-width: 860px) { .nav { order: 3; width: 100%; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; } .nav::-webkit-scrollbar { display: none; } .nav button { flex: none; } }
+
+main { min-height: 60vh; }
+section.band { padding-block: 64px; }
+section.band.alt { background: var(--band); }
+.section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+.section-head h2 { font-size: clamp(36px, 5vw, 56px); }
+.section-head p { max-width: 56ch; color: var(--muted); margin-top: 8px; }
+
+/* hero */
+.hero { padding-block: 56px 64px; border-bottom: 1px solid var(--line); }
+.hero .wrap { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 48px 56px; align-items: start; }
+.hero-phone { margin-top: 44px; }
+@media (max-width: 900px) { .hero .wrap { grid-template-columns: minmax(0, 1fr); } .hero-phone { margin-top: 56px; } }
+.hero h1 { font-size: clamp(34px, 4.2vw, 58px); overflow-wrap: break-word; }
+.hero h1 .h1-logo { display: inline-block; height: 1.01em; width: auto; vertical-align: -.058em; margin: 0 .04em 0 -.01em; color: inherit; }
+@media (min-width: 1000px) { .hero h1 .hl { display: block; white-space: nowrap; } }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.hero h1 .ac { color: var(--accent); }
+.brandline { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; margin-top: 22px; }
+.brandline .brand-logo { height: clamp(52px, 6vw, 84px); width: auto; display: block; color: var(--fg); }
+.brandline .pron { font-size: clamp(16px, 1.6vw, 20px); color: var(--muted); padding-bottom: .35em; letter-spacing: .01em; }
+.brandline .pron b { color: var(--fg); font-weight: 700; margin-right: 6px; }
+.hero .lead { font-size: 19px; color: var(--muted); max-width: 46ch; margin-top: 18px; }
+.finder { margin-top: 28px; display: flex; gap: 0; max-width: 520px; border: 1px solid var(--line-strong); background: var(--panel); }
+.finder input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 14px 16px; font-size: 16px; }
+.finder input:focus { outline: none; }
+.finder:focus-within { border-color: var(--accent); }
+.hero-phone { justify-self: center; position: relative; }
+.hero-phone img { width: 300px; max-width: 100%; display: block; }
+.visit-card { width: 340px; max-width: 100%; background: var(--panel); border: 1px solid var(--line-strong); padding: 20px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 30px 60px rgba(0,0,0,.25); }
+.visit-card .vc-row { display: grid; grid-template-columns: 26px 64px minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 11px 0; border-top: 1px solid var(--line); }
+.visit-card .vc-row b.n { font: 800 26px/1 var(--display); color: var(--accent-text); }
+.visit-card .vc-row .t { font-weight: 700; font-size: 14px; }
+.visit-card .vc-row .s { font-size: 15px; font-weight: 600; }
+.visit-card .vc-row .s small { display: block; font-weight: 500; font-size: 12.5px; color: var(--muted); }
+.mini-cal { width: 300px; max-width: 100%; background: var(--panel); border: 1px solid var(--line-strong); padding: 18px; }
+.mini-cal .vc-row { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.hero-tag { position: absolute; right: -14px; top: -52px; background: var(--accent); color: var(--on-accent); font-weight: 700; padding: 10px 14px; font-size: 14px; max-width: 200px; line-height: 1.3; }
+@media (max-width: 860px) { .hero .wrap { grid-template-columns: minmax(0, 1fr); } .hero-phone { display: none; } }
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); margin-top: 40px; }
+.facts div { padding: 16px 16px 0 0; }
+.facts b { display: block; font: 800 34px/1 var(--display); }
+.facts span { font-size: 13.5px; color: var(--muted); }
+@media (max-width: 640px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 12px; } }
+
+/* cards / grids */
+.grid { display: grid; gap: 16px; }
+.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 900px) { .g3, .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .g3, .g2, .g4 { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); padding: 20px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card h3 { font-size: 20px; }
+.svc-cat { font: 800 28px/1 var(--display); text-transform: uppercase; }
+.steps-row { counter-reset: s; }
+.step-card b { font: 800 44px/1 var(--display); color: var(--accent); }
+
+/* locations */
+.loc { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: start; }
+.loc + .loc { margin-top: 14px; }
+.loc-name { font: 800 32px/1 var(--display); text-transform: uppercase; }
+.dist { font: 800 26px/1 var(--display); color: var(--accent-text); text-align: right; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line-strong); padding: 4px 10px; font-size: 13px; font-weight: 600; border-radius: 999px; background: transparent; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.suites { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 18px; margin-top: 6px; }
+.suites div { font-size: 14px; border-top: 1px solid var(--line); padding-top: 8px; }
+.suites b { display: block; }
+@media (max-width: 640px) { .loc { grid-template-columns: minmax(0, 1fr); } .dist { text-align: left; } .suites { grid-template-columns: minmax(0, 1fr); } }
+.note { font-size: 13.5px; color: var(--muted); }
+.notice { padding: 12px 14px; border-left: 3px solid var(--accent); background: var(--accent-bg); font-size: 14px; }
+.notice.ice { border-left-color: var(--ice); background: var(--ice-bg); }
+
+/* booking */
+.book { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; align-items: start; }
+@media (max-width: 900px) { .book { grid-template-columns: minmax(0, 1fr); } }
+.stepper { display: flex; gap: 4px; margin-bottom: 18px; flex-wrap: wrap; }
+.stepper span { font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 6px 10px; border: 1px solid var(--line); color: var(--muted); }
+.stepper span.on { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
+.stepper span.done { color: var(--fg); border-color: var(--line-strong); }
+.pick { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 12px; align-items: center; width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--line); padding: 13px 0; }
+.pick:disabled { opacity: .4; cursor: not-allowed; }
+.box { width: 24px; height: 24px; border: 2px solid var(--line-strong); display: grid; place-items: center; font-weight: 800; font-size: 13px; color: var(--on-accent); }
+.box.on { background: var(--accent); border-color: var(--accent); }
+.suite-h { font: 800 20px/1.1 var(--display); text-transform: uppercase; margin-top: 18px; padding-bottom: 6px; }
+.order-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); }
+.order-row b.n { font: 800 26px/1 var(--display); color: var(--accent-text); }
+.icon-btn { width: 34px; height: 34px; border: 1px solid var(--line-strong); background: transparent; display: grid; place-items: center; }
+.icon-btn:disabled { opacity: .3; }
+.days { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.day { flex: none; width: 70px; border: 1px solid var(--line-strong); background: transparent; padding: 8px; text-align: left; }
+.day small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--muted); }
+.day b { font: 800 26px/1 var(--display); }
+.day[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.day[aria-pressed="true"] small { color: var(--on-accent); }
+.slots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+@media (max-width: 600px) { .slots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.slot { border: 1px solid var(--line-strong); background: transparent; padding: 12px; font-weight: 700; text-align: left; }
+.slot small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
+.slot[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.slot[aria-pressed="true"] small { color: var(--on-accent); }
+.slot:disabled { opacity: .35; text-decoration: line-through; cursor: not-allowed; }
+.summary { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 84px); }
+.tl-row { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
+.tl-row b.t { color: var(--accent-text); }
+.total { display: flex; justify-content: space-between; align-items: baseline; border-top: 2px solid var(--fg); padding-top: 10px; margin-top: 6px; }
+.total b { font: 800 30px/1 var(--display); }
+.field { display: grid; gap: 6px; }
+.field label { font-size: 13.5px; font-weight: 600; }
+.input { width: 100%; border: 1px solid var(--line-strong); background: var(--panel-2); padding: 11px 12px; border-radius: 0; }
+.input:focus { outline: none; border-color: var(--accent); }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; }
+.check input { margin-top: 3px; accent-color: var(--accent); }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 600px) { .form-grid { grid-template-columns: minmax(0, 1fr); } }
+.success { background: var(--fg); color: var(--bg); padding: 28px; }
+.success .display { font-size: clamp(44px, 7vw, 72px); }
+
+/* shop */
+.prod { background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; }
+.prod .img { background: #12171C; aspect-ratio: 1; display: grid; place-items: center; }
+.prod .img img { width: 100%; height: 100%; object-fit: contain; }
+.prod .body { padding: 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.prod .price { font: 800 26px/1 var(--display); }
+.prod .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: auto; padding-top: 6px; }
+.tag { display: inline-block; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border: 1px solid var(--line-strong); }
+.tag.rx { border-color: var(--ice); color: var(--ice); }
+.plans { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+.plan { border: 1px solid var(--line-strong); padding: 26px; display: flex; flex-direction: column; gap: 10px; background: var(--panel, transparent); }
+.plan.hot { border: 2px solid var(--accent); }
+.plan .price { font-family: var(--display); font-weight: 800; font-size: 64px; line-height: 1; }
+.plan .price small { font-family: inherit; font-size: 20px; font-weight: 700; }
+.plan ul { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 6px; }
+.plan .was { text-decoration: line-through; opacity: .6; font-weight: 700; }
+.pay-opt { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border: 1px solid var(--line-strong); cursor: pointer; text-align: left; width: 100%; background: transparent; color: inherit; font: inherit; }
+.pay-opt[aria-pressed="true"] { border: 2px solid var(--accent); padding: 13px; }
+.pay-opt:disabled { opacity: .5; cursor: not-allowed; }
+.pay-opt .dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line-strong); flex: none; margin-top: 2px; }
+.pay-opt[aria-pressed="true"] .dot { border-color: var(--accent); background: radial-gradient(var(--accent) 45%, transparent 50%); }
+.meter { height: 10px; background: var(--line); margin-top: 6px; }
+.meter i { display: block; height: 100%; background: var(--accent); }
+@media (max-width: 760px) { .plans { grid-template-columns: 1fr; } }
+.li-ico { width: 56px; height: 56px; flex: none; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 15px; text-transform: uppercase; border: 1px solid var(--line-strong); }
+.li-ico.member { background: var(--accent); color: #0E1216; border-color: var(--accent); font-size: 22px; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100%); background: var(--panel); border-left: 1px solid var(--line-strong); z-index: 40; display: flex; flex-direction: column; padding: calc(16px + env(safe-area-inset-top, 0px)) calc(18px + env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) 18px; gap: 12px; box-shadow: -20px 0 60px rgba(0,0,0,.35); }
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 35; }
+.line-item { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 10px; align-items: center; border-top: 1px solid var(--line); padding-top: 10px; }
+.line-item img { width: 54px; height: 54px; object-fit: contain; background: #12171C; }
+
+/* account */
+.acct { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 860px) { .acct { grid-template-columns: minmax(0, 1fr); } }
+.side { display: flex; flex-direction: column; gap: 2px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 84px); }
+@media (max-width: 860px) { .side { position: static; flex-direction: row; overflow-x: auto; } .side button { flex: none; } }
+.side button { text-align: left; background: none; border: 0; border-left: 3px solid transparent; padding: 9px 12px; font-weight: 600; color: var(--muted); }
+.side button[aria-current="true"] { color: var(--fg); border-left-color: var(--accent); background: var(--panel); }
+.visit { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; align-items: center; padding: 14px 0; border-top: 1px solid var(--line); }
+.visit-acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.datebox { border: 1px solid var(--line-strong); text-align: center; padding: 6px 0; }
+.datebox small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; color: var(--muted); }
+.datebox b { font: 800 26px/1 var(--display); }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal .dow { text-align: center; font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(--muted); padding: 4px 0; }
+.cal button { aspect-ratio: 1.25; border: 1px solid var(--line); background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-weight: 600; font-size: 14px; }
+.cal button i { width: 6px; height: 6px; border-radius: 50%; background: transparent; }
+.cal button.has i { background: var(--accent); }
+.cal button.today { border-color: var(--fg); }
+.cal button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.cal button[aria-pressed="true"] i { background: var(--on-accent); }
+.cal .blank { visibility: hidden; }
+.kv { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
+
+footer { border-top: 1px solid var(--line); padding-block: 40px 56px; margin-top: 40px; }
+footer .wrap { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); gap: 24px; }
+footer h4 { font-size: 12.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+footer button { display: block; background: none; border: 0; padding: 3px 0; color: var(--fg); text-align: left; }
+@media (max-width: 760px) { footer .wrap { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 11px 16px; font-weight: 700; font-size: 14px; z-index: 50; max-width: calc(100% - 32px); }
+.preview-pill { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ice); border: 1px solid var(--ice); padding: 3px 8px; }
+@media (prefers-reduced-motion: no-preference) { .view-in { animation: rise .25s ease-out; } @keyframes rise { from { transform: translateY(6px); } to { transform: none; } } }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <button class="logo" data-go="home" aria-label="RKVR home">
+      <svg viewBox="-4 -32 380 140" aria-hidden="true"><g fill="currentColor"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g><g fill="currentColor" transform="translate(96 0)"><rect x="0" y="0" width="24" height="100"/><polygon points="24,50 51.5,0 79.5,0 52,50 79.5,100 51.5,100"/></g><g transform="translate(183 0)"><polygon fill="currentColor" points="0,0 26,0 58,100 32,100"/><polygon fill="#F2542D" points="78.32,-26 104.32,-26 64,100 38,100"/></g><g fill="currentColor" transform="translate(287 0)"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g></svg>
+    </button>
+    <nav class="nav" id="nav" aria-label="Main"></nav>
+    <div class="top-cta" id="topcta"></div>
+  </div>
+</header>
+<main id="main"></main>
+<footer>
+  <div class="wrap">
+    <div>
+      <p class="display" style="font-size:34px">Book the experts.<br>All under one roof.</p>
+      <p class="note" style="margin-top:12px">Now open: 1640 Camino Del Rio N, Ste 206, San Diego, CA 92108, inside Phenix Salon Suites. Austin and Dallas coming soon. RKVR is a brand of Phenix Salon Suites and SalonHQ.</p>
+      <p class="note" style="margin-top:6px"><span class="preview-pill">Preview</span> Sample providers, prices and hours. Nothing is charged.</p>
+    </div>
+    <div><h4>Visit</h4><button data-go="locations">Find a location</button><button data-go="services">Services</button><button data-go="book">Book</button></div>
+    <div><h4>Shop and care</h4><button data-go="shop">Shop</button><button data-go="care">TeleWellness</button><button data-go="account">My RKVR</button></div>
+    <div><h4>RKVR</h4><button data-go="owners">Own an RKVR spa</button><button data-go="join">Join RKVR</button><button data-go="membership">Membership</button></div>
+  </div>
+</footer>
+<div id="overlay"></div>
+<div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  /* ---------------- data (sample) ---------------- */
+  const LOCS = [
+    { id: 'sd', city: 'San Diego', name: 'Mission Valley', area: 'San Diego, CA', open: true, tz: 'America/Los_Angeles', lat: 32.7695, lng: -117.1530,
+      address: '1640 Camino Del Rio N, Ste 206, San Diego, CA 92108', hours: 'Mon–Sat 8 AM–8 PM · Sun 10 AM–6 PM',
+      suites: [
+        { id: 'sd-1', no: 1, studio: 'Cold Front', pro: 'Jordan Reid', what: 'Cryotherapy', svcs: [['Whole-Body Cryotherapy', 15, 45, 'cryo'], ['Localized Cryotherapy', 20, 40, 'cryo'], ['Cryo + Compression', 45, 79, 'cryo']] },
+                { id: 'sd-2', no: 2, studio: 'Red Room', pro: 'Priya Raman', what: 'Red light therapy', svcs: [['Full-Body Red Light', 20, 49, 'red'], ['Red Light + Infrared Sauna', 40, 69, 'red']] },
+        { id: 'sd-3', no: 3, studio: 'North Clinic', pro: 'Naomi Fields, NP', what: 'Weight loss, TeleWellness', svcs: [['Weight Loss Consult', 30, 95, 'wl'], ['Weight Loss Check-in', 20, 45, 'wl'], ['TeleWellness Video Visit', 20, 45, 'tw']] },
+                { id: 'sd-5', no: 5, studio: 'Arctic Lab', pro: 'Tasha Greene', what: 'Cryotherapy', svcs: [['Whole-Body Cryotherapy', 15, 45, 'cryo'], ['Cryo + Compression', 45, 79, 'cryo']] },
+                { id: 'sd-6', no: 6, studio: 'Lumen Light', pro: 'Jen Alvarez', what: 'Red light therapy', svcs: [['Full-Body Red Light', 20, 45, 'red'], ['Red Light + Compression', 40, 75, 'red']] },
+        { id: 'sd-7', no: 7, studio: 'Peak IV', pro: 'Lena Ortiz, RN', what: 'IV therapy lounge', svcs: [['Myers’ Cocktail', 45, 199, 'iv'], ['Immunity Defense Drip', 45, 189, 'iv'], ['Hydration and Hangover Drip', 40, 159, 'iv'], ['Energy and Recovery Drip', 45, 189, 'iv'], ['NAD+ Therapy', 120, 399, 'iv'], ['Beauty and Glow Drip', 45, 219, 'iv'], ['B12 Shot', 15, 35, 'iv']] }
+      ] },
+    { id: 'domain', city: 'Austin', name: 'The Domain', area: 'Austin, TX', open: false, lat: 30.402, lng: -97.725, suites: [] },
+    { id: 'soco', city: 'Austin', name: 'South Congress', area: 'Austin, TX', open: false, lat: 30.247, lng: -97.750, suites: [] },
+    { id: 'uptown', city: 'Dallas', name: 'Uptown', area: 'Dallas, TX', open: false, lat: 32.800, lng: -96.801, suites: [] }
+  ];
+  const OPEN = LOCS.filter(l => l.open), SOON = LOCS.filter(l => !l.open);
+  const CAT_NAMES = { cryo: 'Cryotherapy', red: 'Red light', iv: 'IV therapy', tw: 'TeleWellness', wl: 'Weight loss' };
+  const IV_MENU = [
+    ['Myers’ Cocktail', 'High-dose B-complex, vitamin B12, vitamin C, calcium and magnesium. The classic drip for energy and general wellness.', 199],
+    ['Immunity Defense', 'High-dose vitamin C, B vitamins and zinc, for when you want extra support through cold and flu season.', 189],
+    ['Hydration and Hangover', 'Saline or lactated Ringer’s with electrolytes to rehydrate after a workout, travel or a late night out.', 159],
+    ['Energy and Recovery', 'B-complex, vitamin B12, amino acids and magnesium, popular with athletes after hard training.', 189],
+    ['NAD+ Therapy', 'A slow NAD+ infusion, popular for energy, focus and healthy aging. About 2 hours.', 399],
+    ['Beauty and Glow', 'Glutathione, biotin and vitamin C, for skin, hair and nails.', 219]
+  ];
+  // approximate centers for Texas ZIP prefixes and cities, used to sort locations by distance
+  const PLACES = {
+    '919': [32.65, -117.05, 'South Bay San Diego'], '920': [33.05, -117.15, 'North County San Diego'], '921': [32.75, -117.15, 'San Diego'], '922': [33.75, -116.4, 'Coachella Valley'], '925': [33.95, -117.4, 'Riverside'], '926': [33.68, -117.8, 'Orange County'], '927': [33.75, -117.87, 'Santa Ana'], '928': [33.83, -117.9, 'Anaheim'], '900': [34.05, -118.25, 'Los Angeles'], '902': [33.9, -118.35, 'Los Angeles area'], '906': [33.95, -118.0, 'Los Angeles area'], '913': [34.2, -118.5, 'San Fernando Valley'], '917': [34.05, -117.75, 'Inland Empire'], '930': [34.4, -119.7, 'Santa Barbara'], '941': [37.77, -122.42, 'San Francisco'], '945': [37.8, -122.27, 'Oakland'], '950': [37.33, -121.89, 'San Jose'], '958': [38.58, -121.49, 'Sacramento'],
+    '786': [30.55, -97.75, 'Round Rock'], '787': [30.27, -97.74, 'Austin'], '789': [30.0, -97.5, 'Austin area'], '765': [31.1, -97.34, 'Temple'], '766': [31.55, -97.15, 'Waco'],
+    '750': [33.02, -96.75, 'Plano'], '751': [32.78, -96.80, 'Dallas'], '752': [32.80, -96.80, 'Dallas'], '753': [32.8, -96.8, 'Dallas'], '760': [32.75, -97.2, 'Arlington'], '761': [32.75, -97.33, 'Fort Worth'],
+    '770': [29.76, -95.37, 'Houston'], '772': [29.76, -95.37, 'Houston'], '773': [30.1, -95.4, 'Houston area'], '774': [29.6, -95.6, 'Houston area'], '775': [29.6, -95.2, 'Houston area'],
+    '780': [29.4, -98.5, 'San Antonio'], '781': [29.4, -98.4, 'San Antonio area'], '782': [29.42, -98.49, 'San Antonio'], '785': [26.2, -98.2, 'McAllen'], '799': [31.76, -106.48, 'El Paso'], '794': [33.58, -101.85, 'Lubbock'], '791': [35.2, -101.83, 'Amarillo']
+  };
+  const CITIES = { 'san diego': '921', 'la jolla': '921', 'mission valley': '921', 'chula vista': '919', 'el cajon': '920', 'escondido': '920', 'oceanside': '920', 'carlsbad': '920', 'encinitas': '920', 'del mar': '920', 'irvine': '926', 'los angeles': '900', 'riverside': '925', 'san francisco': '941', 'sacramento': '958', austin: '787', 'round rock': '786', georgetown: '786', 'cedar park': '786', pflugerville: '786', dallas: '752', plano: '750', frisco: '750', irving: '750', 'fort worth': '761', arlington: '760', houston: '770', 'san antonio': '782', waco: '766', 'el paso': '799', lubbock: '794' };
+  const PRODUCTS = [
+    { id: 'glp1', name: 'GLP-1 Program', cat: 'Weight Loss', sub: 'Semaglutide · 4 weeks', price: 249, rx: true },
+    { id: 'tirz', name: 'Tirzepatide Program', cat: 'Weight Loss', sub: 'Compounded · 4 weeks', price: 329, rx: true },
+    { id: 'ret', name: 'Retinol 0.5 Serum', cat: 'Skin', sub: '30 ml', price: 68 },
+    { id: 'eye', name: 'Brightening Eye Cream', cat: 'Skin', sub: '15 ml', price: 64 },
+    { id: 'nad', name: 'NAD+ Injectable', cat: 'Supplements', sub: '100 mg · 10 doses', price: 189, rx: true },
+    { id: 'b12', name: 'B12 + MIC Shots', cat: 'Supplements', sub: '4 shots', price: 75 },
+    { id: 'lash', name: 'Lash + Brow Serum', cat: 'Beauty', sub: 'Growth serum · 4 ml', price: 58 },
+    { id: 'lip', name: 'Lip Treatment', cat: 'Beauty', sub: 'Overnight · 15 ml', price: 32 }
+  ];
+  const DEPOSIT = 40;
+  const PLAN = { name: 'RKVR Membership', founding: 99, price: 129, services: 12, cutoff: 'Dec 31, 2026' };
+  const TODAY = new Date(2026, 9, 21); // sample "today": Wed Oct 21, 2026
+  const SLOT_TIMES = ['9:00 AM', '10:30 AM', '12:00 PM', '1:30 PM', '3:00 PM', '4:30 PM', '6:00 PM'];
+
+  /* ---------------- state ---------------- */
+  const KEY = 'rkvr-site-demo-v2';
+  const blank = () => ({ user: null, member: null, prepaid: [], bookings: [], orders: [], cart: [], waitlist: false, notify: [] });
+  let S = blank();
+  try { const saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved && typeof saved === 'object') S = Object.assign(blank(), saved); } catch (_) {}
+  const CART_MEMBER = 'member';
+  function cartItem(id) {
+    if (id === CART_MEMBER) return { id, kind: 'member', name: PLAN.name, sub: 'Founding rate · ' + PLAN.services + ' services a month · billed monthly, cancel any time', price: PLAN.founding, per: '/mo' };
+    if (id.startsWith('svc:')) { const x = svcByKey(id.slice(4)); if (!x) return null; return { id, kind: 'svc', key: x.key, name: x.name, sub: 'À la carte · ' + x.min + ' min · ' + x.suite.pro + ' · book any time', price: x.price, cat: ({ cryo: 'Cryo', red: 'Red', iv: 'IV', tw: 'Tele', wl: 'WL' })[x.cat] || '' }; }
+    const p = PRODUCTS.find(q => q.id === id); return p ? Object.assign({ kind: 'prod' }, p) : null;
+  }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (_) {} };
+  const ui = { view: 'home', near: null, nearQuery: '', svcFilter: 'all', shopCat: 'All', drawer: null, acct: 'visits', calOffset: 0, calDay: null,
+    bk: { step: 0, loc: null, sel: [], day: 0, slot: null, repeat: 'once', done: null, pay: null }, joinMsg: '', joinPlan: 'member' };
+
+  /* ---------------- helpers ---------------- */
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const money = n => '$' + Math.round(n).toLocaleString('en-US');
+  const locById = id => LOCS.find(l => l.id === id);
+  const svcKey = (suiteId, i) => suiteId + ':' + i;
+  function svcByKey(k) { const [sid, i] = k.split(':'); for (const l of LOCS) { const s = l.suites.find(x => x.id === sid); if (s) { const v = s.svcs[+i]; return { key: k, name: v[0], min: v[1], price: v[2], cat: v[3], suite: s, loc: l }; } } return null; }
+  const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const dateOf = s => { const p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); };
+  const parseT = t => { const m = /(\d+):(\d+)\s*(AM|PM)/.exec(t); let h = +m[1] % 12; if (m[3] === 'PM') h += 12; return h * 60 + +m[2]; };
+  const fmtT = mins => { const h = Math.floor(mins / 60) % 24, m = mins % 60; return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') + ' ' + (h < 12 ? 'AM' : 'PM'); };
+  const ordinal = n => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
+  function miles(a, b) { const R = 3959, r = x => x * Math.PI / 180; const dLat = r(b[0] - a[0]), dLng = r(b[1] - a[1]); const h = Math.sin(dLat / 2) ** 2 + Math.cos(r(a[0])) * Math.cos(r(b[0])) * Math.sin(dLng / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); }
+  function place(q) {
+    q = (q || '').trim().toLowerCase(); if (!q) return null;
+    const zip = q.match(/\b(\d{5})\b/);
+    if (zip && PLACES[zip[1].slice(0, 3)]) { const p = PLACES[zip[1].slice(0, 3)]; return { lat: p[0], lng: p[1], label: zip[1] + ' (' + p[2] + ')' }; }
+    for (const c of Object.keys(CITIES)) if (q.includes(c)) { const p = PLACES[CITIES[c]]; return { lat: p[0], lng: p[1], label: c.replace(/\b\w/g, x => x.toUpperCase()) }; }
+    return false;
+  }
+  function occurrences(b, y, m) {
+    const st = dateOf(b.date), out = [];
+    if (b.repeat === 'weekly') { let d = new Date(st); const last = new Date(y, m + 1, 0); while (d <= last) { if (d.getMonth() === m && d.getFullYear() === y) out.push(new Date(d)); d = addDays(d, 7); } }
+    else if (b.repeat === 'monthly') { const k = (y * 12 + m) - (st.getFullYear() * 12 + st.getMonth()); const d = new Date(st.getFullYear(), st.getMonth() + k, st.getDate()); if (k >= 0 && d.getMonth() === m) out.push(d); }
+    else if (st.getFullYear() === y && st.getMonth() === m) out.push(st);
+    return out;
+  }
+  const visitSvcs = b => b.svcs.map(svcByKey).filter(Boolean);
+  const visitTitle = b => visitSvcs(b).map(x => x.name).join(' + ');
+  const visitMins = b => visitSvcs(b).reduce((a, x) => a + x.min, 0);
+  const visitPrice = b => visitSvcs(b).reduce((a, x) => a + x.price, 0);
+  function memberUsed(y, m) { return S.bookings.filter(b => b.pay === 'member').reduce((a, b) => a + occurrences(b, y, m).length * b.svcs.length, 0); }
+  const memberLeft = d => S.member ? Math.max(0, PLAN.services - memberUsed(d.getFullYear(), d.getMonth())) : 0;
+  const rateLine = () => S.member ? (S.member.rate === PLAN.founding ? 'Founding rate · $' + PLAN.founding + '/month, locked in' : '$' + PLAN.price + '/month') : '';
+  let toastT;
+  function toast(m) { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2800); }
+  function sampleMember() {
+    return { user: { name: 'Ava Reyes', email: 'ava@example.com', phone: '(512) 555-0142', sms: true, home: 'sd', since: 'Oct 2026' },
+      bookings: [
+        { id: 'b1', svcs: ['sd-1:0'], date: '2026-10-08', time: '10:30 AM', repeat: 'once', loc: 'sd', pay: 'member' },
+        { id: 'b2', svcs: ['sd-3:1'], date: '2026-10-15', time: '12:00 PM', repeat: 'monthly', loc: 'sd', pay: 'member' },
+        { id: 'b3', svcs: ['sd-1:0', 'sd-2:0', 'sd-7:0'], date: '2026-10-23', time: '1:30 PM', repeat: 'once', loc: 'sd', pay: 'member' },
+        { id: 'b4', svcs: ['sd-2:0'], date: '2026-10-28', time: '6:00 PM', repeat: 'weekly', loc: 'sd', pay: 'member' }
+      ],
+      orders: [{ id: 'WH-40188', items: ['GLP-1 Program'], total: 249, date: 'Oct 2', status: 'Delivered' }, { id: 'WH-40102', items: ['Retinol 0.5 Serum', 'Lip Treatment'], total: 100, date: 'Sep 18', status: 'Delivered' }],
+      member: { rate: PLAN.founding, since: 'Oct 2026', renews: 'Nov 1' },
+      cart: S.cart, waitlist: false };
+  }
+
+  /* ---------------- shell ---------------- */
+  const NAV = [['locations', 'Locations'], ['services', 'Services'], ['book', 'Book'], ['shop', 'Shop'], ['care', 'TeleWellness'], ['membership', 'Membership'], ['owners', 'Own an RKVR']];
+  const VIEWS = ['home', 'locations', 'services', 'book', 'shop', 'care', 'account', 'join', 'owners', 'membership'];
+  function renderShell() {
+    $('#nav').innerHTML = NAV.map(([id, n]) => `<button data-go="${id}" ${ui.view === id ? 'aria-current="page"' : ''}>${n}</button>`).join('');
+    const n = S.cart.length;
+    $('#topcta').innerHTML = `<button class="btn btn-sm cart-btn" data-drawer="cart" aria-label="Cart, ${n} ${n === 1 ? 'item' : 'items'}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2.6l2.4 12.2a1.5 1.5 0 0 0 1.5 1.2h8.7a1.5 1.5 0 0 0 1.5-1.2L21 7H6"/></svg>${n ? `<span class="count">${n}</span>` : ''}</button>` +
+      (S.user ? `<button class="btn btn-sm" data-go="account">My RKVR</button>` : `<button class="btn btn-sm" data-go="join">Sign in</button>`) +
+      `<button class="btn btn-sm btn-primary" data-go="book">Book</button>`;
+  }
+  function go(v, opts) {
+    if (!VIEWS.includes(v)) v = 'home';
+    ui.view = v; if (opts) Object.assign(ui, opts);
+    try { history.replaceState(null, '', '#' + v); } catch (_) {}
+    render(); window.scrollTo({ top: 0 });
+  }
+  function render() {
+    renderShell();
+    const fn = { home: vHome, locations: vLocations, services: vServices, book: vBook, shop: vShop, care: vCare, account: vAccount, join: vJoin, owners: vOwners, membership: vMembership }[ui.view];
+    $('#main').innerHTML = `<div class="view-in">${fn()}</div>`;
+    $('#overlay').innerHTML = ui.drawer === 'cart' ? drawerCart() : '';
+  }
+
+  /* ---------------- views ---------------- */
+  function vHome() {
+    const svcCount = OPEN.reduce((a, l) => a + l.suites.reduce((b, s) => b + s.svcs.length, 0), 0);
+    return `
+    <section class="hero"><div class="wrap">
+      <div class="hero-main">
+        <p class="eyebrow">Now open in San Diego · Austin and Dallas coming soon</p>
+        <div class="brandline"><svg class="brand-logo" viewBox="-4 -32 380 140" role="img" aria-label="RKVR"><g fill="currentColor"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g><g fill="currentColor" transform="translate(96 0)"><rect x="0" y="0" width="24" height="100"/><polygon points="24,50 51.5,0 79.5,0 52,50 79.5,100 51.5,100"/></g><g transform="translate(183 0)"><polygon fill="currentColor" points="0,0 26,0 58,100 32,100"/><polygon fill="#F2542D" points="78.32,-26 104.32,-26 64,100 38,100"/></g><g fill="currentColor" transform="translate(287 0)"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g></svg><span class="pron"><b>re·cov·er</b> /rɪˈkʌv·ər/</span></div>
+        <h1 class="display" style="margin-top:14px"><span class="hl">Your go&#8209;to for</span> <span class="hl"><span class="ac">Recovery</span> and <span class="ac">Wellness.</span></span></h1>
+
+        <p class="lead">Cryotherapy, red light and IV therapy, plus weight loss and TeleWellness.</p>
+        <p class="display" style="font-size:clamp(24px,3vw,36px);margin-top:26px">Find a location near you.</p>
+        <form class="finder" id="finder" role="search"><input id="near-q" aria-label="ZIP code or city" placeholder="ZIP code or city" value="${esc(ui.nearQuery)}" autocomplete="postal-code"><button class="btn btn-primary" type="submit">Find RKVR near me</button></form>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button class="btn" data-go="book">Book a visit</button><button class="btn" data-go="join">Join RKVR</button></div>
+        <div class="facts"><div><b>${OPEN.length}</b><span>RKVR spa open · ${SOON.length} coming soon</span></div><div><b>$${PLAN.founding}<small style="font-size:.45em">/mo</small></b><span>Limited time price.<br>Includes ${PLAN.services} services/month.<br>Get more à la carte.</span></div><div><b>${svcCount}</b><span>services to book</span></div><div><b>3</b><span>services per visit</span></div></div>
+      </div>
+      <div class="hero-phone"><div class="visit-card" aria-label="Example visit with three services in order">
+        <p class="eyebrow">Your visit · Thu, Oct 22</p>
+        <p class="display" style="font-size:34px;margin:4px 0 8px">Mission Valley</p>
+        <div class="vc-row"><b class="n">1</b><span class="t">1:30 PM</span><span class="s">Whole-Body Cryotherapy<small>Jordan Reid · 15 min</small></span></div>
+        <div class="vc-row"><b class="n">2</b><span class="t">1:45 PM</span><span class="s">Full-Body Red Light<small>Priya Raman · 20 min</small></span></div>
+        <div class="vc-row"><b class="n">3</b><span class="t">2:05 PM</span><span class="s">Myers’ Cocktail<small>Lena Ortiz, RN · 45 min</small></span></div>
+        <div class="total"><span>Total</span><b>$293</b></div>
+      </div><div class="hero-tag">Pick up to 3 services. Choose the order.</div></div>
+    </div></section>
+    <section class="band"><div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">How it works</p><h2 class="display">Book it your way</h2></div></div>
+      <div class="grid g4">
+        ${[['Find your RKVR', 'Search by ZIP or city and see the services and team at your RKVR spa.'], ['Bundle up to 3', 'Cryotherapy, then red light, then an IV drip. Booked back to back in your order.'], ['Make it repeat', 'Keep the same visit every week or every month. Skip or stop any time.'], ['Sync your calendar', 'Visits go into Google, Apple or Outlook Calendar and stay up to date.']].map((x, i) => `<div class="card step-card"><b>${i + 1}</b><h3>${x[0]}</h3><p class="muted">${x[1]}</p></div>`).join('')}
+      </div>
+    </div></section>
+    <section class="band alt"><div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">Services</p><h2 class="display">What you can book</h2><p>Pay à la carte ($${DEPOSIT} deposit to hold your time), or join and get ${PLAN.services} services a month for $${PLAN.founding}.</p></div><button class="btn" data-go="services">All services</button></div>
+      <div class="grid g4">${['cryo', 'red', 'iv', 'tw'].map(c => catCard(c)).join('')}</div>
+    </div></section>
+    <section class="band"><div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">IV therapy</p><h2 class="display">The drip menu</h2><p>Every drip is reviewed by a licensed provider before your visit and given by a registered nurse in the RKVR IV lounge.</p></div><button class="btn btn-primary" data-book-loc="sd">Book an IV</button></div>
+      <div class="grid g3">${IV_MENU.map(d => `<div class="card"><h3 class="display" style="font-size:28px">${d[0]}</h3><p class="muted small">${d[1]}</p><p style="margin-top:auto"><b>${money(d[2])}</b></p></div>`).join('')}</div>
+      <p class="note" style="margin-top:14px">IV therapy isn’t right for everyone. Your provider reviews your health history first and may suggest a different drip or none at all.</p>
+    </div></section>
+    <section class="band alt"><div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">Two ways to RKVR</p><h2 class="display">Join or pay as you go</h2></div><button class="btn" data-go="membership">Compare</button></div>
+      ${planCards()}
+    </div></section>
+    <section class="band"><div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">Locations</p><h2 class="display">Find RKVR</h2></div><button class="btn" data-go="locations">All locations</button></div>
+      <div class="grid g2">
+        ${OPEN.map(l => `<div class="card"><p class="eyebrow">Now open · ${l.city}</p><h3 class="display" style="font-size:44px">${l.name}</h3><p>${esc(l.address)}</p><p class="muted small">${locCats(l)}</p><div style="display:flex;gap:8px;margin-top:auto;padding-top:8px;flex-wrap:wrap"><button class="btn btn-sm btn-primary" data-book-loc="${l.id}">Book here</button><button class="btn btn-sm" data-loc-open="${l.id}">Details</button></div></div>`).join('')}
+        <div class="card"><p class="eyebrow">Coming soon</p>${SOON.map(l => `<div class="kv"><span><b>${l.name}</b><br><span class="muted small">${l.area}</span></span><span class="tag">Coming soon</span></div>`).join('')}<button class="btn btn-sm" style="align-self:flex-start;margin-top:6px" data-go="locations">Get notified</button></div>
+      </div>
+    </div></section>
+    <section class="band alt"><div class="wrap" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:40px;align-items:center">
+      <div><p class="eyebrow">Website and app</p><h2 class="display" style="font-size:clamp(36px,5vw,56px)">One account, everywhere</h2>
+        <p class="muted" style="max-width:56ch;margin-top:10px">Sign in on the website or in the RKVR app and you’ll see the same visits, orders and prescriptions. Add RKVR to your phone’s home screen from your browser; no app store needed.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="btn btn-primary" data-go="join">Join RKVR</button><button class="btn" data-go="membership">See membership</button></div></div>
+      <div class="mini-cal" aria-label="Example calendar of upcoming visits"><p class="eyebrow">Your calendar · October</p>
+        <div class="vc-row" style="margin-top:8px"><span class="display" style="font-size:24px">22</span><span>Cryotherapy + Red Light</span><span class="tag">Weekly</span></div>
+        <div class="vc-row"><span class="display" style="font-size:24px">29</span><span>Cryotherapy + Red Light</span><span class="tag">Weekly</span></div>
+        <div class="vc-row"><span class="display" style="font-size:24px">31</span><span>Energy and Recovery Drip</span><span></span></div>
+        <p class="note" style="margin-top:8px">Synced to Google Calendar</p></div>
+    </div></section>`;
+  }
+  function locCats(l) { const cs = []; l.suites.forEach(x => x.svcs.forEach(v => { if (!cs.includes(v[3])) cs.push(v[3]); })); return cs.map(c => CAT_NAMES[c]).join(' · '); }
+  function catCard(c) {
+    const items = []; OPEN.forEach(l => l.suites.forEach(s => s.svcs.forEach(v => { if (v[3] === c) items.push(v); })));
+    const names = Array.from(new Set(items.map(v => v[0])));
+    const from = Math.min(...items.map(v => v[2]));
+    return `<div class="card"><p class="svc-cat">${CAT_NAMES[c]}</p><p class="muted small">${names.join(' · ')}</p><p style="margin-top:auto"><b>From ${money(from)}</b></p><button class="btn btn-sm" style="align-self:flex-start" data-svc-cat="${c}">See where</button></div>`;
+  }
+
+  function vLocations() {
+    const dist = l => ui.near ? miles([ui.near.lat, ui.near.lng], [l.lat, l.lng]) : null;
+    const fmtD = d => d == null ? '' : (d < 10 ? d.toFixed(1) : Math.round(d)) + ' mi';
+    const near = ui.near ? Math.min(...OPEN.map(dist)) : null;
+    const msg = ui.near === false ? `<div class="notice">We couldn’t place “${esc(ui.nearQuery)}”. Try a 5-digit ZIP code or a city like San Diego. Here are all locations.</div>`
+      : ui.near ? `<div class="notice ice">Nearest RKVR to <b>${esc(ui.near.label)}</b>: Mission Valley, ${fmtD(near)} away.${near > 60 ? ' We’re opening more locations; get notified below.' : ''}</div>` : '';
+    const soon = SOON.map(l => ({ l, d: dist(l) })); if (ui.near) soon.sort((a, b) => a.d - b.d);
+    return `<section class="band"><div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">Locations</p><h2 class="display">Find RKVR near you</h2><p>Every location is one RKVR spa, with the full menu and a licensed team.</p></div></div>
+      <form class="finder" id="finder" role="search" style="margin:0 0 18px"><input id="near-q" aria-label="ZIP code or city" placeholder="ZIP code or city" value="${esc(ui.nearQuery)}"><button class="btn btn-primary" type="submit">Search</button></form>
+      ${msg}
+      <div style="margin-top:18px">${OPEN.map(l => { const d = dist(l); return `
+        <article class="card loc" id="loc-${l.id}">
+          <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+            <p class="eyebrow">Now open · ${l.area}</p>
+            <h3 class="loc-name">${l.name}</h3>
+            <p><b>${esc(l.address)}</b><br><span class="muted small">Inside Phenix Salon Suites</span></p>
+            <p class="muted small">${l.hours}</p>
+            <p class="small" style="font-weight:700;margin-top:4px">Your team</p><div class="suites">${l.suites.map(s => `<div><b>${esc(s.pro)}</b><span class="muted">${esc(s.what)}</span></div>`).join('')}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+            ${d != null ? `<span class="dist">${fmtD(d)}</span>` : ''}
+            <button class="btn btn-primary" data-book-loc="${l.id}">Book at ${l.name}</button>
+            <a class="btn btn-sm" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.address)}" target="_blank" rel="noopener">Directions</a>
+          </div>
+        </article>`; }).join('')}</div>
+      <h3 class="display" style="font-size:36px;margin-top:40px">Coming soon</h3>
+      <div class="grid g3" style="margin-top:14px">${soon.map(({ l, d }) => `<div class="card" id="loc-${l.id}"><p class="eyebrow">${l.area}</p><h3 class="display" style="font-size:32px">${l.name}</h3>${d != null ? `<span class="muted small">${fmtD(d)} away</span>` : ''}<span class="tag" style="align-self:flex-start">Coming soon</span>
+        ${(S.notify || []).includes(l.id) ? '<p class="small" style="color:var(--good);font-weight:700;margin-top:auto">We’ll let you know when it opens.</p>' : `<button class="btn btn-sm" style="align-self:flex-start;margin-top:auto" data-notify="${l.id}">Notify me</button>`}</div>`).join('')}</div>
+    </div></section>`;
+  }
+
+  function vServices() {
+    const f = ui.svcFilter;
+    const rows = [];
+    OPEN.forEach(l => l.suites.forEach(s => s.svcs.forEach((v, i) => { if (f === 'all' || v[3] === f) rows.push({ l, s, v, key: svcKey(s.id, i) }); })));
+    const groups = {}; rows.forEach(r => { (groups[r.v[0]] = groups[r.v[0]] || []).push(r); });
+    return `<section class="band"><div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">Services</p><h2 class="display">Every service at RKVR</h2><p>At RKVR Mission Valley, San Diego. Pick a service and a provider to book it, à la carte or with your membership.</p></div></div>
+      <div class="chips" style="margin-bottom:18px"><button class="chip" aria-pressed="${f === 'all'}" data-svc-filter="all">All</button>${Object.keys(CAT_NAMES).map(c => `<button class="chip" aria-pressed="${f === c}" data-svc-filter="${c}">${CAT_NAMES[c]}</button>`).join('')}</div>
+      <div class="grid g2">${Object.keys(groups).map(name => { const g = groups[name]; return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><h3>${esc(name)}</h3><span class="muted small">${g[0].v[1]} min</span></div>
+        ${g.map(r => `<div class="kv"><span>${esc(r.s.pro)}<br><span class="muted small">RKVR ${esc(r.l.name)}</span></span><span style="display:flex;gap:10px;align-items:center"><b>${money(r.v[2])}</b><button class="btn btn-sm" data-add="svc:${r.key}" aria-label="Add ${esc(r.v[0])} with ${esc(r.s.pro)} to cart">Add to cart</button><button class="btn btn-sm btn-primary" data-book-svc="${r.key}">Book</button></span></div>`).join('')}</div>`; }).join('')}</div>
+    </div></section>`;
+  }
+
+  /* booking */
+  function bkDays() { return Array.from({ length: 10 }, (_, i) => addDays(TODAY, i + 1)); }
+  function slotTaken(dayIdx, t) { return ((dayIdx * 3 + SLOT_TIMES.indexOf(t)) % 5) === 1; }
+  function vBook() {
+    const b = ui.bk; if (ui.bk.done) return bookedView();
+    const steps = ['Location', 'Services', 'Time', 'Confirm'];
+    const stepper = `<div class="stepper">${steps.map((x, i) => `<span class="${i === b.step ? 'on' : i < b.step ? 'done' : ''}">${i + 1} · ${x}</span>`).join('')}</div>`;
+    let body = '';
+    if (b.step === 0) {
+      body = `<h2 class="display" style="font-size:44px;margin-bottom:14px">Where are you booking?</h2><div class="grid g2">${LOCS.map(l => l.open ? `<button class="card" style="text-align:left;cursor:pointer" data-bk-loc="${l.id}"><p class="eyebrow">Now open · ${l.city}</p><span class="display" style="font-size:36px">${l.name}</span><span class="small">${esc(l.address)}</span><span class="muted small">${locCats(l)}</span></button>` : `<div class="card" style="opacity:.6"><p class="eyebrow">${l.area}</p><span class="display" style="font-size:30px">${l.name}</span><span class="tag" style="align-self:flex-start">Coming soon</span></div>`).join('')}</div>`;
+    } else if (b.step === 1) {
+      const l = locById(b.loc);
+      body = `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><h2 class="display" style="font-size:44px">Pick up to 3 services</h2><button class="linkish" data-bk-step="0">Change location</button></div>
+        <p class="muted" style="margin-top:6px">At ${l.name}, ${esc(l.address)}. We book them back to back, in the order you choose.</p>
+        ${l.suites.map(s => `<p class="suite-h">${esc(s.what)} <span class="muted small" style="font-family:var(--body);text-transform:none;font-weight:500">· with ${esc(s.pro)}</span></p>` + s.svcs.map((v, i) => { const k = svcKey(s.id, i), idx = b.sel.indexOf(k), on = idx >= 0, full = b.sel.length >= 3 && !on;
+          return `<button class="pick" data-bk-pick="${k}" ${full ? 'disabled' : ''} aria-pressed="${on}"><span class="box ${on ? 'on' : ''}">${on ? idx + 1 : ''}</span><span><b>${esc(v[0])}</b><br><span class="muted small">${v[1]} min</span></span><b>${money(v[2])}</b></button>`; }).join('')).join('')}
+        ${b.sel.length > 1 ? `<h3 style="margin-top:26px">Your order</h3><p class="muted small">Move a service up to have it first.</p>${b.sel.map((k, i) => { const x = svcByKey(k); return `<div class="order-row"><b class="n">${i + 1}</b><span><b>${esc(x.name)}</b><br><span class="muted small">${esc(x.suite.pro)} · ${x.min} min</span></span><button class="icon-btn" aria-label="Move ${esc(x.name)} up" data-bk-up="${i}" ${i === 0 ? 'disabled' : ''}>↑</button><button class="icon-btn" aria-label="Move ${esc(x.name)} down" data-bk-down="${i}" ${i === b.sel.length - 1 ? 'disabled' : ''}>↓</button></div>`; }).join('')}` : ''}
+        <div style="margin-top:22px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn btn-primary" data-bk-step="2" ${b.sel.length ? '' : 'disabled'}>${b.sel.length ? 'Choose a time' : 'Pick a service'}</button><span class="note">${b.sel.length >= 3 ? 'That’s the most for one visit.' : 'You can add ' + (3 - b.sel.length) + ' more.'}</span></div>`;
+    } else if (b.step === 2) {
+      const days = bkDays();
+      body = `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><h2 class="display" style="font-size:44px">Choose a time</h2><button class="linkish" data-bk-step="1">Change services</button></div>
+        <p class="muted" style="margin-top:6px">${bkMins()} min${b.sel.length > 1 ? ', back to back' : ''}. The time is when your first service starts.</p>
+        <div class="days" style="margin-top:16px">${days.map((d, i) => `<button class="day" aria-pressed="${b.day === i}" data-bk-day="${i}"><small>${DOW[d.getDay()].toUpperCase()}</small><b>${d.getDate()}</b></button>`).join('')}</div>
+        <div class="slots">${SLOT_TIMES.map(t => { const off = slotTaken(b.day, t); return `<button class="slot" aria-pressed="${b.slot === t}" data-bk-slot="${t}" ${off ? 'disabled' : ''}>${t}<small>${off ? 'Booked' : 'Open'}</small></button>`; }).join('')}</div>
+        <div style="margin-top:22px"><button class="btn btn-primary" data-bk-step="3" ${b.slot ? '' : 'disabled'}>${b.slot ? 'Review and confirm' : 'Pick a time'}</button></div>`;
+    } else {
+      const d = bkDays()[b.day];
+      const repNote = b.repeat === 'weekly' ? `Every ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d.getDay()]} at ${b.slot}. Each visit’s $${DEPOSIT} deposit is charged 2 days before. Skip or stop any time in My RKVR.`
+        : b.repeat === 'monthly' ? `On the ${ordinal(d.getDate())} of each month at ${b.slot}. Each visit’s $${DEPOSIT} deposit is charged 2 days before. Skip or stop any time in My RKVR.` : 'One visit. You can make it repeat later.';
+      body = `<h2 class="display" style="font-size:44px">Confirm your visit</h2>
+        <h3 style="margin-top:20px">Repeat</h3>
+        <div class="chips" style="margin-top:8px">${[['once', 'Just once'], ['weekly', 'Every week'], ['monthly', 'Every month']].map(([k, n]) => `<button class="chip" aria-pressed="${b.repeat === k}" data-bk-repeat="${k}">${n}</button>`).join('')}</div>
+        <p class="note" style="margin-top:8px">${repNote}</p>
+        ${payChoice(d)}
+        <h3 style="margin-top:22px">${S.user ? 'Booking as' : 'Your details'}</h3>
+        ${S.user ? `<div class="kv"><span>${esc(S.user.name)}</span><span class="muted">${esc(S.user.email)}</span></div><div class="kv"><span>${bkPay() === 'member' ? 'Membership' : 'Pay deposit with'}</span><span>${bkPay() === 'member' ? rateLine() : 'Visa ···· 4242 <span class="preview-pill">Sample</span>'}</span></div>`
+          : `<form id="quick-join" class="form-grid" style="margin-top:8px">
+              <div class="field"><label for="qj-name">Full name</label><input class="input" id="qj-name" required autocomplete="name"></div>
+              <div class="field"><label for="qj-email">Email</label><input class="input" id="qj-email" type="email" required autocomplete="email"></div>
+              <div class="field"><label for="qj-phone">Mobile</label><input class="input" id="qj-phone" type="tel" required autocomplete="tel"></div>
+              <div class="field" style="align-content:end"><label class="check"><input type="checkbox" id="qj-sms" checked> Text me reminders and visit updates. Reply STOP any time.</label></div>
+              <p class="note" style="grid-column:1/-1">This creates your RKVR account. Already a member? <button type="button" class="linkish" data-sample-member>Sign in</button></p>
+            </form>`}
+        <div class="notice ice" style="margin-top:18px">Payment connects through Stripe at launch. In this preview, nothing is charged.</div>
+        <div style="margin-top:18px"><button class="btn btn-primary" id="bk-confirm">${bkPay() === 'prepaid' ? 'Confirm · use prepaid' : bkPay() === 'member' ? (S.member ? 'Confirm · uses ' + b.sel.length + ' of my services' : 'Join for $' + PLAN.founding + '/month and book') : 'Confirm and pay $' + DEPOSIT + ' deposit'}</button></div>
+        <p class="note" style="margin-top:10px">${bkPay() === 'member' ? 'Free to move or cancel up to 24 hours before. After that, the services count as used.' : 'Free to move or cancel up to 24 hours before. After that the deposit is kept.'}</p>`;
+    }
+    return `<section class="band"><div class="wrap">${stepper}<div class="book"><div style="min-width:0">${body}</div>${b.step > 0 ? bkSummary() : ''}</div></div></section>`;
+  }
+  function prepaidCovers(sel) { const pool = (S.prepaid || []).map(x => x.name); return sel.length > 0 && sel.every(k => { const n = svcByKey(k).name, i = pool.indexOf(n); if (i < 0) return false; pool.splice(i, 1); return true; }); }
+  function bkPay() { const b = ui.bk; if (b.pay && !(b.pay === 'prepaid' && !prepaidCovers(b.sel))) return b.pay; if (prepaidCovers(b.sel)) return 'prepaid'; if (S.member) { const d = bkDays()[b.day]; return memberLeft(d) >= b.sel.length ? 'member' : 'card'; } return 'card'; }
+  function payChoice(d) {
+    const b = ui.bk, n = b.sel.length, left = S.member ? memberLeft(d) : PLAN.services, ok = left >= n, pay = bkPay();
+    const total = b.sel.reduce((a, k) => a + svcByKey(k).price, 0);
+    return `<h3 style="margin-top:22px">How to pay</h3><div style="display:grid;gap:8px;margin-top:8px">
+      <button class="pay-opt" aria-pressed="${pay === 'member'}" data-bk-pay="member" ${ok ? '' : 'disabled'}><span class="dot"></span><span><b>${S.member ? 'Use my membership' : 'Join and use membership · $' + PLAN.founding + '/month'}</b><br><span class="muted small">${S.member ? (ok ? 'Uses ' + n + ' of your ' + left + ' left in ' + MONTHS[d.getMonth()] + '. No deposit.' : 'Only ' + left + ' left in ' + MONTHS[d.getMonth()] + '. Pay à la carte or remove a service.') : PLAN.services + ' services a month, any service. Founding rate locked in by ' + PLAN.cutoff + '. No deposit.'}</span></span></button>
+      ${prepaidCovers(b.sel) ? `<button class="pay-opt" aria-pressed="${pay === 'prepaid'}" data-bk-pay="prepaid"><span class="dot"></span><span><b>Use prepaid services</b><br><span class="muted small">Already paid from your cart. No deposit.</span></span></button>` : ''}
+      <button class="pay-opt" aria-pressed="${pay === 'card'}" data-bk-pay="card"><span class="dot"></span><span><b>À la carte · ${money(total)}</b><br><span class="muted small">$${DEPOSIT} deposit now, the rest at your visit.</span></span></button></div>
+      ${b.repeat !== 'once' && pay === 'member' ? `<p class="note" style="margin-top:8px">Each repeat uses ${n} ${n === 1 ? 'service' : 'services'} in its month. If a month runs out, that visit is charged à la carte.</p>` : ''}`;
+  }
+  const bkMins = () => ui.bk.sel.reduce((a, k) => a + svcByKey(k).min, 0);
+  function bkSummary() {
+    const b = ui.bk, l = locById(b.loc), d = b.slot ? bkDays()[b.day] : null;
+    let at = b.slot ? parseT(b.slot) : null;
+    const rows = b.sel.map(k => { const x = svcByKey(k); const t = at != null ? fmtT(at) : '—'; if (at != null) at += x.min; return `<div class="tl-row"><b class="t">${t}</b><span>${esc(x.name)}<br><span class="muted small">${esc(x.suite.pro)} · ${x.min} min</span></span><span>${money(x.price)}</span></div>`; }).join('');
+    const total = b.sel.reduce((a, k) => a + svcByKey(k).price, 0);
+    return `<aside class="card summary" aria-label="Your visit"><p class="eyebrow">Your visit</p><h3 class="display" style="font-size:30px">${l.name}</h3><p class="muted small">${l.city}${d ? ' · ' + DOW[d.getDay()] + ', ' + MON[d.getMonth()] + ' ' + d.getDate() : ''}${b.repeat !== 'once' && b.step === 3 ? ' · repeats ' + b.repeat : ''}</p>
+      ${rows || '<p class="muted small">No services yet.</p>'}
+      ${b.sel.length && b.step === 3 && bkPay() === 'prepaid' ? `<div class="total"><span>Prepaid</span><b>${money(total)}</b></div><p class="note">Paid from your cart. Nothing due at your visit.</p>` : b.sel.length ? (b.step === 3 && bkPay() === 'member' ? `<div class="total"><span>Membership</span><b>${b.sel.length} of ${PLAN.services}</b></div><p class="note">Included in your membership. No deposit. À la carte value ${money(total)}.</p>` : `<div class="total"><span>Total</span><b>${money(total)}</b></div><p class="note">$${DEPOSIT} deposit today, ${money(Math.max(0, total - DEPOSIT))} at your visit.${S.member ? '' : ' Members pay $' + PLAN.founding + '/month for ' + PLAN.services + ' services.'}</p>`) : ''}</aside>`;
+  }
+  function confirmBooking() {
+    const b = ui.bk;
+    if (!S.user) {
+      const f = $('#quick-join'); if (!f.reportValidity()) return;
+      S.user = { name: $('#qj-name').value.trim(), email: $('#qj-email').value.trim(), phone: $('#qj-phone').value.trim(), sms: $('#qj-sms').checked, home: b.loc, since: 'Oct 2026' };
+    }
+    const pay = bkPay();
+    if (pay === 'member' && !S.member) S.member = { rate: PLAN.founding, since: 'Oct 2026', renews: 'Nov 1' };
+    if (pay === 'prepaid') b.sel.forEach(k => { const n = svcByKey(k).name, i = S.prepaid.findIndex(x => x.name === n); if (i >= 0) S.prepaid.splice(i, 1); });
+    const nb = { id: 'b' + Date.now(), svcs: b.sel.slice(), date: ymd(bkDays()[b.day]), time: b.slot, repeat: pay === 'prepaid' ? 'once' : b.repeat, loc: b.loc, pay };
+    S.bookings = S.bookings.concat([nb]); save();
+    ui.bk.done = nb; render(); window.scrollTo({ top: 0 });
+  }
+  function bookedView() {
+    const v = ui.bk.done, d = dateOf(v.date), l = locById(v.loc);
+    return `<section class="band"><div class="wrap" style="max-width:780px">
+      <div class="success"><p class="eyebrow" style="color:var(--accent)">Booked</p><p class="display" style="margin-top:10px">${DOW[d.getDay()]}, ${MON[d.getMonth()]} ${d.getDate()}<br>${v.time}</p>
+        <p style="margin-top:12px">${esc(visitTitle(v))}</p><p style="margin-top:4px">RKVR ${l.name} · ${esc(l.address)}</p>
+        ${v.repeat !== 'once' ? `<p style="margin-top:6px;font-weight:700">Repeats every ${v.repeat === 'weekly' ? 'week' : 'month'}</p>` : ''}
+        <p style="margin-top:6px">${v.pay === 'prepaid' ? 'Prepaid · nothing due at your visit' : v.pay === 'member' ? 'Included in your membership · ' + memberLeft(d) + ' of ' + PLAN.services + ' left in ' + MONTHS[d.getMonth()] : '$' + DEPOSIT + ' deposit · ' + money(Math.max(0, visitPrice(v) - DEPOSIT)) + ' at your visit'}</p></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="btn btn-primary" data-ics="${v.id}">Add to my calendar</button><button class="btn" data-go="account" data-acct="calendar">See my calendar</button><button class="btn" id="bk-again">Book something else</button></div>
+      <p class="note" id="ics-note" style="margin-top:10px">${S.user && S.user.sms ? 'We’ll text a reminder the day before.' : ''}</p>
+    </div></section>`;
+  }
+
+  /* shop */
+  function vShop() {
+    const cats = ['All', 'Weight Loss', 'Skin', 'Supplements', 'Beauty'];
+    const list = PRODUCTS.filter(p => ui.shopCat === 'All' || p.cat === ui.shopCat);
+    return `<section class="band"><div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">Shop</p><h2 class="display">RKVR shop</h2><p>Ships in 2 days, free over $50. Prescription programs are reviewed by a licensed provider before anything ships.</p></div></div>
+      <div class="chips" style="margin-bottom:18px">${cats.map(c => `<button class="chip" aria-pressed="${ui.shopCat === c}" data-shop-cat="${c}">${c}</button>`).join('')}</div>
+      <div class="grid g4">${list.map(p => `<article class="prod"><div class="img"><img src="img/${p.id}.webp" alt="${esc(p.name)}"></div><div class="body"><span class="small muted">${p.cat}${p.rx ? ' · <span class="tag rx">Prescription</span>' : ''}</span><h3 style="font-size:18px">${esc(p.name)}</h3><span class="muted small">${esc(p.sub)}</span><div class="row"><span class="price">${money(p.price)}</span>${p.rx ? `<button class="btn btn-sm" data-go="care">Start a visit</button>` : `<button class="btn btn-sm btn-primary" data-add="${p.id}">Add to cart</button>`}</div></div></article>`).join('')}</div>
+    </div></section>`;
+  }
+  function drawerCart() {
+    const items = S.cart.map(cartItem).filter(Boolean);
+    const total = items.reduce((a, p) => a + p.price, 0), goods = items.filter(p => p.kind === 'prod').reduce((a, p) => a + p.price, 0);
+    const hasMember = items.some(p => p.kind === 'member');
+    const thumb = p => p.kind === 'prod' ? `<img src="img/${p.id}.webp" alt="">` : `<span class="li-ico ${p.kind}">${p.kind === 'member' ? '12×' : esc((p.cat || '').split(' ')[0])}</span>`;
+    return `<div class="scrim" data-close></div><aside class="drawer" role="dialog" aria-label="Cart">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="display" style="font-size:34px">Cart</h2><button class="btn btn-sm" data-close>Close</button></div>
+      <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px">${items.length ? items.map((p, i) => `<div class="line-item">${thumb(p)}<span><b>${esc(p.name)}</b><br><span class="muted small">${esc(p.sub)}</span></span><span style="text-align:right"><b>${money(p.price)}${p.per || ''}</b><br><button class="linkish small" data-remove="${i}">Remove</button></span></div>`).join('')
+        : `<p class="muted">Your cart is empty.</p><div style="display:grid;gap:8px">${S.member ? '' : `<button class="btn" data-add="${CART_MEMBER}">Add membership · $${PLAN.founding}/month</button>`}<button class="btn" data-go="services">Browse services</button><button class="btn" data-go="shop">Shop products</button></div>`}
+        ${items.length && !hasMember && !S.member ? `<div class="notice" style="margin-top:4px"><b>Members get ${PLAN.services} services a month for $${PLAN.founding}.</b> <button class="linkish" data-add="${CART_MEMBER}">Add membership</button></div>` : ''}</div>
+      ${items.length ? `<div class="total"><span>Due today</span><b>${money(total)}</b></div><p class="note">${hasMember ? 'Membership renews monthly at $' + PLAN.founding + ' (founding rate). ' : ''}${items.some(p => p.kind === 'svc') ? 'Services are prepaid; book them any time in My RKVR. ' : ''}${goods ? (goods >= 50 ? 'Free shipping on products. ' : 'Add ' + money(50 - goods) + ' in products for free shipping. ') : ''}Nothing is charged in this preview.</p><button class="btn btn-primary" id="checkout">${S.user ? 'Check out · ' + money(total) : 'Sign in to check out'}</button>` : ''}
+    </aside>`;
+  }
+
+  function vCare() {
+    return `<section class="band"><div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">TeleWellness</p><h2 class="display">See a provider from home</h2><p>Licensed RKVR providers review your goals and history, and prescribe when it’s right for you.</p></div></div>
+      <div class="grid g3">
+        ${[['Async visit', 'Answer a few questions. A provider replies within 24 hours.', 'Free intake'], ['Video visit', 'Talk to a provider face to face, often the same day.', '$45'], ['In-spa consult', 'Meet your provider at your nearest RKVR.', 'From $95']].map(x => `<div class="card"><h3>${x[0]}</h3><p class="muted">${x[1]}</p><p style="margin-top:auto"><b>${x[2]}</b></p><button class="btn btn-sm btn-primary" style="align-self:flex-start" data-care="${x[0]}">${x[0] === 'In-spa consult' ? 'Book a consult' : 'Start'}</button></div>`).join('')}
+      </div>
+      <div class="notice ice" style="margin-top:20px">Weight loss programs require a provider visit first. Your provider decides whether a prescription is right for you.</div>
+    </div></section>`;
+  }
+
+  function vJoin() {
+    return `<section class="band"><div class="wrap" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px">
+      <div><p class="eyebrow">Join RKVR</p><h2 class="display" style="font-size:clamp(44px,6vw,72px);margin-top:10px">Make an account</h2>
+        <p class="muted" style="margin-top:12px;max-width:44ch">Book and manage visits, see your calendar, reorder products and message your care team, on the website or in the app.</p>
+        <div class="notice" style="margin-top:18px"><b>Founding rate: $${PLAN.founding}/month for ${PLAN.services} services.</b> Join by ${PLAN.cutoff} and keep that price for as long as you stay ($${PLAN.price} after). Or pay à la carte with no membership.</div></div>
+      <div class="card">
+        ${S.user ? `<h3>You’re signed in as ${esc(S.user.name)}</h3><button class="btn btn-primary" data-go="account">Go to My RKVR</button>` : `
+        <form id="join-form" style="display:grid;gap:12px">
+          <div class="field"><label for="j-name">Full name</label><input class="input" id="j-name" required autocomplete="name"></div>
+          <div class="field"><label for="j-email">Email</label><input class="input" id="j-email" type="email" required autocomplete="email"></div>
+          <div class="field"><label for="j-phone">Mobile</label><input class="input" id="j-phone" type="tel" required autocomplete="tel"></div>
+          <div class="field"><label for="j-home">Home location</label><select class="input" id="j-home">${LOCS.map(l => `<option value="${l.id}">${l.name}, ${l.city}${l.open ? '' : ' (coming soon)'}</option>`).join('')}</select></div>
+          <label class="check"><input type="checkbox" id="j-sms" checked> Text me reminders and visit updates. Reply STOP any time.</label>
+          ${ui.afterJoin || S.cart.length ? `<div class="notice ice">You have ${S.cart.length} ${S.cart.length === 1 ? 'item' : 'items'} in your cart${S.cart.includes(CART_MEMBER) ? ', including the membership' : ''}. Create your account and you’ll go straight to checkout.</div>` : `<fieldset style="border:0;padding:0;margin:0;display:grid;gap:8px"><legend class="small" style="font-weight:700;margin-bottom:6px">How do you want to pay?</legend>
+            <button type="button" class="pay-opt" aria-pressed="${ui.joinPlan === 'member'}" data-join-plan="member"><span class="dot"></span><span><b>Membership · $${PLAN.founding}/month</b><br><span class="muted small">${PLAN.services} services a month, any service. Founding rate locked in.</span></span></button>
+            <button type="button" class="pay-opt" aria-pressed="${ui.joinPlan === 'alacarte'}" data-join-plan="alacarte"><span class="dot"></span><span><b>À la carte · free account</b><br><span class="muted small">Pay for each service when you book.</span></span></button></fieldset>`}
+          <button class="btn btn-primary" type="submit">${ui.afterJoin || S.cart.length ? 'Create account and check out' : ui.joinPlan === 'member' ? 'Join for $' + PLAN.founding + '/month' : 'Create my account'}</button>
+          <p class="note">We’ll email a sign-in link; no password needed. In this preview, the account lives in this browser only.</p>
+        </form>
+        <div style="border-top:1px solid var(--line);padding-top:12px;margin-top:4px"><p class="small">Already a member? <button class="linkish" data-sample-member>Sign in as the sample member</button></p></div>`}
+      </div>
+    </div></section>`;
+  }
+
+  function planCards(compact) {
+    const isMem = !!S.member;
+    return `<div class="plans">
+      <div class="plan hot"><p class="eyebrow">Membership · founding rate</p><h3 class="display" style="font-size:40px">${PLAN.name}</h3>
+        <div><span class="price">$${PLAN.founding}<small>/month</small></span> <span class="was">$${PLAN.price}</span></div>
+        <p class="small"><b>Join by ${PLAN.cutoff} and keep $${PLAN.founding} a month for as long as you stay.</b> After that, membership is $${PLAN.price} a month.</p>
+        <ul class="small"><li><b>${PLAN.services} services every month</b>, any service: cryo, red light, IV drips, NAD+, weight loss and more</li><li>Book up to 3 in one visit, in the order you want</li><li>No deposits. Services reset on the 1st of each month</li><li>Cancel any time in My RKVR</li></ul>
+        <div style="margin-top:auto;padding-top:8px">${isMem ? '<span class="notice ice">You’re a member. ' + rateLine() + '.</span>' : `<button class="btn btn-primary" data-add="${CART_MEMBER}">Add membership to cart · $${PLAN.founding}/mo</button>`}</div></div>
+      <div class="plan"><p class="eyebrow">À la carte</p><h3 class="display" style="font-size:40px">Pay per service</h3>
+        <div><span class="price">$0<small>/month</small></span></div>
+        <p class="small">No membership. Pay for each service you choose, at its menu price.</p>
+        <ul class="small"><li>Cryotherapy from $45, red light from $49, IV drips from $159</li><li>A $${DEPOSIT} deposit holds your time; the rest is paid at your visit</li><li>Bundle up to 3 services and make visits repeat</li><li>Switch to membership any time</li></ul>
+        <div style="margin-top:auto;padding-top:8px"><button class="btn" data-go="services">Choose services</button> <button class="btn" data-plan="alacarte">${S.user ? 'Book a visit' : 'Create a free account'}</button></div></div>
+    </div>`;
+  }
+  function vMembership() {
+    return `<section class="band"><div class="wrap">
+      <p class="eyebrow">Membership</p><h2 class="display" style="font-size:clamp(48px,7vw,88px);margin-top:10px">${PLAN.services} services a month.<br><span style="color:var(--accent)">$${PLAN.founding}.</span></h2>
+      <p class="muted" style="margin-top:14px;font-size:18px;max-width:58ch">Join RKVR for $${PLAN.founding} a month (founding rate, locked in when you join by ${PLAN.cutoff}; $${PLAN.price} a month after) and use ${PLAN.services} services every month at any RKVR spa. Or skip the membership and pay à la carte.</p>
+      <div style="margin-top:26px">${planCards()}</div>
+      <div class="grid g3" style="margin-top:22px">${[['What counts as a service?', 'Each service in a visit counts once. Cryo + red light + a Myers’ drip is 3 of your 12.'], ['What if I use them all?', 'Book more at the regular à la carte price, or wait for the 1st when your 12 reset.'], ['Unused services', 'They don’t roll over. Repeating visits are counted ahead, so the app shows what’s left.']].map(x => `<div class="card"><h3>${x[0]}</h3><p class="muted small">${x[1]}</p></div>`).join('')}</div>
+      <p class="note" style="margin-top:14px">A late cancel (under 24 hours) or a no-show uses that service. Some services, like IV therapy, need a provider’s review first.</p>
+    </div></section>`;
+  }
+
+  function vOwners() {
+    return `<section class="band"><div class="wrap" style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:40px">
+      <div><p class="eyebrow">Own an RKVR spa</p><h2 class="display" style="font-size:clamp(44px,6vw,72px);margin-top:10px">Bring RKVR to your city</h2>
+        <p class="muted" style="margin-top:12px;max-width:52ch">RKVR spas open inside Phenix Salon Suites, using empty suites at its 450 locations nationwide. One RKVR spa per Phenix location, run by a Wellness Pro who rents 1–3 suites. Mission Valley in San Diego is the first, with Austin and Dallas next.</p>
+        <div class="grid g2" style="margin-top:20px">${[['A proven menu', 'Cryotherapy, red light, IV therapy, weight loss and TeleWellness.'], ['Membership revenue', PLAN.services + ' services a month at $' + PLAN.price + ', billed monthly.'], ['Clients from RKVR', 'Listed on the website and in the app from day one.'], ['RKVR Pro', 'Schedule, payments, marketing and supply on your phone.']].map(x => `<div class="card"><h3 style="font-size:17px">${x[0]}</h3><p class="muted small">${x[1]}</p></div>`).join('')}</div></div>
+      <div class="card">${ui.ownerSent ? `<h3>Thanks. Our development team will be in touch within 2 business days.</h3>` : `<form id="owner-form" style="display:grid;gap:12px"><h3>Ask about owning a spa</h3>
+        <div class="field"><label for="o-name">Name</label><input class="input" id="o-name" required></div>
+        <div class="field"><label for="o-email">Email</label><input class="input" id="o-email" type="email" required></div>
+        <div class="field"><label for="o-what">Your background</label><input class="input" id="o-what" placeholder="e.g. multi-unit owner, clinician, investor"></div>
+        <div class="field"><label for="o-loc">Market you’re interested in</label><input class="input" id="o-loc" placeholder="City or metro area"></div>
+        <button class="btn btn-primary" type="submit">Send</button><p class="note">In this preview, the form isn’t sent anywhere.</p></form>`}</div>
+    </div></section>`;
+  }
+
+  /* account */
+  function vAccount() {
+    if (!S.user) return `<section class="band"><div class="wrap" style="max-width:640px"><h2 class="display" style="font-size:56px">My RKVR</h2><p class="muted" style="margin-top:10px">Sign in to see your visits, calendar, orders and care.</p><div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="btn btn-primary" data-go="join">Join or sign in</button><button class="btn" data-sample-member>See the sample member view</button></div></div></section>`;
+    const tabs = [['visits', 'Visits'], ['calendar', 'Calendar'], ['orders', 'Orders'], ['care', 'TeleWellness'], ['membership', 'Membership'], ['settings', 'Settings']];
+    const pane = { visits: aVisits, calendar: aCalendar, orders: aOrders, care: aCare, membership: aMembership, settings: aSettings }[ui.acct]();
+    return `<section class="band"><div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">My RKVR</p><h2 class="display">Hi, ${esc(S.user.name.split(' ')[0])}</h2></div><button class="btn btn-primary" data-go="book">Book a visit</button></div>
+      <div class="acct"><nav class="side" aria-label="My RKVR">${tabs.map(([k, n]) => `<button data-acct="${k}" aria-current="${ui.acct === k}">${n}</button>`).join('')}</nav><div style="min-width:0">${pane}</div></div>
+    </div></section>`;
+  }
+  function upcoming(n) {
+    const out = [];
+    for (let k = 0; k < 3; k++) { const dd = new Date(TODAY.getFullYear(), TODAY.getMonth() + k, 1); S.bookings.forEach(b => occurrences(b, dd.getFullYear(), dd.getMonth()).forEach(d => { if (d >= TODAY) out.push({ b, d }); })); }
+    out.sort((x, y) => x.d - y.d || parseT(x.b.time) - parseT(y.b.time));
+    return out.slice(0, n);
+  }
+  function visitRow(o, past) {
+    const l = locById(o.b.loc), st = parseT(o.b.time);
+    return `<div class="visit" style="${past ? 'opacity:.55' : ''}"><div class="datebox"><small>${DOW[o.d.getDay()].toUpperCase()}</small><b>${o.d.getDate()}</b><small>${MON[o.d.getMonth()].toUpperCase()}</small></div>
+      <div style="min-width:0"><b>${esc(visitTitle(o.b))}</b><br><span class="muted small">${o.b.time}–${fmtT(st + visitMins(o.b))} · ${l.name}, ${l.city}</span>
+      ${o.b.repeat !== 'once' || !past ? `<div class="visit-acts">${o.b.repeat !== 'once' ? `<span class="tag">${o.b.repeat === 'weekly' ? 'Weekly' : 'Monthly'}</span>` : ''}${past ? '' : `<button class="btn btn-sm" data-cancel="${o.b.id}">${o.b.repeat === 'once' ? 'Cancel' : 'Stop repeating'}</button>`}</div>` : ''}</div></div>`;
+  }
+  function aVisits() {
+    const up = upcoming(8);
+    const pre = S.prepaid || [];
+    return (pre.length ? `<div class="card" style="margin-bottom:16px"><h3>Prepaid, ready to book</h3>${pre.map(x => `<div class="kv"><span>${esc(x.name)}</span><button class="btn btn-sm btn-primary" data-book-svc="${x.key}">Book</button></div>`).join('')}</div>` : '') + `<div class="card"><h3>Upcoming</h3>${up.length ? up.map(o => visitRow(o)).join('') : '<p class="muted">Nothing booked. <button class="linkish" data-go="book">Book a visit</button></p>'}</div>`;
+  }
+  function aCalendar() {
+    const base = new Date(TODAY.getFullYear(), TODAY.getMonth() + ui.calOffset, 1), y = base.getFullYear(), m = base.getMonth();
+    const occ = []; S.bookings.forEach(b => occurrences(b, y, m).forEach(d => occ.push({ b, d })));
+    occ.sort((a, b) => a.d - b.d || parseT(a.b.time) - parseT(b.b.time));
+    const first = base.getDay(), n = new Date(y, m + 1, 0).getDate();
+    let cells = ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(x => `<span class="dow">${x}</span>`).join('');
+    for (let i = 0; i < first; i++) cells += '<span class="blank"></span>';
+    for (let d = 1; d <= n; d++) { const has = occ.some(o => o.d.getDate() === d), isT = y === TODAY.getFullYear() && m === TODAY.getMonth() && d === TODAY.getDate();
+      cells += `<button class="${has ? 'has' : ''} ${isT ? 'today' : ''}" aria-pressed="${ui.calDay === d}" data-cal-day="${d}" aria-label="${MONTHS[m]} ${d}${has ? ', visit booked' : ''}">${d}<i></i></button>`; }
+    const shown = occ.filter(o => ui.calDay == null || o.d.getDate() === ui.calDay);
+    return `<div class="grid g2" style="align-items:start">
+      <div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><button class="icon-btn" data-cal-move="-1" aria-label="Previous month" ${ui.calOffset <= -1 ? 'disabled' : ''}>‹</button><h3 class="display" style="font-size:30px">${MONTHS[m]} ${y}</h3><button class="icon-btn" data-cal-move="1" aria-label="Next month" ${ui.calOffset >= 5 ? 'disabled' : ''}>›</button></div>
+        <div class="cal" style="margin-top:10px">${cells}</div></div>
+      <div class="card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><h3>${ui.calDay != null ? DOW[new Date(y, m, ui.calDay).getDay()] + ', ' + MON[m] + ' ' + ui.calDay : MONTHS[m] + ' · ' + occ.length + (occ.length === 1 ? ' visit' : ' visits')}</h3>${ui.calDay != null ? '<button class="linkish small" data-cal-all>Whole month</button>' : ''}</div>
+        ${shown.length ? shown.map(o => visitRow(o, o.d < TODAY)).join('') : '<p class="muted">Nothing booked.</p>'}</div>
+      <div class="card" style="grid-column:1/-1"><h3>Add RKVR to your calendar</h3><p class="muted small">Subscribe once and your visits show up in Google, Apple or Outlook Calendar. They update when you book, move or cancel.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="btn btn-sm" data-sub>Google Calendar</button><button class="btn btn-sm" data-sub>Apple Calendar</button><button class="btn btn-sm" data-sub>Outlook</button><button class="btn btn-sm btn-primary" data-ics="all">Download all visits (.ics)</button></div>
+        <p class="note" id="ics-note">${ui.subNote ? 'Live calendar sync turns on when RKVR accounts launch. Until then, download your visits and open the file in your calendar app.' : ''}</p></div>
+    </div>`;
+  }
+  function aOrders() {
+    return `<div class="card"><h3>Orders</h3>${S.orders.length ? S.orders.map(o => `<div class="kv"><span><b>${esc(o.id)}</b> · ${esc(o.items.join(', '))}<br><span class="muted small">${esc(o.date)}</span></span><span style="text-align:right"><b>${money(o.total)}</b><br><span class="muted small">${esc(o.status)}</span></span></div>`).join('') : '<p class="muted">No orders yet. <button class="linkish" data-go="shop">Visit the shop</button></p>'}</div>`;
+  }
+  function aCare() {
+    return `<div class="grid g2"><div class="card"><h3>Prescriptions</h3>${S.user.name === 'Ava Reyes' ? '<div class="kv"><span><b>Semaglutide 0.5 mg</b><br><span class="muted small">Naomi Fields, NP · 2 refills left</span></span><span class="tag rx">Active</span></div><button class="btn btn-sm btn-primary" style="align-self:flex-start" data-reorder>Reorder GLP-1 Program</button>' : '<p class="muted">None yet.</p>'}</div>
+      <div class="card"><h3>Your care team</h3>${S.user.name === 'Ava Reyes' ? '<div class="kv"><span>Naomi Fields, NP</span><span class="muted">Weight loss · TeleWellness</span></div><div class="kv"><span>Lena Ortiz, RN</span><span class="muted">IV therapy</span></div>' : '<p class="muted">Book a visit to meet your providers.</p>'}<button class="btn btn-sm" style="align-self:flex-start" data-go="care">Start a TeleWellness visit</button></div></div>`;
+  }
+  function aMembership() {
+    if (!S.member) return `<div class="card"><p class="eyebrow">À la carte</p><h3 class="display" style="font-size:40px">You pay per service</h3><p class="muted">Join for $${PLAN.founding} a month (founding rate, locked in by ${PLAN.cutoff}) and get ${PLAN.services} services every month.</p><button class="btn btn-primary" style="align-self:flex-start" data-plan="member">Join for $${PLAN.founding}/month</button></div>`;
+    const used = memberUsed(TODAY.getFullYear(), TODAY.getMonth()), left = Math.max(0, PLAN.services - used);
+    return `<div class="grid g2" style="align-items:start"><div class="card"><p class="eyebrow">${MONTHS[TODAY.getMonth()]}</p><h3 class="display" style="font-size:56px">${left} of ${PLAN.services} left</h3>
+        <div class="meter" role="img" aria-label="${used} of ${PLAN.services} services used"><i style="width:${Math.min(100, used / PLAN.services * 100)}%"></i></div>
+        <p class="muted small">${used} used or booked this month, counting repeating visits. Services reset on ${S.member.renews}.</p><button class="btn btn-primary" style="align-self:flex-start" data-go="book">Book with membership</button></div>
+      <div class="card"><h3>${PLAN.name}</h3><div class="kv"><span>Rate</span><span>${rateLine()}</span></div><div class="kv"><span>Member since</span><span>${esc(S.member.since)}</span></div><div class="kv"><span>Next charge</span><span>$${S.member.rate} on ${esc(S.member.renews)}</span></div><div class="kv"><span>Pays with</span><span>Visa ···· 4242</span></div>
+        <p class="note">Cancelling ends the founding rate; rejoining later is $${PLAN.price} a month.</p><button class="btn btn-sm" style="align-self:flex-start" id="cancel-member">Cancel membership</button></div></div>`;
+  }
+  function aSettings() {
+    const u = S.user;
+    return `<div class="card"><h3>Your details</h3><div class="kv"><span>Name</span><span>${esc(u.name)}</span></div><div class="kv"><span>Email</span><span>${esc(u.email)}</span></div><div class="kv"><span>Mobile</span><span>${esc(u.phone)}</span></div><div class="kv"><span>Home location</span><span>${esc((locById(u.home) || LOCS[0]).name)}</span></div>
+      <label class="check" style="margin-top:8px"><input type="checkbox" id="set-sms" ${u.sms ? 'checked' : ''}> Text me reminders and visit updates</label>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-sm" id="sign-out">Sign out</button><button class="btn btn-sm" id="reset-demo">Reset preview data</button></div></div>`;
+  }
+
+  /* ---------------- iCal ---------------- */
+  function icsEsc(t) { return String(t).replace(/[·–—]/g, '-').replace(/[’]/g, "'").replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n'); }
+  function stamp(d, mins) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, mins); return ymd(x).replace(/-/g, '') + 'T' + String(x.getHours()).padStart(2, '0') + String(x.getMinutes()).padStart(2, '0') + '00'; }
+  function buildIcs(list) {
+    const now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+    const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//RKVR//Website//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:RKVR visits'];
+    list.forEach(b => { const d = dateOf(b.date), st = parseT(b.time), l = locById(b.loc);
+      L.push('BEGIN:VEVENT', 'UID:' + b.id + '@rkvr', 'DTSTAMP:' + now, 'DTSTART;TZID=' + (l.tz || 'America/Los_Angeles') + ':' + stamp(d, st), 'DTEND;TZID=' + (l.tz || 'America/Los_Angeles') + ':' + stamp(d, st + visitMins(b)),
+        'SUMMARY:' + icsEsc(visitTitle(b) + ' - RKVR'), 'LOCATION:' + icsEsc('RKVR ' + l.name + ', ' + (l.address || l.city)));
+      if (b.repeat === 'weekly') L.push('RRULE:FREQ=WEEKLY'); if (b.repeat === 'monthly') L.push('RRULE:FREQ=MONTHLY');
+      L.push('END:VEVENT'); });
+    L.push('END:VCALENDAR'); return L.join('\r\n') + '\r\n';
+  }
+  function downloadIcs(list, name) {
+    try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buildIcs(list)], { type: 'text/calendar' })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); } catch (_) {}
+    const n = document.getElementById('ics-note'); if (n) n.textContent = 'Your calendar file is downloading. If nothing appears, you’re in the preview, where downloads are blocked; it works on the live site.';
+  }
+
+  /* ---------------- events ---------------- */
+  document.addEventListener('click', e => {
+    const t = e.target.closest('button, [data-close]'); if (!t) return;
+    const d = t.dataset;
+    if (d.close !== undefined) { ui.drawer = null; render(); return; }
+    if (d.go) { const extra = {}; if (d.acct) extra.acct = d.acct; if (d.go === 'book' && !ui.bk.done && ui.view !== 'book') {} if (d.go === 'book' && ui.bk.done) ui.bk = { step: 0, loc: null, sel: [], day: 0, slot: null, repeat: 'once', done: null }; ui.drawer = null; go(d.go, extra); return; }
+    if (d.drawer) { ui.drawer = d.drawer; render(); return; }
+    if (d.bookLoc) { ui.bk = { step: 1, loc: d.bookLoc, sel: [], day: 0, slot: null, repeat: 'once', done: null }; go('book'); return; }
+    if (d.bookSvc) { const x = svcByKey(d.bookSvc); ui.bk = { step: 1, loc: x.loc.id, sel: [d.bookSvc], day: 0, slot: null, repeat: 'once', done: null }; go('book'); return; }
+    if (d.locOpen) { ui.near = null; go('locations'); setTimeout(() => { const el = document.getElementById('loc-' + d.locOpen); if (el) el.scrollIntoView({ block: 'start' }); }, 30); return; }
+    if (d.svcCat) { ui.svcFilter = d.svcCat; go('services'); return; }
+    if (d.svcFilter) { ui.svcFilter = d.svcFilter; render(); return; }
+    if (d.bkLoc) { ui.bk.loc = d.bkLoc; ui.bk.sel = []; ui.bk.step = 1; render(); return; }
+    if (d.bkStep) { const s = +d.bkStep; if (s === 2 && !ui.bk.sel.length) return; if (s === 3 && !ui.bk.slot) return; ui.bk.step = s; render(); window.scrollTo({ top: 0 }); return; }
+    if (d.bkPick) { const i = ui.bk.sel.indexOf(d.bkPick); if (i >= 0) ui.bk.sel.splice(i, 1); else if (ui.bk.sel.length < 3) ui.bk.sel.push(d.bkPick); render(); return; }
+    if (d.bkUp) { const i = +d.bkUp, a = ui.bk.sel; [a[i - 1], a[i]] = [a[i], a[i - 1]]; render(); return; }
+    if (d.bkDown) { const i = +d.bkDown, a = ui.bk.sel; [a[i + 1], a[i]] = [a[i], a[i + 1]]; render(); return; }
+    if (d.bkDay) { ui.bk.day = +d.bkDay; ui.bk.slot = null; render(); return; }
+    if (d.bkSlot) { ui.bk.slot = d.bkSlot; render(); return; }
+    if (d.bkRepeat) { ui.bk.repeat = d.bkRepeat; render(); return; }
+    if (t.id === 'bk-confirm') { confirmBooking(); return; }
+    if (t.id === 'bk-again') { ui.bk = { step: 0, loc: null, sel: [], day: 0, slot: null, repeat: 'once', done: null, pay: null }; render(); return; }
+    if (d.ics) { downloadIcs(d.ics === 'all' ? S.bookings : S.bookings.filter(b => b.id === d.ics), d.ics === 'all' ? 'rkvr-visits.ics' : 'rkvr-visit.ics'); return; }
+    if (d.sub !== undefined) { ui.subNote = true; render(); return; }
+    if (d.notify) { S.notify = (S.notify || []).concat([d.notify]); save(); render(); toast('We’ll let you know when ' + locById(d.notify).name + ' opens'); return; }
+    if (d.shopCat) { ui.shopCat = d.shopCat; render(); return; }
+    if (d.add) { if (d.add === CART_MEMBER && (S.member || S.cart.includes(CART_MEMBER))) { ui.drawer = 'cart'; render(); return; }
+      S.cart = S.cart.concat([d.add]); save(); if (d.add === CART_MEMBER || ui.drawer === 'cart') { ui.drawer = 'cart'; render(); } else renderShell(); toast(d.add === CART_MEMBER ? 'Membership added to cart' : 'Added to cart'); return; }
+    if (d.remove) { S.cart = S.cart.filter((_, i) => i !== +d.remove); save(); render(); return; }
+    if (t.id === 'checkout') { if (!S.user) { ui.drawer = null; ui.afterJoin = true; go('join'); return; }
+      const items = S.cart.map(cartItem).filter(Boolean), prods = items.filter(p => p.kind === 'prod'), svcs = items.filter(p => p.kind === 'svc'), mem = items.some(p => p.kind === 'member');
+      if (mem && !S.member) S.member = { rate: PLAN.founding, since: 'Oct 2026', renews: 'Nov 1' };
+      if (svcs.length) S.prepaid = (S.prepaid || []).concat(svcs.map(x => ({ key: x.key, name: x.name })));
+      if (prods.length || svcs.length || mem) S.orders = [{ id: 'WH-' + (40220 + S.orders.length), items: items.map(p => p.name + (p.kind === 'member' ? ' (monthly)' : '')), total: items.reduce((a, p) => a + p.price, 0), date: MON[TODAY.getMonth()] + ' ' + TODAY.getDate(), status: prods.length ? 'Processing' : 'Paid' }].concat(S.orders);
+      S.cart = []; save(); ui.drawer = null; ui.acct = mem ? 'membership' : svcs.length ? 'visits' : 'orders'; go('account');
+      toast(mem ? 'You’re a member. Founding rate locked in.' : svcs.length ? 'Paid. Book your prepaid services any time.' : 'Order placed'); return; }
+    if (d.sampleMember !== undefined) { S = Object.assign(blank(), sampleMember()); save(); if (ui.view === 'book') { render(); } else { ui.acct = 'visits'; go('account'); } toast('Signed in as Ava Reyes (sample)'); return; }
+    if (d.acct) { ui.acct = d.acct; render(); return; }
+    if (d.calMove) { ui.calOffset += +d.calMove; ui.calDay = null; render(); return; }
+    if (d.calDay) { ui.calDay = ui.calDay === +d.calDay ? null : +d.calDay; render(); return; }
+    if (d.calAll !== undefined) { ui.calDay = null; render(); return; }
+    if (d.cancel) { S.bookings = S.bookings.filter(b => b.id !== d.cancel); save(); render(); toast('Cancelled. Your deposit is refunded when cancelled 24+ hours ahead.'); return; }
+    if (t.id === 'waitlist') { S.waitlist = true; save(); render(); toast('You’re on the membership waitlist'); return; }
+    if (d.plan) { if (d.plan === 'alacarte') { if (S.user) go('book'); else { ui.joinPlan = 'alacarte'; go('join'); } return; }
+      if (!S.user) { ui.joinPlan = 'member'; go('join'); return; }
+      S.member = { rate: PLAN.founding, since: 'Oct 2026', renews: 'Nov 1' }; save(); ui.acct = 'membership'; go('account'); toast('You’re a member. Founding rate locked in.'); return; }
+    if (d.joinPlan) { ui.joinPlan = d.joinPlan; document.querySelectorAll('[data-join-plan]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.joinPlan === d.joinPlan))); const sb = $('#join-form button[type=submit]'); if (sb) sb.textContent = d.joinPlan === 'member' ? 'Join for $' + PLAN.founding + '/month' : 'Create my account'; return; }
+    if (d.bkPay) { ui.bk.pay = d.bkPay; render(); return; }
+    if (t.id === 'cancel-member') { S.member = null; S.bookings = S.bookings.map(b => b.pay === 'member' ? Object.assign({}, b, { pay: 'card' }) : b); save(); render(); toast('Membership cancelled. Future visits are à la carte.'); return; }
+    if (d.reorder !== undefined) { S.cart = S.cart.concat(['glp1']); save(); ui.drawer = 'cart'; render(); return; }
+    if (d.care) { toast(S.user ? 'Visit started. A provider will reply within 24 hours (sample).' : 'Sign in or join to start a visit'); if (!S.user) go('join'); return; }
+    if (t.id === 'sign-out') { S.user = null; save(); go('home'); toast('Signed out'); return; }
+    if (t.id === 'reset-demo') { S = blank(); save(); go('home'); toast('Preview data cleared'); return; }
+  });
+  document.addEventListener('change', e => { if (e.target.id === 'set-sms' && S.user) { S.user.sms = e.target.checked; save(); toast(e.target.checked ? 'Text updates on' : 'Text updates off'); } });
+  document.addEventListener('submit', e => {
+    e.preventDefault();
+    const f = e.target;
+    if (f.id === 'finder') { ui.nearQuery = $('#near-q').value; ui.near = place(ui.nearQuery); go('locations'); return; }
+    if (f.id === 'join-form') { S.user = { name: $('#j-name').value.trim(), email: $('#j-email').value.trim(), phone: $('#j-phone').value.trim(), sms: $('#j-sms').checked, home: $('#j-home').value, since: 'Oct 2026' }; if (ui.afterJoin || S.cart.length) { ui.afterJoin = false; save(); ui.drawer = 'cart'; go('account'); toast('Account created. Finish checking out.'); return; } if (ui.joinPlan === 'member' && !S.cart.includes(CART_MEMBER)) S.member = { rate: PLAN.founding, since: 'Oct 2026', renews: 'Nov 1' }; save(); ui.acct = S.member ? 'membership' : 'visits'; go('account'); toast(S.member ? 'Welcome, member. Your founding rate is locked in.' : 'Welcome to RKVR'); return; }
+    if (f.id === 'owner-form') { ui.ownerSent = true; render(); return; }
+    if (f.id === 'quick-join') { confirmBooking(); return; }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.drawer) { ui.drawer = null; render(); } });
+
+  const h = (location.hash || '').replace('#', '');
+  if (VIEWS.includes(h)) ui.view = h;
+  render();
+})();
+</script>
+</body></html>

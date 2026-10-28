@@ -1,0 +1,1823 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>RKVR HQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+</head>
+<body>
+<style>
+/* Layout: sticky brand bar + section tabs, then one wide working column of panels; tables scroll inside their own frames. */
+:root {
+  --bg: #0E1216; --panel: #161C21; --panel-2: #1D252C; --line: rgba(242,240,234,.12); --line-strong: rgba(242,240,234,.28);
+  --fg: #F2F0EA; --muted: #A9B1B8; --accent: #F2542D; --accent-text: #FF7A57; --on-accent: #0E1216;
+  --ice: #7CCBFF; --good: #4FC38A; --warn: #F2B23C; --bad: #FF6B57;
+  --good-bg: rgba(79,195,138,.14); --warn-bg: rgba(242,178,60,.14); --bad-bg: rgba(255,107,87,.14); --ice-bg: rgba(124,203,255,.14); --accent-bg: rgba(242,84,45,.14);
+  --c1: #F2542D; --c2: #7CCBFF; --c3: #D9C9A3; --c4: #6F7C88;
+  --font-display: 'Big Shoulders Display', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  --font-body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #ECE9E1; --panel: #FBFAF7; --panel-2: #F3F1EB; --line: rgba(14,18,22,.12); --line-strong: rgba(14,18,22,.3);
+    --fg: #0E1216; --muted: #4A535C; --accent: #E04A23; --accent-text: #B83A18; --on-accent: #0E1216;
+    --ice: #1F6FA8; --good: #1E8A55; --warn: #9A6200; --bad: #C2321B;
+    --good-bg: rgba(30,138,85,.12); --warn-bg: rgba(154,98,0,.12); --bad-bg: rgba(194,50,27,.1); --ice-bg: rgba(31,111,168,.1); --accent-bg: rgba(224,74,35,.1);
+    --c1: #E04A23; --c2: #2F8FCB; --c3: #A88B4A; --c4: #56636F;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #ECE9E1; --panel: #FBFAF7; --panel-2: #F3F1EB; --line: rgba(14,18,22,.12); --line-strong: rgba(14,18,22,.3);
+  --fg: #0E1216; --muted: #4A535C; --accent: #E04A23; --accent-text: #B83A18; --on-accent: #0E1216;
+  --ice: #1F6FA8; --good: #1E8A55; --warn: #9A6200; --bad: #C2321B;
+  --good-bg: rgba(30,138,85,.12); --warn-bg: rgba(154,98,0,.12); --bad-bg: rgba(194,50,27,.1); --ice-bg: rgba(31,111,168,.1); --accent-bg: rgba(224,74,35,.1);
+  --c1: #E04A23; --c2: #2F8FCB; --c3: #A88B4A; --c4: #56636F;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+p { margin: 0; }
+
+.wrap { max-width: 1320px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* top bar */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line); }
+.top-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-block: 14px 10px; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--fg); }
+.brand svg { width: 74px; height: 27px; display: block; }
+.brand b { font: 800 22px/1 var(--font-display); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.top-tools { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.select { background: var(--panel); border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 10px; min-height: 36px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.pill-sample { background: var(--warn-bg); color: var(--warn); }
+.who { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+.who img { width: 26px; height: 26px; border-radius: 50%; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex: none; background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 14px 9px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+.tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.tab .count { margin-left: 6px; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--bad-bg); color: var(--bad); }
+
+main { padding-block: 24px 64px; }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.page-head h1 { font: 800 clamp(34px, 5vw, 52px)/.95 var(--font-display); text-transform: uppercase; letter-spacing: .01em; }
+.page-head p { color: var(--muted); max-width: 62ch; margin-top: 6px; }
+.stamp { font-size: 12px; color: var(--muted); }
+
+.grid { display: grid; gap: 16px; align-items: stretch; }
+.funnel { display: grid; gap: 8px; }
+.fn-row { display: grid; grid-template-columns: 170px minmax(0, 1fr) 56px; gap: 12px; align-items: center; font-size: 13px; }
+.fn-bar { height: 10px; background: var(--panel-2); }
+.fn-bar i { display: block; height: 100%; background: var(--accent); }
+.fn-row b { text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) { .fn-row { grid-template-columns: 110px minmax(0, 1fr) 44px; } }
+.grid > .panel { display: flex; flex-direction: column; }
+.chart-sum { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.chart-sum b { display: block; font: 800 24px/1 var(--font-display); margin-top: 4px; }
+.chart-sum .up { color: var(--good); }
+.chart + .chart-sum { margin-top: auto; }
+.grid > .panel > .feed, .grid > .panel > .alerts { flex: 1; }
+.cols-2 { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+.cols-even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 960px) { .cols-2, .cols-even { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0; }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.panel-head h2 { font-size: 15px; font-weight: 700; letter-spacing: .01em; }
+.panel-head .note { font-size: 12px; color: var(--muted); }
+.label { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+
+/* KPI tiles */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px 15px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.kpi .v { font: 800 clamp(28px, 4vw, 36px)/1 var(--font-display); letter-spacing: .01em; margin-top: 4px; }
+.kpi .s { font-size: 12.5px; color: var(--muted); }
+.kpi.alert { border-color: color-mix(in srgb, var(--bad) 55%, var(--line)); }
+.kpi.alert .v { color: var(--bad); }
+
+/* chips & status */
+.st { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.st::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.st-good { background: var(--good-bg); color: var(--good); }
+.st-warn { background: var(--warn-bg); color: var(--warn); }
+.st-bad { background: var(--bad-bg); color: var(--bad); }
+.st-ice { background: var(--ice-bg); color: var(--ice); }
+.st-off { background: var(--panel-2); color: var(--muted); }
+
+/* tables */
+.tbl-wrap { overflow-x: auto; margin: 0 -4px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line-strong); white-space: nowrap; }
+td { padding: 11px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; }
+.cell-main { font-weight: 600; }
+.cell-sub { font-size: 12px; color: var(--muted); }
+tr.dim td { opacity: .5; }
+
+/* attention list */
+.alerts { display: flex; flex-direction: column; gap: 10px; }
+.alert-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 12px 12px 14px; border-radius: 10px; background: var(--panel-2); border-left: 4px solid var(--line-strong); }
+.alert-row.bad { border-left-color: var(--bad); }
+.alert-row.warn { border-left-color: var(--warn); }
+.alert-row.ice { border-left-color: var(--ice); }
+.alert-row .t { font-weight: 600; }
+.alert-row .d { font-size: 12.5px; color: var(--muted); }
+.alert-row button { margin-left: auto; flex: none; }
+
+.btn { border: 1px solid var(--line-strong); background: var(--panel); border-radius: 8px; padding: 7px 12px; font-size: 12.5px; font-weight: 600; }
+.btn:hover { border-color: var(--fg); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn-primary:hover { border-color: var(--accent); filter: brightness(1.05); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* feed */
+.feed { display: flex; flex-direction: column; }
+.feed-row { display: grid; grid-template-columns: 70px minmax(0,1fr); gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.feed-row:last-child { border-bottom: 0; }
+.feed-row time { color: var(--muted); font-size: 12px; }
+.tag-mini { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-right: 6px; }
+
+/* chart */
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.legend b { font-weight: 600; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart text { fill: var(--muted); font: 11px var(--font-body); }
+
+/* bar list */
+.bars { display: flex; flex-direction: column; gap: 9px; }
+.bar-row { display: grid; grid-template-columns: minmax(110px, 170px) minmax(0, 1fr) 64px; gap: 10px; align-items: center; font-size: 13px; }
+.bar-track { height: 10px; background: var(--panel-2); border-radius: 5px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--c2); border-radius: 5px; }
+.bar-row .num { text-align: right; font-weight: 600; }
+
+/* switches */
+.switch { position: relative; width: 44px; height: 26px; flex: none; border-radius: 999px; border: 0; background: var(--line-strong); transition: background .15s; padding: 0; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--bg); transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+.switch[aria-checked="true"] { background: var(--good); }
+.switch[aria-checked="true"]::after { transform: translateX(18px); background: #FFFFFF; }
+.switch:disabled { opacity: .4; cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) { .switch, .switch::after { transition: none; } }
+
+.flag-group + .flag-group { margin-top: 18px; }
+.flag-group h3 { font: 800 20px/1 var(--font-display); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 4px; }
+.flag-group > p { font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
+.flag { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
+.flag.child { padding-left: 22px; }
+.flag.child .flag-name::before { content: "↳ "; color: var(--muted); }
+.flag-text { flex: 1; min-width: 0; }
+.flag-name { font-weight: 600; }
+.flag-desc { font-size: 12.5px; color: var(--muted); }
+.flag-state { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.flag.blocked .flag-name, .flag.blocked .flag-desc { opacity: .5; }
+
+.banner { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; }
+.banner-ice { background: var(--ice-bg); }
+.banner-warn { background: var(--warn-bg); }
+.banner b { font-weight: 700; }
+
+/* settings */
+.setting { display: grid; grid-template-columns: minmax(0, 1fr) 130px; gap: 12px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); }
+.setting label { font-weight: 600; }
+.setting .flag-desc { display: block; font-weight: 400; }
+.field { display: flex; align-items: center; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel-2); overflow: hidden; }
+.field span { padding: 0 8px; color: var(--muted); font-size: 13px; }
+.field input { width: 100%; min-width: 0; border: 0; background: transparent; padding: 8px 8px; text-align: right; font-weight: 600; }
+.calc { margin-top: 14px; padding: 14px; border-radius: 10px; background: var(--panel-2); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.calc div b { display: block; font: 800 26px/1 var(--font-display); margin-top: 4px; }
+.calc .neg { color: var(--bad); }
+.calc .pos { color: var(--good); }
+@media (max-width: 520px) { .calc { grid-template-columns: minmax(0, 1fr); } .setting { grid-template-columns: minmax(0,1fr) 110px; } }
+
+/* live preview */
+.previews { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 520px) { .previews { grid-template-columns: minmax(0, 1fr); } }
+.phone { background: #0E1216; color: #F2F0EA; border-radius: 22px; border: 5px solid #2A323A; padding: 12px 10px 8px; display: flex; flex-direction: column; gap: 10px; min-height: 230px; }
+.phone-title { font: 800 16px/1 var(--font-display); text-transform: uppercase; letter-spacing: .04em; color: #A9B1B8; }
+.phone-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.phone-chips span { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 4px 7px; border: 1px solid rgba(242,240,234,.2); }
+.phone-chips span.on { color: #F2542D; border-color: #F2542D; }
+.phone-card { border: 1px solid rgba(242,240,234,.16); padding: 9px; font-size: 11.5px; }
+.phone-card b { display: block; font-size: 12.5px; }
+.phone-card .mini-btns { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+.phone-card .mini-btns span { background: #F2542D; color: #0E1216; font-weight: 700; font-size: 10.5px; padding: 3px 6px; }
+.phone-card .mini-btns span.alt { background: transparent; color: #F2F0EA; border: 1px solid rgba(242,240,234,.3); }
+.phone-tabs { margin-top: auto; display: flex; flex-wrap: wrap; gap: 4px 10px; border-top: 2px solid #F2F0EA; padding-top: 7px; }
+.phone-tabs span { font-size: 9.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.phone-tabs span:first-child { color: #F2542D; }
+.phone-off { font-size: 11px; color: #A9B1B8; font-style: italic; }
+
+/* marketing */
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { border: 1px solid var(--line-strong); background: var(--panel); border-radius: 8px; padding: 7px 12px; font-size: 12.5px; font-weight: 600; }
+.seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.form-row { display: grid; gap: 6px; padding: 12px 0; border-top: 1px solid var(--line); }
+.form-row:first-child { border-top: 0; padding-top: 0; }
+.form-row > label, .form-row > .label { font-size: 12.5px; font-weight: 600; color: var(--fg); letter-spacing: 0; text-transform: none; }
+.input { width: 100%; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel-2); padding: 9px 10px; font-size: 13.5px; }
+textarea.input { min-height: 96px; resize: vertical; line-height: 1.45; }
+.hint { font-size: 12px; color: var(--muted); }
+.reach { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-radius: 10px; background: var(--panel-2); margin-top: 4px; }
+.reach b { font: 800 30px/1 var(--font-display); }
+.msg-preview { background: #0E1216; color: #F2F0EA; border-radius: 18px; border: 5px solid #2A323A; padding: 14px; }
+.msg-preview .from { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #A9B1B8; }
+.msg-preview .body { font-size: 13px; line-height: 1.45; margin-top: 6px; white-space: pre-line; }
+.msg-preview .cta { display: inline-block; margin-top: 10px; background: #F2542D; color: #0E1216; font-weight: 700; font-size: 12px; padding: 6px 12px; }
+.compose { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 760px) { .compose { grid-template-columns: minmax(0, 1fr); } }
+.time-pair { display: flex; align-items: center; gap: 8px; }
+.time-pair { flex-wrap: wrap; }
+.time-pair input { width: 130px; max-width: 100%; }
+
+/* recommendations */
+.recs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 14px; align-items: stretch; }
+.rec .rec-checks { margin-top: auto; }
+.rec.wide { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; border-top-left-radius: 0; }
+.rec-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+@media (max-width: 860px) { .rec.wide { grid-template-columns: minmax(0, 1fr); } }
+.rec-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.rec-tabs::-webkit-scrollbar { display: none; }
+.rec-tabs button { flex: none; display: flex; align-items: baseline; gap: 8px; border: 1px solid var(--line); border-bottom: 0; background: var(--panel); border-radius: 10px 10px 0 0; padding: 9px 14px; font-weight: 600; font-size: 13px; color: var(--muted); }
+.rec-tabs button b { font: 800 18px/1 var(--font-display); color: var(--muted); }
+.rec-tabs button[aria-selected="true"] { background: var(--panel-2); color: var(--fg); box-shadow: inset 0 3px 0 var(--accent); }
+.rec-tabs button[aria-selected="true"] b { color: var(--accent-text); }
+.em-mini { display: flex; gap: 12px; align-items: center; border: 1px solid var(--line-strong); border-radius: 10px; padding: 10px; background: var(--panel); }
+.em-mini-img { width: 64px; height: 64px; flex: none; border-radius: 6px; background: #F2F0EA; display: grid; place-items: center; overflow: hidden; }
+.em-mini-img img { width: 100%; height: 100%; object-fit: contain; }
+.em-mini-img svg { width: 44px; height: 16px; }
+.em-mini-t { min-width: 0; font-size: 12.5px; }
+.em-mini-t b { display: block; font-size: 13px; }
+.em-mini-t span { color: var(--muted); display: block; }
+.rec { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.rec-top { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; }
+.rec-kind { font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--accent-text); }
+.rec-est { font-size: 12px; color: var(--good); font-weight: 600; }
+.rec h3 { font-size: 16px; font-weight: 700; line-height: 1.3; }
+.rec-why { font-size: 12.5px; color: var(--muted); }
+.rec-who { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
+.rec-who b { font: 800 22px/1 var(--font-display); }
+.linkish { background: none; border: 0; padding: 0; color: var(--accent-text); font-weight: 600; font-size: 12.5px; }
+.rec-names { font-size: 12px; color: var(--muted); background: var(--panel); border-radius: 8px; padding: 8px 10px; }
+.rec-ch { display: flex; flex-direction: column; gap: 6px; }
+.rec-ch .seg button { padding: 6px 10px; font-size: 12px; }
+.rec-ch .hint { font-size: 11.5px; }
+.rec-checks { list-style: none; margin: 0; padding: 0; font-size: 12px; display: flex; flex-direction: column; gap: 3px; }
+.rec-checks li::before { content: "✓ "; color: var(--good); font-weight: 700; }
+.rec-checks li.no::before { content: "✕ "; color: var(--bad); }
+.rec-checks li.no { color: var(--bad); }
+.rec-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 6px; align-items: center; }
+.rec-actions .btn-primary { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rec-actions .btn-primary { padding: 8px 12px; }
+.rec-reasons { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; }
+.rec-lock { font-size: 11.5px; color: var(--warn); font-weight: 600; }
+.rec-foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; font-size: 12px; color: var(--muted); }
+.bubble { background: #0E1216; color: #F2F0EA; border-radius: 14px; border: 4px solid #2A323A; padding: 10px 12px; font-size: 12.5px; line-height: 1.45; white-space: pre-line; }
+.bubble .from { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #A9B1B8; display: block; margin-bottom: 4px; white-space: normal; }
+.count-line { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+/* email preview: emails are light by design, whatever the dashboard theme */
+.em { border: 1px solid var(--line-strong); border-radius: 10px; overflow: hidden; background: #E9E7E1; }
+.em-meta { background: var(--panel); padding: 8px 10px; font-size: 11.5px; color: var(--muted); border-bottom: 1px solid var(--line); }
+.em-meta b { color: var(--fg); }
+.em-card { background: #FFFFFF; color: #0E1216; margin: 10px; border-radius: 4px; overflow: hidden; font-family: var(--font-body); }
+.em-head { background: #0E1216; padding: 10px 14px; display: flex; align-items: center; }
+.em-head svg { width: 58px; height: 21px; display: block; }
+.em-hero { background: #F2F0EA; display: flex; justify-content: center; }
+.em-hero img { width: 46%; max-width: 190px; aspect-ratio: 1; object-fit: contain; display: block; }
+.em-body { padding: 14px 16px 16px; }
+.em-body h4 { font: 800 24px/1.05 var(--font-display); text-transform: uppercase; margin: 0 0 8px; color: #0E1216; }
+.em-body p { font-size: 13px; line-height: 1.5; color: #333A40; white-space: pre-line; }
+.em-prods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.em-prod { border: 1px solid #E2E0DA; padding: 8px; font-size: 12px; }
+.em-prod img { width: 100%; aspect-ratio: 1; object-fit: contain; background: #F2F0EA; display: block; margin-bottom: 6px; }
+.em-prod b { display: block; color: #0E1216; }
+.em-prod span { color: #5A6168; }
+.em-btn { display: inline-block; margin-top: 14px; background: #F2542D; color: #0E1216; font-weight: 700; font-size: 13px; padding: 9px 16px; text-decoration: none; }
+.em-foot { padding: 10px 16px 14px; font-size: 10.5px; color: #6A7179; border-top: 1px solid #ECEAE4; }
+.em-foot u { color: #6A7179; }
+.thumbs { display: flex; flex-wrap: wrap; gap: 6px; }
+.thumbs button { width: 52px; height: 52px; padding: 3px; border-radius: 8px; border: 2px solid var(--line); background: #F2F0EA; display: grid; place-items: center; font-size: 10.5px; color: #4A535C; font-weight: 600; }
+.thumbs button img { width: 100%; height: 100%; object-fit: contain; }
+.thumbs button[aria-pressed="true"] { border-color: var(--accent); }
+.how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
+.how div { background: var(--panel-2); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--muted); }
+.how b { display: block; color: var(--fg); font-size: 13px; margin-bottom: 2px; }
+@media (max-width: 760px) { .how { grid-template-columns: minmax(0, 1fr); } }
+
+/* catalog tables grouped by category */
+tr.cat-row td { background: var(--panel-2); padding: 9px 10px; border-bottom: 1px solid var(--line-strong); }
+tr.cat-row .cat-name { font: 800 17px/1 var(--font-display); text-transform: uppercase; letter-spacing: .03em; }
+.cat-ctl { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.prod-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.prod-cell img { width: 36px; height: 36px; object-fit: contain; background: #F2F0EA; border-radius: 6px; flex: none; }
+.switch.sm { width: 38px; height: 22px; }
+.switch.sm::after { width: 16px; height: 16px; }
+.switch.sm[aria-checked="true"]::after { transform: translateX(16px); }
+/* service request threads */
+.req-open td { background: var(--panel-2); }
+.thread { display: flex; flex-direction: column; gap: 8px; }
+.msg { max-width: 560px; padding: 9px 12px; border-radius: 10px; font-size: 13px; }
+.msg .who { font-size: 11px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 2px; }
+.msg.owner { background: var(--panel); border: 1px solid var(--line); align-self: flex-start; }
+.msg.rkvr { background: var(--accent-bg); align-self: flex-end; }
+.msg .stamp-s { font-size: 11px; color: var(--muted); }
+.req-compose { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 14px; margin-top: 12px; }
+.req-compose .full { grid-column: 1 / -1; }
+@media (max-width: 760px) { .req-compose { grid-template-columns: minmax(0, 1fr); } }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.cl-filters { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-bottom: 12px; }
+.cl-filters .input { max-width: 240px; }
+.mini-meter { height: 4px; background: var(--panel-2); margin-top: 4px; width: 90px; }
+.mini-meter i { display: block; height: 100%; background: var(--accent); }
+.chips button { border: 1px solid var(--line-strong); background: var(--panel); border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 600; }
+.steps { display: flex; gap: 4px; flex-wrap: wrap; font-size: 11.5px; font-weight: 600; }
+.steps span { padding: 3px 9px; border-radius: 999px; background: var(--panel); color: var(--muted); border: 1px solid var(--line); }
+.steps span.on { background: var(--ice-bg); color: var(--ice); border-color: transparent; }
+.steps span.now { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+
+/* log */
+.log { display: flex; flex-direction: column; max-height: 520px; overflow-y: auto; }
+.log-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.log-row .by { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.empty { color: var(--muted); font-size: 13px; padding: 10px 0; }
+
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 13px; z-index: 40; max-width: calc(100% - 32px); }
+
+.section[hidden] { display: none !important; }
+.foot { margin-top: 28px; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <div class="brand" aria-label="RKVR HQ">
+        <svg viewBox="-4 -32 380 140" role="img" aria-label="RKVR"><g fill="currentColor"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g><g fill="currentColor" transform="translate(96 0)"><rect x="0" y="0" width="24" height="100"/><polygon points="24,50 51.5,0 79.5,0 52,50 79.5,100 51.5,100"/></g><g transform="translate(183 0)"><polygon fill="currentColor" points="0,0 26,0 58,100 32,100"/><polygon fill="#F2542D" points="78.32,-26 104.32,-26 64,100 38,100"/></g><g fill="currentColor" transform="translate(287 0)"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g></svg>
+        <b>HQ</b>
+      </div>
+      <div class="top-tools">
+        <label class="label" for="loc" style="letter-spacing:.08em">Location</label>
+        <select id="loc" class="select"></select>
+        <span class="pill pill-sample" title="Network activity is sample data until the apps run on the RKVR backend">Sample data</span>
+        <span class="who" id="who"></span>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Sections" id="tabs"></nav>
+  </div>
+</header>
+
+<main class="wrap" id="main"></main>
+
+<div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------------- sample network data (October 2026, month to date) ---------------- */
+  const LOCS = ['San Diego', 'Orange County', 'Los Angeles', 'Phoenix'];
+  const SOON_LOCS = ['Austin', 'Dallas'];
+  // Each RKVR spa sits inside one Phenix Salon Suites location and uses 1–3 of its empty suites.
+  // One operator (a Wellness Pro) rents those suites and runs the spa with their team.
+  const PHENIX = { locations: 450, withRoom: 162, interested: 41, signed: 9, buildout: 4 };
+  const SUITES = [
+    { id: 'sd-7', loc: 0, no: '206–208', suites: 3, studio: 'Mission Valley',   pro: 'Lena Ortiz, RN',  spec: 'Cryo · Red light · IV · TeleWellness', team: 8, book: 186, coll: 31400, cycle: 'Monthly', rent: 3450, status: 'Unpaid',  method: '',     members: 312, credits: 1490, lowStock: true },
+    { id: 'sd-1', loc: 0, no: '114–115', suites: 2, studio: 'Carlsbad',         pro: 'Alex Moreno',     spec: 'Cryo · Red light',                     team: 4, book: 128, coll: 14200, cycle: 'Monthly', rent: 2300, status: 'Paid',    method: 'ACH',  members: 168, credits: 790 },
+    { id: 'sd-2', loc: 0, no: '31–32',   suites: 2, studio: 'Chula Vista',      pro: 'Dana Brooks',     spec: 'Cryo · Red light · IV',                team: 5, book: 112, coll: 15800, cycle: 'Weekly',  rent: 530,  status: 'Paid',    method: 'ACH',  members: 141, credits: 655 },
+    { id: 'sd-3', loc: 1, no: '12–14',   suites: 3, studio: 'Irvine',           pro: 'Sam Patel, NP',   spec: 'IV · Weight loss · TeleWellness',      team: 6, book: 97,  coll: 26300, cycle: 'Monthly', rent: 3600, status: 'Paid',    method: 'ACH',  members: 204, credits: 980 },
+    { id: 'sd-4', loc: 2, no: '8–10',    suites: 3, studio: 'Santa Monica',     pro: 'Chris Walker',    spec: 'Cryo · Red light · IV',                 team: 7, book: 141, coll: 21900, cycle: 'Weekly',  rent: 860,  status: 'Paid',    method: 'Card', members: 233, credits: 1120 },
+    { id: 'sd-5', loc: 1, no: '22–23',   suites: 2, studio: 'Huntington Beach', pro: 'Rosa Diaz',       spec: 'Cryo · Red light',                     team: 3, book: 76,  coll: 8700,  cycle: 'Monthly', rent: 2200, status: 'Overdue', method: '',     members: 88,  credits: 360 },
+    { id: 'sd-6', loc: 2, no: '40–41',   suites: 2, studio: 'Pasadena',         pro: 'Mia Torres',      spec: 'Red light · IV',                       team: 4, book: 104, coll: 13900, cycle: 'Weekly',  rent: 520,  status: 'Paid',    method: 'ACH',  members: 129, credits: 610 },
+    { id: 'sd-8', loc: 3, no: '19',      suites: 1, studio: 'Scottsdale',       pro: 'Ben Carter',      spec: 'Cryo · Red light',                     team: 2, book: 61,  coll: 6400,  cycle: 'Monthly', rent: 1150, status: 'Unpaid',  method: '',     members: 64,  credits: 240 }
+  ];
+  const WEEKS = ['Aug 24', 'Aug 31', 'Sep 7', 'Sep 14', 'Sep 21', 'Sep 28', 'Oct 5', 'Oct 12'];
+  const ALL_STREAMS = [
+    { key: 'services', name: 'Services', color: 'var(--c1)', v: [43.3, 45.8, 44.9, 48.3, 49.6, 48.7, 52.1, 54.2] },
+    { key: 'members',  name: 'Memberships', color: 'var(--c2)', v: [48.7, 50.4, 51.2, 52.5, 54.2, 55.0, 56.7, 58.4] },
+    { key: 'shop',     name: 'Shop', color: 'var(--c3)', v: [8.8, 9.7, 9.2, 11.3, 12.2, 11.3, 13.0, 14.7] },
+    { key: 'rent',     name: 'Rent', color: 'var(--c4)', v: [8.4, 8.4, 8.8, 8.8, 9.2, 9.2, 9.2, 9.2] }
+  ];
+  const PRODUCTS = [
+    { name: 'GLP-1 Program',         cat: 'weightLoss',  price: 249, orders: 142, rx: true },
+    { name: 'Tirzepatide Program',   cat: 'weightLoss',  price: 329, orders: 96,  rx: true },
+    { name: 'NAD+ Injectable',       cat: 'supplements', price: 189, orders: 61,  rx: true },
+    { name: 'B12 + MIC Shots',       cat: 'supplements', price: 75,  orders: 188 },
+    { name: 'Retinol 0.5 Serum',     cat: 'skin',        price: 68,  orders: 133 },
+    { name: 'Brightening Eye Cream', cat: 'skin',        price: 64,  orders: 74 },
+    { name: 'Lash + Brow Serum',     cat: 'beauty',      price: 58,  orders: 92 },
+    { name: 'Lip Treatment',         cat: 'beauty',      price: 32,  orders: 120 }
+  ];
+  const CATS = { weightLoss: 'Weight Loss', skin: 'Skin', supplements: 'Supplements', beauty: 'Beauty' };
+  // Owner wholesale catalog in RKVR Pro's Supply tab
+  const SUPPLY_CATALOG = [
+    { id: 'glp1s', img: 'glp1', name: 'GLP-1 starter pens', cat: 'weightLoss', price: 129, note: 'Rx · provider accounts only', ordered: 18 },
+    { id: 'tirzv', img: 'tirz', name: 'Tirzepatide vials', cat: 'weightLoss', price: 159, note: 'Rx · provider accounts only', ordered: 24 },
+    { id: 'ret', img: 'ret', name: 'Retinol 0.5 Serum', cat: 'skin', price: 31, note: 'Backbar and retail', ordered: 46 },
+    { id: 'nee', img: 'nee', name: 'Microneedling cartridges', cat: 'skin', price: 9, note: 'Sterile, single use', ordered: 120 },
+    { id: 'sera', img: 'sera', name: 'Hyaluronic ampoules', cat: 'skin', price: 18, note: 'Backbar', ordered: 64 },
+    { id: 'b12v', img: 'b12', name: 'B12 + MIC vials', cat: 'supplements', price: 24, note: 'Provider accounts only', ordered: 52 },
+    { id: 'nadv', img: 'nad', name: 'NAD+ vials', cat: 'supplements', price: 96, note: 'Provider accounts only', ordered: 14 },
+    { id: 'lashw', img: 'lash', name: 'Lash + Brow Serum', cat: 'beauty', price: 24, note: 'Retail · sells at $58', ordered: 30 },
+    { id: 'lipw', img: 'lip', name: 'Lip Treatment', cat: 'beauty', price: 12, note: 'Retail · sells at $32', ordered: 22 }
+  ];
+  const catFlag = c => 'cat' + c[0].toUpperCase() + c.slice(1);
+  const SUPPLY_ORDERS = [
+    { suite: 'sd-7', items: 'B12 + MIC vials ×6, NAD+ vials ×2',      total: 336, status: 'Draft',     when: 'Today' },
+    { suite: 'sd-3', items: 'Tirzepatide vials ×6',                   total: 954, status: 'Shipped',   when: 'Oct 14' },
+    { suite: 'sd-7', items: 'NAD+ vials ×4, B12 + MIC ×6',            total: 528, status: 'Delivered', when: 'Oct 12' },
+    { suite: 'sd-2', items: 'Lash + Brow Serum ×10 (retail)',         total: 240, status: 'Delivered', when: 'Oct 10' },
+    { suite: 'sd-8', items: 'Hyaluronic ampoules ×8',                 total: 144, status: 'Shipped',   when: 'Oct 9' },
+    { suite: 'sd-6', items: 'Retinol ×4, Eye Cream ×4 (retail)',      total: 248, status: 'Delivered', when: 'Oct 6' }
+  ];
+  const REQUESTS = [
+    { id: 'WH-882', suite: 'sd-7', what: 'Sink drains slow',              type: 'Plumbing',   age: 50, status: 'Open', filed: 'Oct 18, 9:12 AM',
+      note: 'Treatment room sink takes about 5 minutes to drain. Getting worse.', updates: [] },
+    { id: 'WH-889', suite: 'sd-5', what: 'Treatment room AC not cooling', type: 'HVAC',       age: 72, status: 'Open', filed: 'Oct 17, 2:40 PM',
+      note: 'Room is 79°F by noon. Clients are uncomfortable after their sessions.', updates: [] },
+    { id: 'WH-891', suite: 'sd-2',  what: 'Key fob stopped working',       type: 'Access',     age: 20, status: 'In progress', filed: 'Oct 19, 4:05 PM',
+      note: 'My fob stopped opening the side door this afternoon.', updates: [
+        { from: 'rkvr', at: 'Oct 19, 5:30 PM', text: 'Thanks Dana. A new fob is being programmed and will be at the front desk tomorrow by noon.', status: 'In progress', eta: 'Tue Oct 20 by noon' }] },
+    { id: 'WH-893', suite: 'sd-1', what: 'Outlet sparks near sink',       type: 'Electrical', age: 6,  status: 'Open', urgent: true, filed: 'Oct 20, 10:15 AM',
+      note: 'Outlet by the sink sparked when I plugged in the compression boots. I have stopped using it.', updates: [] },
+    { id: 'WH-886', suite: 'sd-4', what: 'Ceiling tile stain',            type: 'Plumbing',   age: 96, status: 'Scheduled', filed: 'Oct 16, 11:00 AM',
+      note: 'Brown stain spreading on a ceiling tile above the cryo chamber.', updates: [
+        { from: 'rkvr', at: 'Oct 17, 9:05 AM', text: 'Got it, Chris. A plumber is checking the line above your spa Thursday 9–11 AM. We will cover the cryo chamber first.', status: 'Scheduled', eta: 'Thu Oct 22, 9–11 AM' }] },
+    { id: 'WH-871', suite: 'sd-7', what: 'Key fob replacement',           type: 'Access',     age: 0,  status: 'Done', filed: 'Oct 2, 8:50 AM',
+      note: 'Lost my fob, need a replacement.', updates: [
+        { from: 'rkvr', at: 'Oct 2, 1:15 PM', text: 'Your new fob is at the front desk. The old one has been turned off.', status: 'Done' }] },
+    { id: 'WH-878', suite: 'sd-3',  what: 'Front door closer loose',       type: 'Access',     age: 0,  status: 'Done', filed: 'Oct 5, 3:30 PM',
+      note: 'Front door slams shut.', updates: [
+        { from: 'rkvr', at: 'Oct 6, 10:20 AM', text: 'Adjusted the closer this morning. Let us know if it still slams.', status: 'Done' }] }
+  ];
+  const REQ_STATUSES = ['Open', 'Scheduled', 'In progress', 'Done'];
+  const REQ_QUICK = [
+    { label: 'We’re on it', status: 'Open', text: 'Thanks {first}, we got your request and we’re on it. We’ll update you within 24 hours.' },
+    { label: 'Visit booked', status: 'Scheduled', text: 'Hi {first}, a technician is booked for {eta}. They’ll text you when they’re on the way.' },
+    { label: 'Parts ordered', status: 'In progress', text: 'Hi {first}, parts are on order. New estimate: {eta}. We’ll keep you posted.' },
+    { label: 'Fixed', status: 'Done', text: 'Hi {first}, this is fixed. Reply here if anything still isn’t right.' }
+  ];
+  const AT_RISK = [
+    { name: 'Sofia Grant',  suite: 'sd-7', last: 'Sep 22', left: 4 },
+    { name: 'Elena Park',   suite: 'sd-7', last: 'Sep 18', left: 1 },
+    { name: 'Rachel Kim',   suite: 'sd-5', last: 'Sep 15', left: 8 },
+    { name: 'Owen Hart',    suite: 'sd-1', last: 'Sep 21', left: 5 },
+    { name: 'Dani Cruz',    suite: 'sd-8', last: 'Sep 12', left: 6 },
+    { name: 'Lauren Price', suite: 'sd-2', last: 'Sep 24', left: 3 }
+  ];
+  const FEED = [
+    { t: '2 min',  kind: 'Booking', text: 'Ava Reyes booked Myers’ Cocktail with her membership', alt: 'Ava Reyes booked Myers’ Cocktail · $40 deposit', suite: 'sd-7' },
+    { t: '6 min',  kind: 'Payment', text: 'RKVR Carlsbad collected $79 by Tap to Pay · Cryo + Compression', suite: 'sd-1' },
+    { t: '11 min', kind: 'Shop',    text: 'Order WH-40218 · Tirzepatide Program, awaiting provider review', suite: 'sd-3' },
+    { t: '18 min', kind: 'Rent',    text: 'RKVR Chula Vista paid weekly rent invoice RK-W0831 by ACH', suite: 'sd-2' },
+    { t: '24 min', kind: 'Request', text: 'RKVR Carlsbad filed WH-893 · Outlet sparks near sink (urgent)', suite: 'sd-1' },
+    { t: '31 min', kind: 'Members', text: 'RKVR Mission Valley checked in a member · NAD+ Therapy', suite: 'sd-7' },
+    { t: '42 min', kind: 'Booking', text: 'Text-to-book: Owen Hart booked Cryotherapy + Red Light for Fri 2:00 PM', suite: 'sd-1' },
+    { t: '58 min', kind: 'Supply',  text: 'RKVR Irvine supply order shipped · $954', suite: 'sd-3' },
+    { t: '1 hr',   kind: 'Booking', text: 'Maya Chen booked a TeleWellness video visit with Sam Patel, NP', suite: 'sd-3' },
+    { t: '2 hr',   kind: 'Rent',    text: 'RKVR Huntington Beach rent invoice RK-0912 is 15 days overdue', suite: 'sd-5' }
+  ];
+  const SHOP_TOTAL_SHARE = 1; // shop and supply figures are network-wide
+  const MK_SEGMENTS = [
+    { id: 'all', name: 'All clients', frac: 1 },
+    { id: 'members', name: 'Members only', frac: 0.42 },
+    { id: 'expiring', name: 'Members with services left', frac: 0.23 },
+    { id: 'lapsed', name: 'No visit in 30 days', frac: 0.18 },
+    { id: 'bought', name: 'Bought from a shop category', frac: 0 }
+  ];
+  const MK_CAT_FRAC = { weightLoss: 0.09, skin: 0.15, supplements: 0.11, beauty: 0.12 };
+  const MK_TYPES = [
+    { id: 'promo', name: 'Promotion', tpl: '{first}, this week only: 15% off any Beauty product in the RKVR app. Tap to shop.' },
+    { id: 'credits', name: 'Use-your-services reminder', tpl: '{first}, you still have services left this month. They reset Nov 1. Book in the RKVR app.' },
+    { id: 'news', name: 'Announcement', tpl: '{first}, the full IV drip menu is now at RKVR Mission Valley: Myers’ Cocktail, Immunity Defense, NAD+ and more. Tap to book.' },
+    { id: 'winback', name: 'Win-back', tpl: "{first}, we've missed you at RKVR. Your next visit is $20 off this month. Tap to book." }
+  ];
+  const MK_CHANNELS = [{ id: 'text', name: 'Text' }, { id: 'push', name: 'App notification' }, { id: 'email', name: 'Email' }];
+  const MK_WHEN = [{ id: 'now', name: 'Send now' }, { id: 'tmrw', name: 'Tomorrow, 10:00 AM' }, { id: 'mon', name: 'Monday, 9:00 AM' }];
+  const OPT_OUT = 0.06;
+  const SAMPLE_CAMPAIGNS = [
+    { name: 'New spas: Carlsbad and Chula Vista', from: 'RKVR', suite: null, channel: 'App notification', count: 1460, when: 'Oct 12', opened: 920, booked: 118, rev: 9844, status: 'Sent' },
+    { name: '$15 off first red light session', from: 'RKVR Pasadena', suite: 'sd-6', channel: 'Text', count: 38, when: 'Oct 13', opened: 31, booked: 7, rev: 315, status: 'Sent' },
+    { name: 'Weekend IV drips', from: 'RKVR Mission Valley', suite: 'sd-7', channel: 'Text', count: 61, when: 'Oct 10', opened: 49, booked: 14, rev: 2786, status: 'Sent' },
+    { name: 'GLP-1 check-in reminder', from: 'RKVR Irvine', suite: 'sd-3', channel: 'Email', count: 54, when: 'Oct 8', opened: 37, booked: 21, rev: 945, status: 'Sent' },
+    { name: 'Cryo + compression week', from: 'RKVR Carlsbad', suite: 'sd-1', channel: 'Text', count: 24, when: 'Oct 6', opened: 19, booked: 9, rev: 711, status: 'Sent' },
+    { name: '30% off all cryotherapy', from: 'RKVR Huntington Beach', suite: 'sd-5', channel: 'Text', count: 19, when: 'Oct 14', opened: 0, booked: 0, rev: 0, status: 'Blocked', note: 'Over the owner discount cap' },
+    { name: 'Fall cryo + red light series', from: 'RKVR Santa Monica', suite: 'sd-4', channel: 'Email', count: 40, when: 'Oct 18', opened: 0, booked: 0, rev: 0, status: 'Scheduled' }
+  ];
+  const MK_TEMPLATES = [
+    { k: 'slots', name: 'Open slots today', desc: 'Offer same-day openings to past clients.' },
+    { k: 'promo', name: 'Promotion', desc: 'A discount on a service, within the cap.' },
+    { k: 'winback', name: 'Win-back', desc: 'Reach clients who haven’t visited in 3+ weeks.' },
+    { k: 'news', name: 'Announcement', desc: 'New services, hours or staff.' }
+  ];
+  const PRODUCT_IMG = { 'GLP-1 Program': 'glp1', 'Tirzepatide Program': 'tirz', 'NAD+ Injectable': 'nad', 'B12 + MIC Shots': 'b12', 'Retinol 0.5 Serum': 'ret', 'Brightening Eye Cream': 'eye', 'Lash + Brow Serum': 'lash', 'Lip Treatment': 'lip' };
+  const IMG_PRODUCT = {}; Object.keys(PRODUCT_IMG).forEach(n => { IMG_PRODUCT[PRODUCT_IMG[n]] = PRODUCTS.find(p => p.name === n); });
+  const imgSrc = id => 'products/' + id + '.webp';
+  const SAMPLE_NAMES = ['Ava Reyes', 'Sofia Grant', 'Elena Park', 'Maya Chen', 'Leah Wong', 'Priya Shah', 'Tess Morgan', 'Hannah Moss', 'Nina Alvarez', 'Owen Hart', 'Rachel Kim', 'Dani Cruz', 'Lauren Price', 'Jordan Ellis', 'Grace Liu', 'Mia Park', 'Chloe Adams', 'Zoe Bennett'];
+  const DISMISS_REASONS = ['Not relevant', 'Too many messages', 'Wrong offer', 'Other'];
+  const EMAIL_DEFAULT = { subject: 'News from RKVR', headline: 'New in the RKVR app', hero: 'lash', products: ['lash', 'lip'], cta: 'Shop now' };
+  const DEFAULT_MK_RULES = { perWeek: 2, maxDiscount: 20, quietStart: '21:00', quietEnd: '09:00', chText: true, chPush: true, chEmail: true, approvePromos: false, tplSlots: true, tplPromo: true, tplWinback: true, tplNews: true };
+
+  /* ---------------- controls: feature switches and settings ---------------- */
+  const FLAG_GROUPS = [
+    { id: 'launch', title: 'Membership', blurb: '12 services a month for $99 (founding rate) or $129. While off, clients see “Coming soon” with a waitlist and pay à la carte, and owners see no membership features.', items: [
+      { k: 'memberCredits', name: 'Membership', desc: '12 services a month: $99 founding rate, $129 after. The membership wallet, booking with membership, owner check-in and payouts.' }
+    ]},
+    { id: 'client', title: 'Client app', blurb: 'What clients see in the RKVR app.', items: [
+      { k: 'shop', name: 'Shop', desc: 'Product catalog, cart and checkout.' },
+      { k: 'booking', name: 'Booking', desc: 'Clients book services in the app.' },
+      { k: 'textToBook', name: 'Text-to-book', desc: 'Clients book by replying to a text.', parent: 'booking' },
+      { k: 'care', name: 'Care and telehealth', desc: 'Async and video visits, intake forms, prescriptions.' },
+      { k: 'wallet', name: 'Membership wallet', desc: 'Services left this month, resets and plan controls.', gate: 'memberCredits' },
+      { k: 'payWithCredits', name: 'Pay with membership', desc: 'Members use their 12 monthly services when they book.', parent: 'wallet' }
+    ]},
+    { id: 'cats', title: 'Shop categories', blurb: 'Tabs in the client Shop and the owner Supply screen.', parent: 'shop', items: [
+      { k: 'catWeightLoss', name: 'Weight Loss', cat: 'weightLoss' },
+      { k: 'catSkin', name: 'Skin', cat: 'skin' },
+      { k: 'catSupplements', name: 'Supplements', cat: 'supplements' },
+      { k: 'catBeauty', name: 'Beauty', cat: 'beauty' }
+    ]},
+    { id: 'pro', title: 'RKVR Pro', blurb: 'What spa operators can do in RKVR Pro.', items: [
+      { k: 'rent', name: 'Rent collection', desc: 'Corporate invoices operators for their Phenix suites in the Spa tab.' },
+      { k: 'rentAch', name: 'ACH payments', desc: 'Bank transfer, no fee, clears in 1–2 business days.', parent: 'rent' },
+      { k: 'rentCard', name: 'Card payments', desc: 'Paid instantly; owner pays the card fee.', parent: 'rent' },
+      { k: 'rentAutopay', name: 'Autopay', desc: 'Owners can pay each invoice automatically.', parent: 'rent' },
+      { k: 'rentWeekly', name: 'Weekly billing option', desc: 'Owners can switch from monthly to weekly invoices.', parent: 'rent' },
+      { k: 'supply', name: 'Supply ordering', desc: 'Wholesale reorders in the Supply tab.' },
+      { k: 'tap', name: 'Tap to Pay', desc: 'Owners take card payments on their iPhone.' },
+      { k: 'creditCheckin', name: 'Member service check-in', desc: 'Owners redeem services and earn the payout.', gate: 'memberCredits' },
+      { k: 'marketing', name: 'Integrated marketing', desc: 'One-tap offers for open slots, win-backs and promotions.' },
+      { k: 'requests', name: 'Service requests', desc: 'Owners file repair requests to building management.' }
+    ]}
+  ];
+  const DEFAULT_FLAGS = {};
+  FLAG_GROUPS.forEach(g => g.items.forEach(i => { DEFAULT_FLAGS[i.k] = !i.planned; }));
+  const FLAG_NAMES = {};
+  FLAG_GROUPS.forEach(g => g.items.forEach(i => { FLAG_NAMES[i.k] = g.id === 'cats' ? 'Shop category · ' + i.name : i.name; }));
+
+  const DEFAULT_SETTINGS = { planPrice: 99, credits: 12, payout: 12, cardFee: 3, memberOff: 0 };
+  const SETTING_DEFS = [
+    { k: 'planPrice', name: 'Membership price', desc: 'Founding rate for members who join by Dec 31 ($129 after)', pre: '$', step: 1, min: 0 },
+    { k: 'credits',   name: 'Services per month', desc: 'Issued to each member on the 1st', pre: '#', step: 1, min: 1 },
+    { k: 'payout',    name: 'Operator payout per member service', desc: 'Paid to the spa operator at check-in', pre: '$', step: 1, min: 0 },
+    { k: 'cardFee',   name: 'Card fee on rent', desc: 'Added when owners pay invoices by card', pre: '%', step: 0.1, min: 0 },
+    { k: 'memberOff', name: 'Member discount', desc: 'Off services and shop beyond services', pre: '%', step: 1, min: 0 }
+  ];
+
+  /* ---------------- state ---------------- */
+  const state = {
+    tab: 'overview',
+    loc: 'all',
+    flags: Object.assign({}, DEFAULT_FLAGS),
+    settings: Object.assign({}, DEFAULT_SETTINGS),
+    paused: {},
+    log: [],
+    reminded: {},
+    mk: { locs: { 0: true }, seg: 'all', cat: 'beauty', channel: 'push', type: 'promo', text: '', name: 'Beauty week', when: 'now', email: null },
+    campaigns: [],
+    mkRules: null,
+    recUI: {},
+    prodOff: {},
+    reqLive: {},
+    reqOpen: null,
+    reqDraft: {},
+    recMeta: { sent: {}, snoozed: {}, dismissed: {} },
+    mode: 'loading',  // loading | saved | readonly | local
+    me: null
+  };
+  let db = null, user = null;
+  let profiles = {};
+
+  /* ---------------- helpers ---------------- */
+  const $ = sel => document.querySelector(sel);
+  const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
+  const fmtK = n => n >= 1000 ? '$' + (n / 1000).toFixed(n >= 100000 ? 0 : 1) + 'k' : fmt(n);
+  const num = n => Math.round(n).toLocaleString('en-US');
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const suiteById = id => SUITES.find(s => s.id === id);
+  const inLoc = s => state.loc === 'all' || String(s.loc) === state.loc;
+  const suites = () => SUITES.filter(inLoc);
+  const share = () => { const all = SUITES.reduce((a, s) => a + s.members, 0); return suites().reduce((a, s) => a + s.members, 0) / all; };
+  const suiteLabel = s => 'RKVR ' + s.studio;
+  const locShort = s => LOCS[s.loc];
+  const flagOn = k => {
+    const f = state.flags;
+    if (!f[k]) return false;
+    for (const g of FLAG_GROUPS) for (const i of g.items) if (i.k === k) {
+      if (i.parent && !flagOn(i.parent)) return false;
+      if (i.gate && !flagOn(i.gate)) return false;
+      if (g.parent && !flagOn(g.parent)) return false;
+    }
+    return true;
+  };
+  const CR = () => flagOn('memberCredits');
+  const canChange = () => state.mode === 'saved' || state.mode === 'local';
+
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $('#toast'); t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
+  }
+
+  function reqUpdates(r) { return r.updates.concat((state.reqLive[r.id] || {}).updates || []); }
+  function reqStatus(r) { return (state.reqLive[r.id] || {}).status || r.status; }
+  function reqWaiting(r) { return reqStatus(r) !== 'Done' && !reqUpdates(r).length && r.age >= 48; }
+  const prodOn = key => !state.prodOff[key];
+
+  function metrics() {
+    const S = suites(), st = state.settings, sh = share();
+    const members = S.reduce((a, s) => a + s.members, 0);
+    const mrr = members * st.planPrice;
+    const issued = members * st.credits;
+    const redeemed = S.reduce((a, s) => a + s.credits, 0);
+    const payouts = redeemed * st.payout;
+    const services = S.reduce((a, s) => a + s.coll, 0);
+    const rentBilled = S.reduce((a, s) => a + (s.cycle === 'Weekly' ? s.rent * 4 : s.rent), 0);
+    const rentPaid = S.filter(s => s.status === 'Paid').reduce((a, s) => a + (s.cycle === 'Weekly' ? s.rent * 4 : s.rent), 0);
+    const visibleProducts = PRODUCTS.filter(p => flagOn('shop') && flagOn(catFlag(p.cat)) && prodOn('shop:' + PRODUCT_IMG[p.name]));
+    const shopRev = PRODUCTS.reduce((a, p) => a + p.price * p.orders, 0) * sh;
+    const shopOrders = PRODUCTS.reduce((a, p) => a + p.orders, 0) * sh;
+    const overdue = S.filter(s => s.status === 'Overdue');
+    const unpaid = S.filter(s => s.status === 'Unpaid');
+    const openReq = REQUESTS.filter(r => reqStatus(r) !== 'Done' && inLoc(suiteById(r.suite)));
+    const staleReq = openReq.filter(reqWaiting);
+    const perCredit = st.planPrice / Math.max(1, st.credits);
+    const expiring = Math.round((issued - redeemed) * 0.35);
+    return { S, members, mrr, issued, redeemed, payouts, services, rentBilled, rentPaid, shopRev, shopOrders, overdue, unpaid, openReq, staleReq, perCredit, margin: perCredit - st.payout, expiring, visibleProducts,
+      clients: S.reduce((a, s) => a + Math.round(s.members * 2.4), 0),
+      waitlist: S.reduce((a, s) => a + Math.round(s.members * 0.45), 0),
+      gross: services + (CR() ? mrr : 0) + shopRev + rentPaid };
+  }
+
+  /* ---------------- rendering ---------------- */
+  const TABS = [
+    { id: 'overview', name: 'Overview' },
+    { id: 'suites', name: 'Spas' },
+    { id: 'members', name: 'Clients and members' },
+    { id: 'payments', name: 'Rent and payouts' },
+    { id: 'shop', name: 'Shop and supply' },
+    { id: 'requests', name: 'Service requests' },
+    { id: 'marketing', name: 'Marketing' },
+    { id: 'controls', name: 'Controls' }
+  ];
+
+  function tabName(t) {
+    if (CR()) return t.name;
+    return { members: 'Clients', payments: 'Rent' }[t.id] || t.name;
+  }
+
+  function renderTabs() {
+    const m = metrics();
+    const counts = { requests: m.staleReq.length, payments: m.overdue.length };
+    $('#tabs').innerHTML = TABS.map(t => `<button class="tab" role="tab" id="tab-${t.id}" aria-selected="${state.tab === t.id}" data-tab="${t.id}">${tabName(t)}${counts[t.id] ? `<span class="count">${counts[t.id]}</span>` : ''}</button>`).join('');
+  }
+
+  function renderLocSelect() {
+    $('#loc').innerHTML = `<option value="all">All RKVR spas (${SUITES.length} open)</option>` + LOCS.map((l, i) => { const n = SUITES.filter(s => s.loc === i).length; return `<option value="${i}">${esc(l)} (${n} ${n === 1 ? 'spa' : 'spas'})</option>`; }).join('')
+      + `<optgroup label="Coming soon">${SOON_LOCS.map(l => `<option disabled>${esc(l)}</option>`).join('')}</optgroup>`;
+    $('#loc').value = state.loc;
+  }
+
+  function scopeName() { return state.loc === 'all' ? 'All RKVR spas' : LOCS[+state.loc]; }
+
+  function head(title, sub) {
+    return `<div class="page-head"><div><h1>${title}</h1><p>${sub}</p></div><div class="stamp">${esc(scopeName())} · October 2026, month to date</div></div>`;
+  }
+
+  function statusChip(s) {
+    const map = { Scheduled: 'st-ice', Paid: 'st-good', Unpaid: 'st-warn', Overdue: 'st-bad', Open: 'st-warn', 'In progress': 'st-ice', Done: 'st-good', Draft: 'st-off', Shipped: 'st-ice', Delivered: 'st-good', Live: 'st-good', Hidden: 'st-off', Paused: 'st-off', Active: 'st-good' };
+    return `<span class="st ${map[s] || 'st-off'}">${esc(s)}</span>`;
+  }
+
+  function kpi(label, value, sub, alert) {
+    return `<div class="kpi${alert ? ' alert' : ''}"><span class="label">${label}</span><span class="v">${value}</span><span class="s">${sub}</span></div>`;
+  }
+
+  function chartSVG() {
+    const sh = share();
+    const STREAMS = ALL_STREAMS.filter(s => CR() || s.key !== 'members');
+    const W = 640, H = 250, L = 46, R = 8, T = 10, B = 26;
+    const totals = WEEKS.map((_, i) => STREAMS.reduce((a, s) => a + s.v[i] * sh, 0));
+    const rawMax = Math.max(...totals);
+    const step = rawMax > 40 ? 10 : rawMax > 16 ? 5 : rawMax > 6 ? 2 : 1;
+    const max = Math.ceil(rawMax / step) * step;
+    const y = v => T + (H - T - B) * (1 - v / max);
+    const bw = (W - L - R) / WEEKS.length;
+    let g = '';
+    for (let v = 0; v <= max + 0.001; v += step) {
+      g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">$${v}k</text>`;
+    }
+    let bars = '';
+    WEEKS.forEach((w, i) => {
+      let acc = 0;
+      const x = L + i * bw + bw * 0.18, wdt = bw * 0.64;
+      STREAMS.forEach(s => {
+        const v = s.v[i] * sh;
+        bars += `<rect x="${x.toFixed(1)}" y="${y(acc + v).toFixed(1)}" width="${wdt.toFixed(1)}" height="${(y(acc) - y(acc + v)).toFixed(1)}" fill="${s.color}"><title>${w} · ${s.name}: $${v.toFixed(1)}k</title></rect>`;
+        acc += v;
+      });
+      bars += `<text x="${(x + wdt / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle">${w}</text>`;
+      if (i === WEEKS.length - 1) bars += `<text x="${(x + wdt / 2).toFixed(1)}" y="${(y(acc) - 6).toFixed(1)}" text-anchor="middle" style="fill:var(--fg);font-weight:600">$${acc.toFixed(1)}k</text>`;
+    });
+    const last = STREAMS.map(s => `<span><i style="background:${s.color}"></i>${s.name} <b>$${(s.v[7] * sh).toFixed(1)}k</b></span>`).join('');
+    return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Weekly gross volume by stream, last 8 weeks">${g}${bars}</svg><div class="legend">${last}</div></div>`;
+  }
+
+  function chartSummary() {
+    const sh = share(), streams = ALL_STREAMS.filter(x => CR() || x.key !== 'members');
+    const wk = i => streams.reduce((a, x) => a + x.v[i] * sh, 0);
+    const last = wk(7), prev = wk(6), avg = WEEKS.reduce((a, _, i) => a + wk(i), 0) / WEEKS.length;
+    const ch = (last - prev) / prev * 100;
+    return `<div class="chart-sum"><div><span class="label">This week</span><b>$${last.toFixed(1)}k</b></div><div><span class="label">Vs last week</span><b class="${ch >= 0 ? 'up' : ''}">${ch >= 0 ? '+' : '−'}${Math.abs(ch).toFixed(1)}%</b></div><div><span class="label">8-week average</span><b>$${avg.toFixed(1)}k</b></div></div>`;
+  }
+
+  function renderOverview() {
+    const m = metrics();
+    const alerts = [];
+    m.overdue.forEach(s => alerts.push({ cls: 'bad', t: `${suiteLabel(s)} rent is overdue`, d: `${fmt(s.rent)} · invoice due Sep 1 · ${locShort(s)}`, act: `<button class="btn" data-remind="${s.id}">${state.reminded[s.id] ? 'Reminder sent' : 'Send reminder'}</button>`, go: null }));
+    if (m.margin < 0 && flagOn('creditCheckin')) alerts.push({ cls: 'bad', t: 'Each redeemed service loses money', d: `A service brings in $${m.perCredit.toFixed(2)} of membership revenue but pays the operator ${fmt(state.settings.payout)}. Review pricing in Controls.`, act: '<button class="btn" data-goto="controls">Review</button>' });
+    m.staleReq.forEach(r => { const s = suiteById(r.suite); alerts.push({ cls: 'warn', t: `${r.id} open ${Math.round(r.age / 24)} days · ${r.what}`, d: `${suiteLabel(s)} · no reply to the operator yet`, act: `<button class="btn" data-req-jump="${r.id}">Reply</button>` }); });
+    REQUESTS.filter(r => r.urgent && reqStatus(r) !== 'Done' && !reqUpdates(r).length && inLoc(suiteById(r.suite))).forEach(r => { const s = suiteById(r.suite); alerts.push({ cls: 'bad', t: `Urgent: ${r.what}`, d: `${r.id} · ${suiteLabel(s)} · filed ${r.age} hrs ago`, act: '<button class="btn" data-goto="requests">Open</button>' }); });
+    if (m.unpaid.length) alerts.push({ cls: 'warn', t: `${m.unpaid.length} rent invoice${m.unpaid.length > 1 ? 's' : ''} due this week`, d: m.unpaid.map(suiteLabel).join(', '), act: '<button class="btn" data-goto="payments">View</button>' });
+    if (CR()) alerts.push({ cls: 'ice', t: `${num(m.expiring)} member services unused · reset Nov 1`, d: 'Owners can offer open slots to these members from RKVR Pro.', act: '' });
+    m.S.filter(s => s.lowStock).forEach(s => alerts.push({ cls: 'ice', t: `${s.studio} is low on stock`, d: 'Below par on B12 and NAD+ vials; a draft order is waiting.', act: '' }));
+
+    const feed = FEED.filter(f => inLoc(suiteById(f.suite)) && (CR() || (f.kind !== 'Credits' && f.kind !== 'Members'))).map(f => CR() || !f.alt ? f : Object.assign({}, f, { text: f.alt }));
+    return head('Network overview', 'Every RKVR spa inside the Phenix Salon Suites network: ' + SUITES.length + ' open across ' + LOCS.length + ' markets, ' + SOON_LOCS.join(' and ') + ' next. Sample data.') + `
+      <div class="kpis">
+        ${kpi('Gross volume', fmtK(m.gross), CR() ? 'Services, memberships, shop and rent' : 'Services, shop and rent')}
+        ${CR() ? kpi('Active members', num(m.members), fmt(m.mrr) + ' monthly recurring') : kpi('Clients', num(m.clients), 'Paying per visit')}
+        ${CR() ? kpi('Services redeemed', num(m.redeemed), 'of ' + num(m.issued) + ' issued · ' + fmtK(m.payouts) + ' owed to operators', m.margin < 0) : kpi('Membership waitlist', num(m.waitlist), 'Member services launch later')}
+        ${kpi('Rent collected', fmtK(m.rentPaid), 'of ' + fmtK(m.rentBilled) + ' billed · ' + m.overdue.length + ' overdue', m.overdue.length > 0)}
+        ${kpi('Shop orders', num(m.shopOrders), fmtK(m.shopRev) + ' in sales')}
+        ${kpi('Open requests', m.openReq.length, m.staleReq.length + ' waiting over 48 hours', m.staleReq.length > 0)}
+      </div>
+      ${recsPanel(3, true)}
+      <div class="grid cols-2">
+        <section class="panel"><div class="panel-head"><h2>Weekly gross volume</h2><span class="note">Last 8 weeks, by stream</span></div>${chartSVG()}${chartSummary()}</section>
+        <section class="panel"><div class="panel-head"><h2>Needs attention</h2><span class="note">${alerts.length} items</span></div>
+          <div class="alerts">${(state.alertsAll ? alerts : alerts.slice(0, 5)).map(a => `<div class="alert-row ${a.cls}"><div><div class="t">${a.t}</div><div class="d">${esc(a.d)}</div></div>${a.act}</div>`).join('')}</div>
+          ${alerts.length > 5 ? `<button class="linkish" style="margin-top:10px;align-self:flex-start" data-alerts-all="1">${state.alertsAll ? 'Show fewer' : 'Show all ' + alerts.length}</button>` : ''}
+        </section>
+      </div>
+      <div class="grid cols-2" style="margin-top:16px">
+        <section class="panel"><div class="panel-head"><h2>Spas at a glance</h2><button class="btn" data-goto="suites">All spas</button></div>${suitesTable(true)}</section>
+        <section class="panel"><div class="panel-head"><h2>Live activity</h2><span class="note">Pros and clients</span></div>
+          <div class="feed">${feed.map(f => `<div class="feed-row"><time>${f.t} ago</time><div><span class="tag-mini" style="color:var(--accent-text)">${f.kind}</span>${esc(f.text)}</div></div>`).join('') || '<div class="empty">No activity at this location yet today.</div>'}</div>
+        </section>
+      </div>`;
+  }
+
+  function suitesTable(compact) {
+    const rows = suites().map(s => {
+      const paused = !!state.paused[s.id];
+      const util = Math.min(96, Math.round(s.book / (s.suites * 60) * 100));
+      return `<tr class="${paused ? 'dim' : ''}">
+        <td><div class="cell-main">RKVR ${esc(s.studio)}</div><div class="cell-sub">${esc(locShort(s))} · Phenix suites ${s.no}</div></td>
+        <td><div>${esc(s.pro)}</div><div class="cell-sub">${esc(s.spec)}</div></td>
+        <td class="num">${s.book}</td>
+        ${compact ? '' : `<td class="num">${util}%</td>`}
+        <td class="num">${fmt(s.coll)}</td>
+        ${compact || !CR() ? '' : `<td class="num">${s.members}</td><td class="num">${s.credits}</td>`}
+        <td>${statusChip(s.status)}</td>
+        ${compact ? '' : `<td><div style="display:flex;align-items:center;gap:8px"><button class="switch" role="switch" aria-checked="${!paused}" aria-label="Bookings for RKVR ${esc(s.studio)}" data-pause="${s.id}" ${canChange() ? '' : 'disabled'}></button><span class="cell-sub">${paused ? 'Paused' : 'Open'}</span></div></td>`}
+      </tr>`;
+    }).join('');
+    return `<div class="tbl-wrap"><table><thead><tr><th>Spa</th><th>Operator</th><th class="num">Bookings / wk</th>${compact ? '' : '<th class="num">Utilization</th>'}<th class="num">Collected</th>${compact || !CR() ? '' : '<th class="num">Members</th><th class="num">Services used</th>'}<th>Rent</th>${compact ? '' : '<th>Bookings</th>'}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  function renderSuites() {
+    const m = metrics();
+    const S = m.S;
+    const avgBook = S.reduce((a, s) => a + s.book, 0) / S.length;
+    const paused = S.filter(s => state.paused[s.id]).length;
+    const used = S.reduce((a, s) => a + s.suites, 0), P = PHENIX;
+    const stages = [['Phenix locations', P.locations], ['With empty suites', P.withRoom], ['Operators interested', P.interested], ['Signed', P.signed], ['In build-out', P.buildout], ['Open', SUITES.length]];
+    return head('RKVR spas', 'One RKVR spa per Phenix Salon Suites location, run by a Wellness Pro who rents 1–3 empty suites. Pause a spa to stop new client bookings there.') + `
+      <div class="kpis">
+        ${kpi('Open spas', S.length, paused ? paused + ' paused for bookings' : 'All open for bookings')}
+        ${kpi('Phenix suites in use', used, 'About ' + (used / S.length).toFixed(1) + ' per spa')}
+        ${kpi('Services collected', fmtK(m.services), 'Through Tap to Pay and the client app')}
+        ${kpi('Bookings per spa', avgBook.toFixed(0), 'Weekly average')}
+        ${kpi('Top spa', esc(S.slice().sort((a, b) => b.coll - a.coll)[0].studio), fmt(Math.max(...S.map(s => s.coll))) + ' this month')}
+      </div>
+      <section class="panel" style="margin-bottom:16px"><div class="panel-head"><h2>All spas</h2><span class="note">${canChange() ? 'Switch off Bookings to pause a spa' : 'View only'}</span></div>${suitesTable(false)}</section>
+      <section class="panel"><div class="panel-head"><h2>Rollout across Phenix</h2><span class="note">Next markets: ${SOON_LOCS.join(', ')}</span></div>
+        <div class="funnel">${stages.map((x, i) => `<div class="fn-row"><span>${x[0]}</span><div class="fn-bar"><i style="width:${Math.max(2, x[1] / P.locations * 100)}%"></i></div><b>${num(x[1])}</b></div>`).join('')}</div>
+        <p class="cell-sub" style="margin-top:10px">An RKVR spa uses suites a Phenix location already has empty, so each spa is new revenue for that location. Sample numbers.</p></section>`;
+  }
+
+  function renderClientsOnly() {
+    const m = metrics();
+    const risk = AT_RISK.filter(r => inLoc(suiteById(r.suite)));
+    const wl = m.S.map(s => ({ s, v: Math.round(s.members * 0.45) })).sort((a, b) => b.v - a.v);
+    const maxW = Math.max(1, ...wl.map(x => x.v));
+    const visits = m.S.reduce((a, s) => a + s.book * 4, 0);
+    return head('Clients', 'Everyone who books at RKVR. Membership is switched off in Controls.') + `
+      <div class="banner banner-ice"><span><b>Member services are off.</b> Clients pay per visit and see “Coming soon” with a waitlist in the app. Turn them on in Controls when you launch.</span></div>
+      <div class="kpis">
+        ${kpi('Clients', num(m.clients), 'Booked in the last 90 days')}
+        ${kpi('Visits this month', num(visits), 'Across ' + m.S.length + ' spas')}
+        ${kpi('Membership waitlist', num(m.waitlist), 'Asked to hear when RKVR Membership opens')}
+        ${kpi('Clients at risk', risk.length, 'No booking in 3+ weeks')}
+      </div>
+      <div class="grid cols-even">
+        <section class="panel"><div class="panel-head"><h2>Waitlist by spa</h2><span class="note">Home spa of each sign-up</span></div>
+          <div class="bars">${wl.map(x => `<div class="bar-row"><span>${esc(x.s.studio)}</span><div class="bar-track"><div class="bar-fill" style="width:${(x.v / maxW * 100).toFixed(1)}%"></div></div><span class="num">${x.v}</span></div>`).join('')}</div>
+        </section>
+        <section class="panel"><div class="panel-head"><h2>Clients at risk</h2><span class="note">No booking in 3+ weeks</span></div>
+          ${risk.length ? `<div class="tbl-wrap"><table><thead><tr><th>Client</th><th>Home spa</th><th>Last visit</th></tr></thead><tbody>${risk.map(r => `<tr><td class="cell-main">${esc(r.name)}</td><td>${esc(suiteById(r.suite).studio)}</td><td>${r.last}</td></tr>`).join('')}</tbody></table></div>
+          <p class="cell-sub" style="margin-top:10px">${flagOn('marketing') ? 'Owners can send these clients a win-back offer from RKVR Pro.' : 'Integrated marketing is off, so owners can’t message these clients from the app.'}</p>` : '<div class="empty">No clients at risk at this location.</div>'}
+        </section>
+      </div>${clientDirectory()}`;
+  }
+
+  /* ---- client directory (sample) ---- */
+  const FIRSTS = ['Ava', 'Sofia', 'Elena', 'Maya', 'Leah', 'Priya', 'Tess', 'Hannah', 'Nina', 'Owen', 'Rachel', 'Dani', 'Lauren', 'Jordan', 'Grace', 'Mia', 'Chloe', 'Zoe', 'Marcus', 'Diego', 'Ethan', 'Noah', 'Isla', 'Lucas', 'Ruby', 'Kai', 'Amara', 'Theo', 'Jade', 'Felix'];
+  const LASTS = ['Reyes', 'Grant', 'Park', 'Chen', 'Wong', 'Shah', 'Morgan', 'Moss', 'Alvarez', 'Hart', 'Kim', 'Cruz', 'Price', 'Ellis', 'Liu', 'Bennett', 'Adams', 'Lopez', 'Nguyen', 'Brooks', 'Rivera', 'Hughes', 'Patel', 'Foster', 'Ortiz', 'Kelly'];
+  const MENU = [['Whole-Body Cryotherapy', 45], ['Full-Body Red Light', 49], ['Myers’ Cocktail IV', 199], ['Immunity Defense Drip', 189], ['Hydration Drip', 159], ['NAD+ Therapy', 399], ['Immunity Defense Drip', 189], ['Weight Loss Check-in', 45], ['Cryo + Compression', 79]];
+  let CLIENTS_CACHE = null;
+  function clientsAll() {
+    if (CLIENTS_CACHE) return CLIENTS_CACHE;
+    let seed = 7; const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const out = []; const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
+    SUITES.forEach(sp => {
+      const n = 14 + sp.team * 3;
+      for (let i = 0; i < n; i++) {
+        const r = rnd(), plan = r < 0.42 ? 'founding' : r < 0.5 ? 'member' : r < 0.9 ? 'alacarte' : 'former';
+        const days = Math.floor(Math.pow(rnd(), 1.6) * 140), active = days <= 60;
+        const used = plan === 'founding' || plan === 'member' ? (active ? Math.min(12, 2 + Math.floor(rnd() * 11)) : 0) : 0;
+        let mtd = 0, mtdN = 0; if (plan !== 'founding' && plan !== 'member' && days <= 21) { mtdN = 1 + Math.floor(rnd() * 3); for (let k = 0; k < mtdN; k++) mtd += MENU[Math.floor(rnd() * MENU.length)][1]; }
+        const ytdN = Math.floor(rnd() * (plan === 'alacarte' ? 14 : 5)), ytd = mtd + ytdN * (45 + Math.floor(rnd() * 120));
+        const last = MENU[Math.floor(rnd() * MENU.length)][0];
+        const d = new Date(2026, 9, 21 - days);
+        out.push({ id: sp.id + '-' + i, name: FIRSTS[Math.floor(rnd() * FIRSTS.length)] + ' ' + LASTS[Math.floor(rnd() * LASTS.length)], spa: sp.id, plan, active, days, used, mtd, mtdN, ytd, last,
+          lastDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), since: mon[Math.floor(rnd() * (d.getMonth() + 1))] + ' 2026' });
+      }
+    });
+    return (CLIENTS_CACHE = out);
+  }
+  const PLAN_LABEL = { founding: 'Founding · $99', member: 'Member · $129', alacarte: 'À la carte', former: 'Former member' };
+  const PLAN_CLS = { founding: 'st-good', member: 'st-good', alacarte: 'st-ice', former: 'st-off' };
+  function clientRows() {
+    const f = state.cl || {}, q = (f.q || '').trim().toLowerCase();
+    return clientsAll().filter(c => inLoc(suiteById(c.spa)) && (!f.status || f.status === 'all' || (f.status === 'active') === c.active)
+      && (!f.plan || f.plan === 'all' || (f.plan === 'members' ? (c.plan === 'founding' || c.plan === 'member') : c.plan === f.plan))
+      && (!q || c.name.toLowerCase().includes(q))).map(c => CR() ? c : Object.assign({}, c, { plan: 'alacarte' }));
+  }
+  function clientBody() {
+    const rows = clientRows(), lim = (state.cl && state.cl.lim) || 25;
+    return { n: rows.length, html: rows.slice(0, lim).map(c => {
+      const isMem = c.plan === 'founding' || c.plan === 'member';
+      return `<tr><td><div class="cell-main">${esc(c.name)}</div><div class="cell-sub">Client since ${c.since}</div></td>
+        <td>${esc(suiteLabel(suiteById(c.spa)))}</td>
+        <td><span class="st ${c.active ? 'st-good' : 'st-off'}">${c.active ? 'Active' : 'Inactive'}</span></td>
+        <td><span class="st ${PLAN_CLS[c.plan]}">${PLAN_LABEL[c.plan]}</span></td>
+        <td>${isMem ? `<div>${c.used} of 12 used</div><div class="mini-meter"><i style="width:${c.used / 12 * 100}%"></i></div>` : c.mtdN ? `${fmt(c.mtd)}<div class="cell-sub">${c.mtdN} ${c.mtdN === 1 ? 'service' : 'services'}</div>` : '<span class="cell-sub">—</span>'}</td>
+        <td class="num">${c.ytd ? fmt(c.ytd) : '<span class="cell-sub">—</span>'}</td>
+        <td><div>${c.lastDate}</div><div class="cell-sub">${esc(c.last)}</div></td></tr>`; }).join(''), more: rows.length > lim };
+  }
+  function clientDirectory() {
+    const f = state.cl || {}, all = clientsAll().filter(c => inLoc(suiteById(c.spa)));
+    const act = all.filter(c => c.active).length, mem = CR() ? all.filter(c => c.plan === 'founding' || c.plan === 'member').length : 0;
+    const chip = (k, v, label) => `<button aria-pressed="${(f[k] || 'all') === v}" data-cl-${k}="${v}">${label}</button>`;
+    const b = clientBody();
+    return `<section class="panel" style="margin-top:16px"><div class="panel-head"><h2>All clients</h2><span class="note">${num(all.length)} sample clients · ${num(act)} active · ${num(all.length - act)} inactive${CR() ? ' · ' + num(mem) + ' members' : ''}</span></div>
+      <div class="cl-filters"><input class="input" id="cl-q" placeholder="Search by name" aria-label="Search clients by name" value="${esc(f.q || '')}">
+        <div class="chips" role="group" aria-label="Status">${chip('status', 'all', 'All')}${chip('status', 'active', 'Active')}${chip('status', 'inactive', 'Inactive')}</div>
+        ${CR() ? `<div class="chips" role="group" aria-label="Plan">${chip('plan', 'all', 'All plans')}${chip('plan', 'members', 'Members')}${chip('plan', 'alacarte', 'À la carte')}${chip('plan', 'former', 'Former members')}</div>` : ''}</div>
+      <div class="tbl-wrap"><table><thead><tr><th>Client</th><th>Home spa</th><th>Status</th><th>Plan</th><th>This month</th><th class="num">À la carte YTD</th><th>Last visit</th></tr></thead><tbody id="cl-body">${b.html || '<tr><td colspan="7" class="cell-sub">No clients match.</td></tr>'}</tbody></table></div>
+      <div class="rec-foot"><span id="cl-count">Showing ${Math.min(b.n, (f.lim || 25))} of ${num(b.n)}</span>${b.more ? '<button class="linkish" data-cl-more="1">Show 25 more</button>' : ''}</div>
+      <p class="cell-sub" style="margin-top:6px">Active means a visit in the last 60 days. “This month” shows member services used, or à la carte spend for non-members. Sample data.</p></section>`;
+  }
+
+  function renderMembers() {
+    if (!CR()) return renderClientsOnly();
+    const m = metrics(), st = state.settings;
+    const maxC = Math.max(...m.S.map(s => s.credits));
+    const risk = AT_RISK.filter(r => inLoc(suiteById(r.suite)));
+    return head('Clients and members', 'Every client at each spa: membership, à la carte spend, and who is most likely to cancel.') + `
+      <div class="kpis">
+        ${kpi('Active members', num(m.members), 'RKVR Membership · ' + fmt(st.planPrice) + ' / month')}
+        ${kpi('Monthly recurring', fmtK(m.mrr), 'From memberships')}
+        ${kpi('Services issued', num(m.issued), st.credits + ' per member on the 1st')}
+        ${kpi('Redemption rate', Math.round(m.redeemed / m.issued * 100) + '%', num(m.redeemed) + ' services used so far')}
+        ${kpi('Unused · reset Nov 1', num(m.expiring), 'Services left this month, no rollover')}
+      </div>
+      <div class="grid cols-even">
+        <section class="panel"><div class="panel-head"><h2>Member services by spa</h2><span class="note">Month to date</span></div>
+          <div class="bars">${m.S.slice().sort((a, b) => b.credits - a.credits).map(s => `<div class="bar-row"><span>${esc(s.studio)}</span><div class="bar-track"><div class="bar-fill" style="width:${(s.credits / maxC * 100).toFixed(1)}%"></div></div><span class="num">${s.credits}</span></div>`).join('')}</div>
+        </section>
+        <section class="panel"><div class="panel-head"><h2>Members at risk</h2><span class="note">No booking in 3+ weeks</span></div>
+          ${risk.length ? `<div class="tbl-wrap"><table><thead><tr><th>Member</th><th>Home spa</th><th>Last visit</th><th class="num">Services left</th></tr></thead><tbody>${risk.map(r => `<tr><td class="cell-main">${esc(r.name)}</td><td>${esc(suiteById(r.suite).studio)}</td><td>${r.last}</td><td class="num">${r.left}</td></tr>`).join('')}</tbody></table></div>
+          <p class="cell-sub" style="margin-top:10px">${flagOn('marketing') ? 'Operators see these members in RKVR Pro with a one-tap nudge.' : 'Integrated marketing is off, so operators can’t nudge these members from the app.'}</p>` : '<div class="empty">No members at risk at this location.</div>'}
+        </section>
+      </div>${clientDirectory()}`;
+  }
+
+  function renderPayments() {
+    const m = metrics(), st = state.settings;
+    const invoices = m.S.map(s => {
+      const no = (s.cycle === 'Weekly' ? 'RK-W0831-' : 'RK-0912-') + s.id.replace('sd-', '');
+      return `<tr><td><div class="cell-main">${no}</div><div class="cell-sub">${s.cycle}</div></td><td>${esc(suiteLabel(s))}</td><td class="num">${fmt(s.rent)}</td><td>${statusChip(s.status)}</td><td>${s.method ? s.method : '<span class="cell-sub">—</span>'}</td><td>${s.status === 'Paid' ? '' : `<button class="btn" data-remind="${s.id}" ${state.reminded[s.id] ? 'disabled' : ''}>${state.reminded[s.id] ? 'Reminder sent' : 'Send reminder'}</button>`}</td></tr>`;
+    }).join('');
+    const payouts = m.S.map(s => `<tr><td>${esc(suiteLabel(s))}</td><td class="num">${s.credits}</td><td class="num">${fmt(s.credits * st.payout)}</td><td>${statusChip('Open')}</td></tr>`).join('');
+    const ach = m.S.filter(s => s.method === 'ACH').length, card = m.S.filter(s => s.method === 'Card').length;
+    return head(CR() ? 'Rent and payouts' : 'Rent', CR() ? 'What corporate bills owners, what has come in, and what RKVR owes owners for member services.' : 'What corporate bills owners and what has come in. Service payouts start when member services launch.') + `
+      ${flagOn('rent') ? '' : '<div class="banner banner-warn"><span><b>Rent collection is off.</b> Owners can’t see or pay invoices in RKVR Pro. Turn it on in Controls.</span></div>'}
+      <div class="kpis">
+        ${kpi('Rent billed', fmtK(m.rentBilled), 'Monthly and weekly invoices')}
+        ${kpi('Collected', fmtK(m.rentPaid), Math.round(m.rentPaid / m.rentBilled * 100) + '% of billed')}
+        ${kpi('Overdue', m.overdue.length, m.overdue.length ? fmt(m.overdue.reduce((a, s) => a + s.rent, 0)) + ' outstanding' : 'Nothing overdue', m.overdue.length > 0)}
+        ${kpi('Paid by ACH', ach + ' of ' + (ach + card), card + ' by card · ' + st.cardFee + '% fee')}
+        ${CR() ? kpi('Owed to operators', fmtK(m.payouts), num(m.redeemed) + ' services × ' + fmt(st.payout) + ' · pays Oct 20', m.margin < 0) : ''}
+      </div>
+      ${flagOn('rent') ? recsPanel(0, true, 'rent', 'Recommended messages to spa operators') : ''}
+      <div class="grid ${CR() ? 'cols-even' : ''}">
+        <section class="panel"><div class="panel-head"><h2>Current rent invoices</h2><span class="note">Phenix suites used by each spa</span></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Invoice</th><th>Spa</th><th class="num">Amount</th><th>Status</th><th>Paid by</th><th></th></tr></thead><tbody>${invoices}</tbody></table></div></section>
+        ${CR() ? `<section class="panel"><div class="panel-head"><h2>Service payouts</h2><span class="note">${fmt(st.payout)} per service redeemed</span></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Spa</th><th class="num">Services</th><th class="num">Payout</th><th>Status</th></tr></thead><tbody>${payouts}</tbody></table></div></section>` : ''}
+      </div>`;
+  }
+
+  function renderShop() {
+    const st = state.settings, ro = canChange() ? '' : 'disabled';
+    const sw = (key, on, label) => `<button class="switch sm" role="switch" aria-checked="${on}" aria-label="${esc(label)}" data-prod="${key}" ${ro}></button>`;
+    const catSw = c => `<button class="switch sm" role="switch" aria-checked="${!!state.flags[catFlag(c)]}" aria-label="${esc(CATS[c])} category" data-flag="${catFlag(c)}" ${ro}></button>`;
+    const shopRows = Object.keys(CATS).map(c => {
+      const items = PRODUCTS.filter(p => p.cat === c), catOn = flagOn('shop') && flagOn(catFlag(c));
+      const sales = items.reduce((a, p) => a + p.price * p.orders, 0);
+      return `<tbody><tr class="cat-row"><td colspan="4"><span class="cat-name">${CATS[c]}</span> <span class="cell-sub">· ${items.length} products · ${fmtK(sales)} sales</span></td><td colspan="2"><div class="cat-ctl"><span class="cell-sub">${!flagOn('shop') ? 'Off with Shop' : catOn ? 'Category on' : 'Category off'}</span>${catSw(c)}</div></td></tr>` +
+        items.map(p => {
+          const key = 'shop:' + PRODUCT_IMG[p.name], own = prodOn(key), live = catOn && own;
+          return `<tr class="${live ? '' : 'dim'}"><td><div class="prod-cell"><img src="${imgSrc(PRODUCT_IMG[p.name])}" alt=""><div><div class="cell-main">${esc(p.name)}</div><div class="cell-sub">${p.rx ? 'Prescription · provider reviewed' : 'Ships in 2 days'}</div></div></div></td><td class="num">${fmt(p.price)}</td><td class="num">${p.orders}</td><td class="num">${fmt(p.price * p.orders)}</td><td>${statusChip(live ? 'Live' : 'Hidden')}</td><td>${sw(key, own, p.name + ' in the client shop')}</td></tr>`;
+        }).join('') + '</tbody>';
+    }).join('');
+    const supRows = Object.keys(CATS).map(c => {
+      const items = SUPPLY_CATALOG.filter(x => x.cat === c), catOn = flagOn('supply') && flagOn(catFlag(c));
+      return `<tbody><tr class="cat-row"><td colspan="3"><span class="cat-name">${CATS[c]}</span> <span class="cell-sub">· ${items.length} items</span></td><td colspan="2"><div class="cat-ctl"><span class="cell-sub">${!flagOn('supply') ? 'Off with Supply' : catOn ? 'Category on' : 'Category off'}</span>${catSw(c)}</div></td></tr>` +
+        items.map(x => {
+          const key = 'supply:' + x.id, own = prodOn(key), live = catOn && own;
+          return `<tr class="${live ? '' : 'dim'}"><td><div class="prod-cell"><img src="${imgSrc(x.img)}" alt=""><div><div class="cell-main">${esc(x.name)}</div><div class="cell-sub">${esc(x.note)}</div></div></div></td><td class="num">${fmt(x.price)}</td><td class="num">${x.ordered}</td><td>${statusChip(live ? 'Live' : 'Hidden')}</td><td>${sw(key, own, x.name + ' in owner supply')}</td></tr>`;
+        }).join('') + '</tbody>';
+    }).join('');
+    const supply = SUPPLY_ORDERS.filter(o => inLoc(suiteById(o.suite))).map(o => `<tr><td>${esc(suiteById(o.suite).studio)}</td><td>${esc(o.items)}</td><td class="num">${fmt(o.total)}</td><td>${statusChip(o.status)}</td><td>${o.when}</td></tr>`).join('');
+    const sales = PRODUCTS.reduce((a, p) => a + p.price * p.orders, 0);
+    const byCat = Object.keys(CATS).map(c => ({ c, v: PRODUCTS.filter(p => p.cat === c).reduce((a, p) => a + p.price * p.orders, 0) }));
+    const maxCat = Math.max(...byCat.map(x => x.v));
+    const supByCat = Object.keys(CATS).map(c => ({ c, v: SUPPLY_CATALOG.filter(x => x.cat === c).reduce((a, x) => a + x.price * x.ordered, 0) }));
+    const maxSup = Math.max(...supByCat.map(x => x.v)), m0 = metrics();
+    const liveShop = PRODUCTS.filter(p => flagOn('shop') && flagOn(catFlag(p.cat)) && prodOn('shop:' + PRODUCT_IMG[p.name])).length;
+    const liveSup = SUPPLY_CATALOG.filter(x => flagOn('supply') && flagOn(catFlag(x.cat)) && prodOn('supply:' + x.id)).length;
+    return head('Shop and supply', 'What clients can buy in the RKVR app and what owners can reorder wholesale. Switch any category or product on or off.') + `
+      ${flagOn('shop') ? '' : '<div class="banner banner-warn"><span><b>The Shop is off.</b> Clients don’t see the Shop tab. Turn it on in Controls.</span></div>'}
+      <div class="kpis">
+        ${kpi('Shop sales', fmtK(sales), PRODUCTS.reduce((a, p) => a + p.orders, 0) + ' orders · network-wide')}
+        ${kpi('Live in client shop', liveShop + ' of ' + PRODUCTS.length, 'Products clients can buy')}
+        ${kpi('Live in owner supply', liveSup + ' of ' + SUPPLY_CATALOG.length, 'Items owners can reorder')}
+        ${CR() ? kpi('Member discount', st.memberOff + '%', 'Applied automatically at checkout') : kpi('Member discount', 'Off', 'Starts when memberships launch')}
+        ${kpi('Supply orders', SUPPLY_ORDERS.length, fmt(SUPPLY_ORDERS.reduce((a, o) => a + o.total, 0)) + ' wholesale this month')}
+      </div>
+      <div class="grid cols-2">
+        <section class="panel"><div class="panel-head"><h2>Client shop</h2><span class="note">Every category and product · a category switch also changes owner supply</span></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Product</th><th class="num">Price</th><th class="num">Orders</th><th class="num">Sales</th><th>In app</th><th>On</th></tr></thead>${shopRows}</table></div></section>
+        <section class="panel"><div class="panel-head"><h2>Sales by category</h2></div>
+          <div class="bars">${byCat.map(x => `<div class="bar-row"><span>${CATS[x.c]}${flagOn(catFlag(x.c)) && flagOn('shop') ? '' : ' <span class="cell-sub">(off)</span>'}</span><div class="bar-track"><div class="bar-fill" style="width:${(x.v / maxCat * 100).toFixed(1)}%;background:var(--c1)"></div></div><span class="num">${fmtK(x.v)}</span></div>`).join('')}</div>
+          <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)"><span class="label">Best sellers</span>
+            ${PRODUCTS.slice().sort((x, y) => y.price * y.orders - x.price * x.orders).map((x, i) => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px"><span style="font:800 18px/1 var(--font-display);width:16px;color:var(--muted)">${i + 1}</span><img src="${imgSrc(PRODUCT_IMG[x.name])}" alt="" style="width:34px;height:34px;object-fit:contain;background:#F2F0EA;border-radius:6px"><span style="flex:1;min-width:0"><span class="cell-main" style="display:block">${esc(x.name)}</span><span class="cell-sub">${x.orders} orders</span></span><b>${fmtK(x.price * x.orders)}</b></div>`).join('')}
+          </div>
+        </section>
+      </div>
+      <div class="grid cols-even" style="margin-top:16px">
+        <section class="panel"><div class="panel-head"><h2>Owner supply catalog</h2><span class="note">${flagOn('supply') ? 'What owners can reorder in RKVR Pro' : 'Supply ordering is off'}</span></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Item</th><th class="num">Wholesale</th><th class="num">Ordered</th><th>In Pro</th><th>On</th></tr></thead>${supRows}</table></div></section>
+        <div class="grid" style="grid-template-rows:auto 1fr">
+        <section class="panel"><div class="panel-head"><h2>Owner supply orders</h2><span class="note">This month</span></div>
+          ${supply ? `<div class="tbl-wrap"><table><thead><tr><th>Spa</th><th>Items</th><th class="num">Total</th><th>Status</th><th>Date</th></tr></thead><tbody>${supply}</tbody></table></div>` : '<div class="empty">No supply orders at this location this month.</div>'}
+        </section>
+        <section class="panel"><div class="panel-head"><h2>Wholesale by category</h2><span class="note">What owners reordered this month</span></div>
+          <div class="bars">${supByCat.map(x => `<div class="bar-row"><span>${CATS[x.c]}</span><div class="bar-track"><div class="bar-fill" style="width:${(x.v / maxSup * 100).toFixed(1)}%"></div></div><span class="num">${fmtK(x.v)}</span></div>`).join('')}</div>
+          <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line)"><span class="label">Running low at spas</span>
+            ${m0.S.filter(x => x.lowStock).map(x => `<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px"><span><span class="cell-main">RKVR ${esc(x.studio)}</span></span><span class="cell-sub">B12, NAD+ vials · draft order waiting</span></div>`).join('') || '<div class="empty">Every spa is above par.</div>'}
+          </div>
+        </section>
+        </div>
+      </div>`;
+  }
+
+  function renderRequests() {
+    const list = REQUESTS.filter(r => inLoc(suiteById(r.suite)));
+    const open = list.filter(r => reqStatus(r) !== 'Done');
+    const ro = canChange() ? '' : 'disabled';
+    const rows = list.map(r => {
+      const s = suiteById(r.suite), stt = reqStatus(r), ups = reqUpdates(r), last = ups[ups.length - 1];
+      const ageTxt = stt === 'Done' ? 'Closed' : r.age >= 24 ? Math.round(r.age / 24) + ' days' : r.age + ' hrs';
+      const isOpen = state.reqOpen === r.id;
+      const lastTxt = last ? 'Last update ' + last.at : (stt === 'Done' ? '' : 'No reply yet');
+      const row = `<tr class="${isOpen ? 'req-open' : ''}"><td><div class="cell-main">${r.id}</div><div class="cell-sub">${r.type}</div></td><td><div>${esc(r.what)}</div>${r.urgent ? '<div class="cell-sub" style="color:var(--bad);font-weight:600">Urgent</div>' : ''}<div class="cell-sub" style="${!last && stt !== 'Done' ? 'color:var(--warn)' : ''}">${lastTxt}</div></td><td>${esc(suiteLabel(s))}<div class="cell-sub">${esc(s.pro)} · ${esc(locShort(s))}</div></td><td class="num" style="${reqWaiting(r) ? 'color:var(--bad);font-weight:600' : ''}">${ageTxt}</td><td>${statusChip(stt)}</td><td><button class="btn ${!last && stt !== 'Done' ? 'btn-primary' : ''}" data-req-open="${r.id}">${isOpen ? 'Close' : last || stt === 'Done' ? 'Messages' : 'Send update'}</button></td></tr>`;
+      if (!isOpen) return row;
+      const d = Object.assign({ status: stt === 'Open' && !ups.length ? 'Scheduled' : stt, eta: '', text: '', text2: false }, state.reqDraft[r.id] || {});
+      const first = s.pro.replace(/^Dr\. /, '').split(' ')[0];
+      const thread = [{ from: 'owner', at: r.filed, text: r.note }].concat(ups).map(u => `<div class="msg ${u.from === 'rkvr' ? 'rkvr' : 'owner'}"><span class="who">${u.from === 'rkvr' ? 'RKVR' + (u.by ? '' : '') : esc(s.pro)} · ${esc(u.at)}${u.status ? ' · ' + esc(u.status) : ''}</span>${esc(u.text)}${u.eta ? `<div class="stamp-s">ETA ${esc(u.eta)}</div>` : ''}</div>`).join('');
+      const steps = REQ_STATUSES.map((x, i) => `<span class="${x === stt ? 'now' : REQ_STATUSES.indexOf(stt) > i ? 'on' : ''}">${x}</span>`).join('');
+      const panel = `<tr class="req-open"><td colspan="6"><div style="display:grid;gap:12px">
+        <div class="steps" aria-label="Status">${steps}</div>
+        <div class="thread">${thread}</div>
+        ${canChange() ? `<div class="req-compose">
+          <div class="full"><span class="label">Quick replies</span><div class="chips" style="margin-top:6px">${REQ_QUICK.map((q, i) => `<button type="button" data-req-quick="${r.id}" data-i="${i}">${q.label}</button>`).join('')}</div></div>
+          <div><label class="label" for="rq-status-${r.id}">Status</label><select id="rq-status-${r.id}" class="input" data-req-field="status" data-req="${r.id}">${REQ_STATUSES.map(x => `<option ${x === d.status ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+          <div><label class="label" for="rq-eta-${r.id}">When (optional)</label><input id="rq-eta-${r.id}" class="input" placeholder="e.g. Thu Oct 22, 9–11 AM" data-req-field="eta" data-req="${r.id}" value="${esc(d.eta)}"></div>
+          <div class="full"><label class="label" for="rq-text-${r.id}">Message to ${esc(first)}</label><textarea id="rq-text-${r.id}" class="input" style="min-height:76px" data-req-field="text" data-req="${r.id}" placeholder="What’s happening and when">${esc(d.text)}</textarea></div>
+          <div class="full" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+            <label style="display:flex;gap:8px;align-items:center;font-size:12.5px"><input type="checkbox" data-req-field="text2" data-req="${r.id}" ${d.text2 ? 'checked' : ''}> Also text ${esc(first)}</label>
+            <span class="hint">Shows on the request in RKVR Pro with an app notification.</span>
+            <button class="btn btn-primary" data-req-send="${r.id}">Send update</button>
+          </div></div>` : '<div class="hint">View only. RKVR admins can send updates.</div>'}
+      </div></td></tr>`;
+      return row + panel;
+    }).join('');
+    const waiting = open.filter(reqWaiting);
+    return head('Service requests', 'Repairs owners have filed. Send status updates and messages so they know help is on the way.') + `
+      ${flagOn('requests') ? '' : '<div class="banner banner-warn"><span><b>Service requests are off.</b> Owners can’t file new requests from RKVR Pro.</span></div>'}
+      <div class="kpis">
+        ${kpi('Open', open.length, open.filter(r => reqStatus(r) === 'Scheduled').length + ' scheduled · ' + open.filter(r => reqStatus(r) === 'In progress').length + ' in progress')}
+        ${kpi('No reply yet', open.filter(r => !reqUpdates(r).length).length, waiting.length + ' waiting over 48 hours', waiting.length > 0)}
+        ${kpi('Urgent', open.filter(r => r.urgent).length, 'Safety issues', open.some(r => r.urgent && !reqUpdates(r).length))}
+        ${kpi('Closed this month', list.filter(r => reqStatus(r) === 'Done').length, 'Resolved requests')}
+      </div>
+      <section class="panel"><div class="panel-head"><h2>All requests</h2><span class="note">Owners see every update on the request in RKVR Pro</span></div>
+        ${rows ? `<div class="tbl-wrap"><table><thead><tr><th>Request</th><th>Issue</th><th>Spa</th><th class="num">Age</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">No requests at this location.</div>'}
+      </section>`;
+  }
+
+  function flagRow(item, group) {
+    const raw = !!state.flags[item.k];
+    const parentKey = item.parent || group.parent || item.gate;
+    const blocked = !!((item.parent || group.parent) && !flagOn(item.parent || group.parent)) || !!(item.gate && !flagOn(item.gate));
+    const blockKey = (item.parent || group.parent) && !flagOn(item.parent || group.parent) ? (item.parent || group.parent) : item.gate;
+    const count = item.cat ? PRODUCTS.filter(p => p.cat === item.cat).length + ' products' : '';
+    const desc = item.desc || count;
+    const stateTxt = blocked ? 'Off with ' + FLAG_NAMES[blockKey].replace('Shop category · ', '') : raw ? 'On' : (item.planned ? 'Off · launches later' : 'Off');
+    return `<div class="flag${item.parent ? ' child' : ''}${blocked ? ' blocked' : ''}">
+      <div class="flag-text"><div class="flag-name">${item.name}${item.planned && !raw ? ' <span class="st st-off" style="margin-left:6px">Planned</span>' : ''}</div><div class="flag-desc">${desc}</div></div>
+      <span class="flag-state">${stateTxt}</span>
+      <button class="switch" role="switch" aria-checked="${raw}" aria-label="${esc(FLAG_NAMES[item.k])}" data-flag="${item.k}" ${canChange() ? '' : 'disabled'}></button>
+    </div>`;
+  }
+
+  function previewHTML() {
+    const cTabs = ['Home', flagOn('shop') && 'Shop', flagOn('booking') && 'Book', flagOn('care') && 'Care', 'You'].filter(Boolean);
+    const cats = ['catWeightLoss', 'catSkin', 'catSupplements', 'catBeauty'].filter(flagOn).map(k => FLAG_NAMES[k].replace('Shop category · ', ''));
+    const pTabs = ['Today', 'Schedule', flagOn('tap') && 'Collect', 'Spa', flagOn('supply') && 'Supply'].filter(Boolean);
+    const methods = [flagOn('rentAch') && 'ACH', flagOn('rentCard') && 'Card'].filter(Boolean);
+    return `<div class="previews">
+      <div class="phone" aria-label="Client app preview"><div class="phone-title">RKVR · Shop</div>
+        ${flagOn('shop') ? `<div class="phone-chips"><span class="on">All</span>${cats.map(c => `<span>${c}</span>`).join('')}</div>` : '<div class="phone-off">Shop is hidden from clients</div>'}
+        ${CR() ? '' : '<div class="phone-card"><b>Membership · Coming soon</b>Join the waitlist</div>'}
+        ${flagOn('wallet') ? `<div class="phone-card"><b>6 services left</b>${flagOn('payWithCredits') ? 'Book with membership, no deposit' : 'Membership can’t be used at booking'}</div>` : ''}
+        ${flagOn('textToBook') ? '<div class="phone-card"><b>Text-to-book on</b>Reply with a day and time</div>' : ''}
+        <div class="phone-tabs">${cTabs.map(t => `<span>${t}</span>`).join('')}</div></div>
+      <div class="phone" aria-label="RKVR Pro preview"><div class="phone-title">RKVR Pro · Spa</div>
+        ${flagOn('rent') ? `<div class="phone-card"><b>Rent invoice · $1,102</b>${flagOn('rentWeekly') ? 'Monthly or weekly billing' : 'Monthly billing'}${flagOn('rentAutopay') ? ' · autopay' : ''}<div class="mini-btns">${methods.map((x, i) => `<span class="${i ? 'alt' : ''}">Pay by ${x}</span>`).join('')}</div></div>` : '<div class="phone-off">Rent invoices are hidden</div>'}
+        ${flagOn('requests') ? '<div class="phone-card"><b>Service requests</b>File a repair request</div>' : ''}
+        ${flagOn('marketing') ? '<div class="phone-card"><b>2 open slots this afternoon</b>Send a last-minute offer</div>' : ''}
+        <div class="phone-tabs">${pTabs.map(t => `<span>${t}</span>`).join('')}</div></div>
+    </div>`;
+  }
+
+  function renderControls() {
+    const st = state.settings, m = metrics();
+    const modeBanner = {
+      saved: `<div class="banner banner-ice"><span><b>Changes save for the whole RKVR corporate team.</b> They reach the live apps once the apps run on the RKVR backend; until then the preview on the right shows what owners and clients would see.</span></div>`,
+      readonly: `<div class="banner banner-warn"><span><b>View only.</b> You can see every setting, but only RKVR admins with edit access can change them.</span></div>`,
+      local: `<div class="banner banner-warn"><span><b>Changes here aren’t saved.</b> This view can’t reach the shared settings, so switches reset when you reload.</span></div>`,
+      loading: `<div class="banner banner-ice"><span>Loading saved settings…</span></div>`
+    }[state.mode];
+    const settingsRows = SETTING_DEFS.map(d => `<div class="setting"><label for="set-${d.k}">${d.name}<span class="flag-desc">${d.desc}</span></label><div class="field"><span>${d.pre}</span><input id="set-${d.k}" type="number" inputmode="decimal" step="${d.step}" min="${d.min}" value="${st[d.k]}" data-setting="${d.k}" ${canChange() ? '' : 'disabled'}></div></div>`).join('');
+    const logIds = Array.from(new Set(state.log.map(l => l.by).filter(Boolean)));
+    const logRows = state.log.length ? state.log.map(l => `<div class="log-row"><span>${esc(l.text)}</span><time class="cell-sub">${relTime(l.at)}</time><span class="by" data-by="${l.by ? esc(l.by) : ''}">${l.by ? '' : 'By an RKVR admin'}</span></div>`).join('') : '<div class="empty">No changes yet. Every switch and setting change is recorded here with who made it.</div>';
+    return head('Controls', 'Turn features on or off across both apps and set the membership economics.') + modeBanner + `
+      <div class="grid cols-2">
+        <section class="panel"><div class="panel-head"><h2>Feature switches</h2><span class="note">${Object.values(state.flags).filter(Boolean).length} of ${Object.keys(state.flags).length} on</span></div>
+          ${FLAG_GROUPS.map(g => `<div class="flag-group"><h3>${g.title}</h3><p>${g.blurb}${g.parent && !flagOn(g.parent) ? ' Off while the Shop is off.' : ''}</p>${g.items.map(i => flagRow(i, g)).join('')}</div>`).join('')}
+        </section>
+        <div class="grid" style="grid-template-rows:auto auto 1fr">
+          <section class="panel"><div class="panel-head"><h2>What users see</h2><span class="note">Live preview</span></div>${previewHTML()}</section>
+          <section class="panel"><div class="panel-head"><h2>Membership and payouts</h2>${CR() ? '' : '<span class="st st-off" style="margin-right:auto">Not live</span>'}${canChange() ? '<button class="btn btn-primary" id="save-settings">Save</button>' : ''}</div>
+            ${CR() ? '' : '<p class="cell-sub" style="margin-bottom:8px">Member services are off, so these numbers aren’t used yet. Card fee on rent still applies. Set the rest before launch.</p>'}
+            ${settingsRows}
+            <div class="calc">
+              <div><span class="label">Revenue per service</span><b>${'$' + m.perCredit.toFixed(2)}</b></div>
+              <div><span class="label">Payout per service</span><b>${fmt(st.payout)}</b></div>
+              <div><span class="label">Margin per service</span><b class="${m.margin < 0 ? 'neg' : 'pos'}">${(m.margin < 0 ? '−$' : '$') + Math.abs(m.margin).toFixed(2)}</b></div>
+            </div>
+            ${m.margin < 0 && CR() ? `<p class="cell-sub" style="margin-top:10px;color:var(--bad)">At these numbers RKVR pays out more per service than the membership brings in. Raise the price, lower the payout, or include fewer services.</p>` : ''}
+          </section>
+          <section class="panel"><div class="panel-head"><h2>Change history</h2><span class="note">${state.log.length ? state.log.length + (state.log.length === 1 ? ' change' : ' changes') : ''}</span></div><div class="log" id="log">${logRows}</div></section>
+        </div>
+      </div>`;
+  }
+
+
+  function mkSegments() { return MK_SEGMENTS.filter(g => CR() || (g.id !== 'members' && g.id !== 'expiring')); }
+  function mkTypes() { return MK_TYPES.filter(t => CR() || t.id !== 'credits'); }
+  function mkRules() { return Object.assign({}, DEFAULT_MK_RULES, state.mkRules || {}); }
+  function mkTemplate() { return (mkTypes().find(t => t.id === state.mk.type) || MK_TYPES[0]).tpl; }
+  function mkText() { return state.mk.text || mkTemplate(); }
+  function mkResolve() {
+    let t = mkText().replace(/\{first\}/g, 'Ava');
+    if (state.mk.channel === 'text') t += '\nReply STOP to opt out.';
+    if (state.mk.channel === 'email') t += '\n\nUnsubscribe · RKVR, San Diego CA';
+    return t;
+  }
+  function mkReach() {
+    const mk = state.mk;
+    const S = SUITES.filter(x => mk.locs[x.loc]);
+    const clients = S.reduce((a, x) => a + Math.round(x.members * 2.4), 0);
+    const seg = mkSegments().find(g => g.id === mk.seg) || MK_SEGMENTS[0];
+    const frac = seg.id === 'bought' ? (MK_CAT_FRAC[mk.cat] || 0.1) : seg.frac;
+    const total = Math.round(clients * frac);
+    const out = Math.round(total * OPT_OUT);
+    return { total, out, reach: total - out, suites: S.length };
+  }
+  function allCampaigns() {
+    const fromDb = state.campaigns.map(c => Object.assign({ live: true }, c));
+    const sample = SAMPLE_CAMPAIGNS.filter(c => !c.suite || inLoc(suiteById(c.suite)));
+    return fromDb.concat(sample);
+  }
+
+  function renderMarketing() {
+    const mk = state.mk, r = mkReach(), rules = mkRules();
+    const camps = allCampaigns();
+    const sent = camps.filter(c => c.status === 'Sent');
+    const msgs = sent.reduce((a, c) => a + c.count, 0);
+    const booked = sent.reduce((a, c) => a + (c.booked || 0), 0);
+    const rev = sent.reduce((a, c) => a + (c.rev || 0), 0);
+    const ro = canChange() ? '' : 'disabled';
+    const pressed = (on) => `aria-pressed="${on}"`;
+    const locBtns = LOCS.map((l, i) => `<button type="button" ${pressed(!!mk.locs[i])} data-mk-loc="${i}" ${ro}>${esc(l)}</button>`).join('');
+    const chBtns = MK_CHANNELS.map(c => `<button type="button" ${pressed(mk.channel === c.id)} data-mk-channel="${c.id}" ${ro}>${CH[c.id] || c.name}</button>`).join('');
+    const mkEmail = Object.assign({}, EMAIL_DEFAULT, mk.email || {});
+    const segOpts = mkSegments().map(g => `<option value="${g.id}" ${mk.seg === g.id ? 'selected' : ''}>${g.name}</option>`).join('');
+    const catOpts = Object.keys(CATS).map(c => `<option value="${c}" ${mk.cat === c ? 'selected' : ''}>${CATS[c]}</option>`).join('');
+    const typeOpts = mkTypes().map(t => `<option value="${t.id}" ${mk.type === t.id ? 'selected' : ''}>${t.name}</option>`).join('');
+    const whenOpts = MK_WHEN.map(w => `<option value="${w.id}" ${mk.when === w.id ? 'selected' : ''}>${w.name}</option>`).join('');
+    const sendLabel = mk.when === 'now' ? 'Send to ' + num(r.reach) + ' clients' : 'Schedule for ' + (MK_WHEN.find(w => w.id === mk.when) || {}).name;
+    const fromLabel = mk.channel === 'email' ? 'Email from RKVR' : mk.channel === 'text' ? 'Text from RKVR' : 'RKVR app notification';
+
+    const rows = camps.map(c => {
+      const res = c.status === 'Sent' && (c.opened || !c.live) ? `${num(c.opened || 0)} opened · ${num(c.booked || 0)} booked` : (c.note || '—');
+      const by = c.live ? `<span data-by="${c.by ? esc(c.by) : ''}" class="cell-sub">${c.by ? '' : 'RKVR'}</span>` : '';
+      return `<tr><td><div class="cell-main">${esc(c.name)}</div><div class="cell-sub">${esc(c.channel)} · ${esc(c.when)}${c.live ? ' · ' : ''}${by}</div></td><td>${c.from === 'RKVR' ? '<span class="st st-ice">RKVR</span>' : esc(c.from)}</td><td class="num">${num(c.count)}</td><td>${esc(res)}</td><td class="num">${c.rev ? fmt(c.rev) : '—'}</td><td>${statusChip(c.status)}</td></tr>`;
+    }).join('');
+
+    const ruleSw = (k, name, desc) => `<div class="flag"><div class="flag-text"><div class="flag-name">${name}</div><div class="flag-desc">${desc}</div></div><span class="flag-state">${rules[k] ? 'On' : 'Off'}</span><button class="switch" role="switch" aria-checked="${!!rules[k]}" aria-label="${esc(name)}" data-mkrule="${k}" ${ro}></button></div>`;
+
+    return head('Marketing', 'Send network campaigns to clients across RKVR, and set the rules owners follow when they message their own clients.') + `
+      ${flagOn('marketing') ? '' : '<div class="banner banner-warn"><span><b>Integrated marketing is off.</b> Owners can’t send campaigns from RKVR Pro. Network campaigns from HQ still go out. Turn it on in Controls.</span></div>'}
+      ${state.mode === 'readonly' ? '<div class="banner banner-warn"><span><b>View only.</b> Only RKVR admins with edit access can send campaigns or change owner rules.</span></div>' : ''}
+      <div class="kpis">
+        ${kpi('Campaigns', camps.length, sent.length + ' sent · ' + camps.filter(c => c.status === 'Scheduled').length + ' scheduled')}
+        ${kpi('Messages sent', num(msgs), 'By RKVR and owners this month')}
+        ${kpi('Bookings', num(booked), msgs ? (booked / msgs * 100).toFixed(1) + '% of messages' : 'From campaigns')}
+        ${kpi('Revenue', fmtK(rev), 'Bookings and orders from campaigns')}
+        ${kpi('Opt-out rate', (OPT_OUT * 100).toFixed(0) + '%', 'Clients who said no to marketing')}
+      </div>
+      ${recsPanel(0)}
+      <section class="panel"><div class="panel-head"><h2>New network campaign</h2><span class="note">Sent as RKVR to clients of every selected location</span></div>
+        <div class="compose">
+          <div>
+            <div class="form-row"><span class="label">Locations</span><div class="seg">${locBtns}</div></div>
+            <div class="form-row"><label for="mk-seg">Who gets it</label>
+              <select id="mk-seg" class="input" data-mk-field="seg" ${ro}>${segOpts}</select>
+              ${mk.seg === 'bought' ? `<select id="mk-cat" class="input" data-mk-field="cat" ${ro}>${catOpts}</select>` : ''}
+              <div class="reach"><b>${num(r.reach)}</b><span>clients across ${r.suites} spa${r.suites === 1 ? '' : 's'}</span><span class="hint">${num(r.out)} opted out and won’t get it</span></div>
+            </div>
+            <div class="form-row"><span class="label">Send by</span><div class="seg">${chBtns}</div><span class="hint">${CH_HOW[mk.channel]}</span></div>
+            <div class="form-row"><label for="mk-type">Message type</label><select id="mk-type" class="input" data-mk-field="type" ${ro}>${typeOpts}</select></div>
+            <div class="form-row"><label for="mk-name">Campaign name</label><input id="mk-name" class="input" data-mk-text="name" value="${esc(mk.name)}" ${ro}></div>
+            ${mk.channel === 'email' ? emailEditor('mk', mkEmail) : ''}
+            <div class="form-row"><label for="mk-text">${mk.channel === 'email' ? 'Email text' : 'Message'}</label><textarea id="mk-text" class="input" data-mk-text="text" ${ro}>${esc(mkText())}</textarea><span class="hint">{first} fills in each client’s first name.</span></div>
+            <div class="form-row"><label for="mk-when">When</label><select id="mk-when" class="input" data-mk-field="when" ${ro}>${whenOpts}</select></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <span class="label">Preview</span>
+            <div id="mk-prev-wrap">${mk.channel === 'email' ? emailPreview(mkEmail, mkText(), 'Ava') : `<div class="msg-preview"><div class="from">${fromLabel}</div><div class="body" id="mk-prev">${esc(mkResolve())}</div><span class="cta">${mk.type === 'news' || mk.type === 'promo' ? 'Shop now' : 'Book now'}</span></div>${mk.channel === 'text' ? `<div class="count-line" id="mk-count">${smsInfo(mkResolve())}</div>` : ''}`}</div>
+            <div class="hint">${mk.channel === 'text' ? 'Texts go only to clients who opted in, and every one carries a STOP reply.' : mk.channel === 'email' ? 'Every email carries an unsubscribe link.' : 'Clients can mute offers in the RKVR app.'}</div>
+            ${canChange() ? `<button class="btn btn-primary" id="mk-send" style="padding:11px 14px;font-size:14px" ${r.reach ? '' : 'disabled'}>${sendLabel}</button>` : ''}
+            ${r.reach ? '' : '<div class="hint" style="color:var(--bad)">Pick at least one location.</div>'}
+          </div>
+        </div>
+      </section>
+      <section class="panel" style="margin-top:16px"><div class="panel-head"><h2>All campaigns</h2><span class="note">RKVR and owners · ${esc(scopeName())}</span></div>
+        <div class="tbl-wrap"><table><thead><tr><th>Campaign</th><th>From</th><th class="num">Clients</th><th>Results</th><th class="num">Revenue</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>
+      </section>
+      <section class="panel" style="margin-top:16px"><div class="panel-head"><h2>Rules for owners</h2>${canChange() ? '<button class="btn btn-primary" id="mk-save-rules">Save limits</button>' : ''}</div>
+        <div class="grid cols-even">
+          <div>
+            <div class="setting"><label for="mkr-perWeek">Messages per client<span class="flag-desc">Most an owner can send one client in a week</span></label><div class="field"><span>#</span><input id="mkr-perWeek" type="number" min="0" step="1" value="${rules.perWeek}" ${ro}></div></div>
+            <div class="setting"><label for="mkr-maxDiscount">Largest discount<span class="flag-desc">Owner offers above this are blocked</span></label><div class="field"><span>%</span><input id="mkr-maxDiscount" type="number" min="0" step="1" value="${rules.maxDiscount}" ${ro}></div></div>
+            <div class="setting" style="grid-template-columns:minmax(0,1fr)"><label for="mkr-quietStart">Quiet hours<span class="flag-desc">No texts or notifications between these times</span></label><div class="time-pair"><input id="mkr-quietStart" class="input" type="time" value="${rules.quietStart}" ${ro}><span class="hint">to</span><input id="mkr-quietEnd" class="input" type="time" value="${rules.quietEnd}" aria-label="Quiet hours end" ${ro}></div></div>
+            <div style="margin-top:12px">${ruleSw('approvePromos', 'Approve promotions first', 'Owner promotions wait for RKVR approval before sending.')}</div>
+          </div>
+          <div>
+            <div class="flag-group"><h3>Channels owners can use</h3>
+              ${ruleSw('chText', 'Text', 'Opted-in clients only, with STOP to opt out.')}
+              ${ruleSw('chPush', 'App notification', 'Clients with the RKVR app.')}
+              ${ruleSw('chEmail', 'Email', 'With an unsubscribe link.')}
+            </div>
+            <div class="flag-group"><h3>Templates owners start from</h3>
+              ${MK_TEMPLATES.map(t => ruleSw('tpl' + t.k[0].toUpperCase() + t.k.slice(1), t.name, t.desc)).join('')}
+            </div>
+          </div>
+        </div>
+      </section>`;
+  }
+
+  /* ---------------- recommendations ----------------
+     Rule-based for now: each rule reads the same numbers the dashboard shows and drafts a ready-to-send
+     message. Nothing sends until an admin presses Send. */
+  const CH = { push: 'App notification', email: 'Email', text: 'Text (SMS)' };
+  const CH_HOW = {
+    push: 'Free and instant. Reaches clients who have the RKVR app.',
+    email: 'Designed with photos, product cards and a button. Every email has an unsubscribe link.',
+    text: 'Read fastest. Plain text and a link, opted-in clients only, with STOP to opt out. Each text costs a little.'
+  };
+  function smsInfo(t) {
+    const ucs = /[^\x00-\x7F£¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ¤¡ÄÖÑÜ§¿äöñüà\n]/.test(t);
+    const per = ucs ? 70 : 160, multi = ucs ? 67 : 153;
+    const parts = t.length <= per ? 1 : Math.ceil(t.length / multi);
+    return t.length + ' characters · ' + parts + (parts === 1 ? ' text' : ' texts per client') + (ucs ? ' (special characters make texts shorter)' : '');
+  }
+  function recipientNames(n, seed) {
+    const out = [];
+    for (let i = 0; i < Math.min(n, 8); i++) out.push(SAMPLE_NAMES[(i * 5 + seed) % SAMPLE_NAMES.length]);
+    return out.join(', ') + (n > 8 ? ' and ' + num(n - 8) + ' more' : '');
+  }
+  function hqRecs() {
+    const m = metrics(), rules = mkRules(), list = [];
+    const clients = m.clients;
+    const lapsed = Math.round(clients * 0.18);
+    list.push({ id: 'winback', kind: 'Win-back', seed: 1,
+      title: 'Win back ' + num(lapsed) + ' lapsed clients',
+      why: num(lapsed) + ' clients haven’t booked in 30+ days. They averaged $152 a visit, and win-back offers like this have booked about 1 in 4.',
+      count: lapsed, est: Math.round(lapsed * 0.24) + ' bookings · ~' + fmtK(Math.round(lapsed * 0.24) * 132),
+      audience: 'No visit in 30 days', channel: 'text', channels: ['text', 'email', 'push'],
+      channelWhy: 'Text gets read fastest, and every one of these clients opted in to texts.',
+      offer: { label: '$20 off', pct: 14 }, when: 'Tomorrow, 10:00 AM', type: 'winback',
+      text: "{first}, we've missed you at RKVR. Your next visit is $20 off through Nov 1. Tap to book.",
+      email: { subject: 'We saved you a spot', headline: 'Come back for $20 off', hero: 'ret', products: [], cta: 'Book your visit' } });
+    if (flagOn('booking')) {
+      const n = Math.round(clients * 0.16);
+      list.push({ id: 'iv-cross', kind: 'Cross-sell', seed: 4,
+        title: 'Introduce IV drips to ' + num(n) + ' cryo and red light clients',
+        why: 'Clients who add an IV drip to cryo or red light visit about twice as often. These ' + num(n) + ' clients book cryo or red light but have never had a drip.',
+        count: n, est: Math.round(n * 0.07) + ' bookings · ~' + fmtK(Math.round(n * 0.07) * 189),
+        audience: 'Cryo or red light, no IV yet', channel: 'email', channels: ['email', 'push', 'text'],
+        channelWhy: 'Email has room to show the drip menu, which sells better for a service they haven’t tried.',
+        when: 'Tomorrow, 10:00 AM', type: 'news',
+        text: '{first}, finish your next cryo or red light session with an IV drip. Myers’ Cocktail, Immunity Defense and Hydration take about 45 minutes. Tap to book.',
+        email: { subject: 'Add a drip to your recovery', headline: 'Cryo, then an IV drip', hero: 'nad', products: ['b12', 'nad'], cta: 'See the drip menu' } });
+    }
+    if (flagOn('booking')) {
+      const n = Math.round(clients * 0.3), slots = 14;
+      list.push({ id: 'open-slots', kind: 'Fill open slots', seed: 7,
+        title: 'Offer ' + slots + ' open slots tomorrow',
+        why: slots + ' appointments are still open tomorrow at Mission Valley. Last-minute offers filled about 40% of open slots last month.',
+        count: n, est: '~6 bookings · ~' + fmtK(6 * 140),
+        audience: 'Booked at those spas in the last 60 days', channel: 'push', channels: ['push', 'text', 'email'],
+        channelWhy: 'Next-day offers do best as app notifications: instant, free and easy to tap.',
+        when: 'Today, 5:00 PM', type: 'slots',
+        text: "{first}, there are openings tomorrow at RKVR. Grab one before they're gone. Tap to book.",
+        email: { subject: 'Openings tomorrow at RKVR', headline: 'Your spot is open tomorrow', hero: null, products: [], cta: 'See open times' } });
+    }
+    if (flagOn('care')) {
+      const n = Math.round(clients * 0.023);
+      list.push({ id: 'refill', kind: 'Care · Prescription', seed: 11, rx: true,
+        title: 'Remind ' + num(n) + ' clients their GLP-1 refill is due',
+        why: num(n) + ' clients on a weight-loss program have a refill due within 5 days. Reminders keep treatment on schedule.',
+        count: n, est: 'Fewer missed refills',
+        audience: 'GLP-1 refill due in 5 days', channel: 'push', channels: ['push', 'email', 'text'],
+        channelWhy: 'An app notification goes straight to the refill screen.',
+        when: 'Tomorrow, 10:00 AM', type: 'care',
+        text: '{first}, your GLP-1 refill is due in 5 days. Confirm it in the RKVR app so there is no gap.',
+        email: { subject: 'Your refill is due soon', headline: 'Your refill is due in 5 days', hero: 'glp1', products: [], cta: 'Confirm refill' } });
+    }
+    const rentAmt = a => fmtK(a.reduce((t, x) => t + x.rent, 0));
+    if (flagOn('rent') && m.overdue.length) {
+      const od = m.overdue;
+      list.push({ id: 'rent-overdue', kind: 'Rent · Overdue', area: 'rent', seed: 0, owners: od,
+        title: 'Final notice to ' + od.length + (od.length === 1 ? ' owner' : ' owners') + ' with overdue rent',
+        why: od.map(x => x.studio).join(', ') + (od.length === 1 ? ' is' : ' are') + ' 15 days past due. A text with a pay link and a payment-plan offer recovers most overdue invoices within a week.',
+        count: od.length, est: rentAmt(od) + ' overdue',
+        audience: 'Spa operators 15+ days overdue', channel: 'text', channels: ['text', 'email', 'push'],
+        channelWhy: 'An overdue notice should be seen today. A text gets read within minutes.',
+        when: 'Now', type: 'account',
+        text: 'Hi {first}, your RKVR rent invoice is 15 days past due. Pay in RKVR Pro today, or reply PLAN to split it into two payments.',
+        email: { subject: 'Your RKVR rent is past due', headline: 'Your invoice is 15 days past due', hero: null, products: [], cta: 'Pay in RKVR Pro' } });
+    }
+    if (flagOn('rent') && m.unpaid.length) {
+      const un = m.unpaid;
+      list.push({ id: 'rent', kind: 'Rent · Due', area: 'rent', seed: 0, owners: un,
+        title: 'Remind ' + un.length + (un.length === 1 ? ' owner' : ' owners') + ' rent is due this week',
+        why: un.map(x => x.studio).join(', ') + (un.length === 1 ? ' hasn’t' : ' haven’t') + ' paid this cycle. A friendly reminder before the due date keeps invoices from going overdue.',
+        count: un.length, est: rentAmt(un) + ' due',
+        audience: 'Spa operators with unpaid rent', channel: 'email', channels: ['email', 'text', 'push'],
+        channelWhy: 'Email keeps a record and links straight to the invoice in RKVR Pro.',
+        when: 'Now', type: 'account',
+        text: 'Hi {first}, your RKVR rent invoice is ready to pay. It takes under a minute by ACH or card in RKVR Pro.',
+        email: { subject: 'Your RKVR rent invoice', headline: 'Your invoice is ready', hero: null, products: [], cta: 'Pay in RKVR Pro' } });
+    }
+    const noAch = m.S.filter(x => x.method !== 'ACH');
+    if (flagOn('rent') && noAch.length) {
+      list.push({ id: 'rent-autopay', kind: 'Rent · Autopay', area: 'rent', seed: 0, owners: noAch,
+        title: 'Invite ' + noAch.length + (noAch.length === 1 ? ' owner' : ' owners') + ' to set up ACH autopay',
+        why: noAch.map(x => x.studio).join(', ') + (noAch.length === 1 ? ' pays' : ' pay') + ' by card or hasn’t saved a method. ACH autopay skips the ' + state.settings.cardFee + '% card fee and keeps invoices from going overdue.',
+        count: noAch.length, est: 'Fewer late invoices · lower fees',
+        audience: 'Owners not on ACH autopay', channel: 'push', channels: ['push', 'email', 'text'],
+        channelWhy: 'An RKVR Pro notification opens straight to the autopay setup screen.',
+        when: 'Tomorrow, 10:00 AM', type: 'account',
+        text: 'Hi {first}, set up rent autopay by ACH in RKVR Pro. No card fee, and you never have to think about the due date.',
+        email: { subject: 'Turn on rent autopay', headline: 'Never miss a rent date', hero: null, products: [], cta: 'Set up autopay' } });
+    }
+    if (CR()) {
+      list.push({ id: 'expiring', kind: 'Members', seed: 3,
+        title: 'Remind ' + num(m.expiring) + ' members to use their services',
+        why: num(m.expiring) + ' member services are still unused, and the 12 reset Nov 1 with no rollover. Members who use their services are far less likely to cancel.',
+        count: Math.round(m.members * 0.4), est: 'Lower cancellations',
+        audience: 'Members with 4+ services left', channel: 'push', channels: ['push', 'email', 'text'],
+        channelWhy: 'An app notification opens straight to booking with membership.',
+        when: 'Tomorrow, 10:00 AM', type: 'credits',
+        text: '{first}, you still have services left this month. They reset Nov 1, so book cryo, red light or a drip in the RKVR app.',
+        email: { subject: 'Your services reset Nov 1', headline: 'Use your services this month', hero: null, products: [], cta: 'Book with membership' } });
+    }
+    const meta = state.recMeta, now = Date.now();
+    return list.filter(r => !meta.sent[r.id] && !meta.dismissed[r.id] && !(meta.snoozed[r.id] && new Date(meta.snoozed[r.id]).getTime() > now));
+  }
+  function recState(r) {
+    const ui = state.recUI[r.id] || {};
+    const ch = ui.channel || r.channel;
+    return { ui, ch, text: ui.text != null ? ui.text : r.text, email: Object.assign({}, r.email, ui.email || {}) };
+  }
+  function recChecks(r, ch) {
+    const rules = mkRules(), out = [];
+    if (r.type === 'account') out.push({ ok: true, t: 'Account message to owners, not marketing' });
+    else out.push({ ok: true, t: 'Within ' + rules.perWeek + ' messages per client this week' });
+    if (r.offer) out.push({ ok: r.offer.pct <= rules.maxDiscount, t: r.offer.label + (r.offer.pct <= rules.maxDiscount ? ' is within the ' : ' is over the ') + rules.maxDiscount + '% discount cap' });
+    out.push({ ok: true, t: (r.when === 'Now' ? 'Sends now' : 'Sends ' + r.when.replace(/^(Today|Tomorrow), /, (_, d) => d.toLowerCase() + ' at ')) + ', outside quiet hours' });
+    out.push({ ok: true, t: r.owners ? (ch === 'text' ? 'Sent to the owner’s account phone in RKVR Pro' : ch === 'email' ? 'Sent to the owner’s account email' : 'Opens the invoice in RKVR Pro') : ch === 'text' ? 'Opted-in clients only, with “Reply STOP to opt out”' : ch === 'email' ? 'Unsubscribe link added' : 'Clients can mute offers in the app' });
+    if (r.rx) out.push({ ok: true, t: 'Approved wording for prescription products' });
+    return out;
+  }
+  function resolveFirst(t, first) { return String(t || '').replace(/\{first\}/g, first || 'Ava'); }
+  function emailPreview(spec, body, first, toOwners) {
+    const prods = (spec.products || []).map(id => IMG_PRODUCT[id]).filter(Boolean);
+    return `<div class="em" aria-label="Email preview"><div class="em-meta"><b>RKVR</b> &lt;hello@rkvr.com&gt; · <span>${esc(spec.subject || '')}</span></div>
+      <div class="em-card"><div class="em-head"><svg viewBox="-4 -32 380 140" aria-hidden="true"><g fill="#F2F0EA"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g><g fill="#F2F0EA" transform="translate(96 0)"><rect x="0" y="0" width="24" height="100"/><polygon points="24,50 51.5,0 79.5,0 52,50 79.5,100 51.5,100"/></g><g transform="translate(183 0)"><polygon fill="#F2F0EA" points="0,0 26,0 58,100 32,100"/><polygon fill="#F2542D" points="78.32,-26 104.32,-26 64,100 38,100"/></g><g fill="#F2F0EA" transform="translate(287 0)"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g></svg></div>
+      ${spec.hero ? `<div class="em-hero"><img src="${imgSrc(spec.hero)}" alt="${esc((IMG_PRODUCT[spec.hero] || {}).name || '')}"></div>` : ''}
+      <div class="em-body">${spec.headline ? `<h4>${esc(spec.headline)}</h4>` : ''}<p>${esc(resolveFirst(body, first))}</p>
+      ${prods.length ? `<div class="em-prods">${prods.map(p => `<div class="em-prod"><img src="${imgSrc(PRODUCT_IMG[p.name])}" alt=""><b>${esc(p.name)}</b><span>${fmt(p.price)}</span></div>`).join('')}</div>` : ''}
+      ${spec.cta ? `<span class="em-btn">${esc(spec.cta)}</span>` : ''}</div>
+      <div class="em-foot">${toOwners ? 'Sent to RKVR spa operators about their account.' : 'You’re getting this because you’re an RKVR client. <u>Unsubscribe</u>'} · RKVR, San Diego CA</div></div></div>`;
+  }
+  function emailMini(r, spec) {
+    const prods = (spec.products || []).map(id => IMG_PRODUCT[id]).filter(Boolean);
+    const img = spec.hero || (spec.products || [])[0];
+    return `<div class="em-mini"><div class="em-mini-img">${img ? `<img src="${imgSrc(img)}" alt="">` : '<svg viewBox="-4 -32 380 140" aria-hidden="true"><g fill="#0E1216"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g><g fill="#0E1216" transform="translate(96 0)"><rect x="0" y="0" width="24" height="100"/><polygon points="24,50 51.5,0 79.5,0 52,50 79.5,100 51.5,100"/></g><g transform="translate(183 0)"><polygon fill="#0E1216" points="0,0 26,0 58,100 32,100"/><polygon fill="#F2542D" points="78.32,-26 104.32,-26 64,100 38,100"/></g><g fill="#0E1216" transform="translate(287 0)"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g></svg>'}</div>
+      <div class="em-mini-t"><b>${esc(spec.subject || '')}</b><span>${esc(spec.headline || '')}</span><span>${[spec.hero ? 'Photo' : '', prods.length ? prods.length + ' product' + (prods.length > 1 ? 's' : '') : '', spec.cta ? '“' + esc(spec.cta) + '” button' : ''].filter(Boolean).join(' · ')}</span></div></div>`;
+  }
+  function msgPreview(ch, text, spec, first, toOwners) {
+    if (ch === 'email') return emailPreview(spec, text, first, toOwners);
+    const body = resolveFirst(text, first) + (ch === 'text' && !toOwners ? '\nReply STOP to opt out.' : '');
+    return `<div class="bubble"><span class="from">${ch === 'text' ? 'Text from RKVR' : 'RKVR app · now'}</span>${esc(body)}</div>` +
+      (ch === 'text' ? `<div class="count-line">${smsInfo(body)}</div>` : '<div class="count-line">The lock screen shows about 2 lines; the full message opens in the app.</div>');
+  }
+  function emailEditor(target, spec) {
+    const ro = canChange() ? '' : 'disabled';
+    const heroBtns = [`<button type="button" aria-pressed="${!spec.hero}" data-em-target="${target}" data-em-hero="" ${ro}>None</button>`]
+      .concat(Object.keys(IMG_PRODUCT).map(id => `<button type="button" aria-pressed="${spec.hero === id}" aria-label="${esc(IMG_PRODUCT[id].name)}" data-em-target="${target}" data-em-hero="${id}" ${ro}><img src="${imgSrc(id)}" alt=""></button>`)).join('');
+    const prodBtns = Object.keys(IMG_PRODUCT).filter(id => flagOn('cat' + IMG_PRODUCT[id].cat[0].toUpperCase() + IMG_PRODUCT[id].cat.slice(1))).map(id => `<button type="button" aria-pressed="${(spec.products || []).includes(id)}" aria-label="${esc(IMG_PRODUCT[id].name)}" data-em-target="${target}" data-em-prod="${id}" ${ro}><img src="${imgSrc(id)}" alt=""></button>`).join('');
+    return `<div class="form-row"><label for="em-subject-${target}">Subject line</label><input id="em-subject-${target}" class="input" data-em-target="${target}" data-em-field="subject" value="${esc(spec.subject || '')}" ${ro}></div>
+      <div class="form-row"><label for="em-headline-${target}">Headline</label><input id="em-headline-${target}" class="input" data-em-target="${target}" data-em-field="headline" value="${esc(spec.headline || '')}" ${ro}></div>
+      <div class="form-row"><span class="label">Main image</span><div class="thumbs">${heroBtns}</div></div>
+      <div class="form-row"><span class="label">Feature products <span class="hint">· up to 2, with photo and price</span></span><div class="thumbs">${prodBtns}</div></div>
+      <div class="form-row"><label for="em-cta-${target}">Button</label><input id="em-cta-${target}" class="input" data-em-target="${target}" data-em-field="cta" value="${esc(spec.cta || '')}" ${ro}></div>`;
+  }
+  function recCard(r, wide) {
+    const st = recState(r), ui = st.ui, ch = st.ch, edit = !!ui.editing && canChange();
+    const checks = recChecks(r, ch), blocked = checks.some(c => !c.ok);
+    const chBtns = r.channels.map(c => `<button type="button" aria-pressed="${ch === c}" data-rec-ch="${r.id}" data-ch="${c}">${CH[c]}${c === r.channel ? ' ★' : ''}</button>`).join('');
+    const first = r.owners ? r.owners[0].pro.split(' ')[0] : SAMPLE_NAMES[r.seed % SAMPLE_NAMES.length].split(' ')[0];
+    const who = r.owners ? r.owners.map(o => o.pro + ' · ' + o.studio).join(', ') : recipientNames(r.count, r.seed);
+    const editor = !edit ? '' : (ch === 'email' ? emailEditor('rec:' + r.id, st.email) : '') +
+      (r.rx ? '<p class="rec-lock">Prescription reminders use approved wording, so the message can’t be edited.</p>'
+        : `<div class="form-row"><label for="rec-text-${r.id}">${ch === 'email' ? 'Email text' : 'Message'}</label><textarea id="rec-text-${r.id}" class="input" data-rec-text="${r.id}">${esc(st.text)}</textarea><span class="hint">{first} fills in each ${r.owners ? 'owner' : 'client'}’s first name.</span></div>`);
+    const actions = !canChange() ? '<span class="hint">View only</span>' : ui.dismissing
+      ? `<div class="rec-reasons"><span>Why dismiss?</span>${DISMISS_REASONS.map(x => `<button class="btn" data-rec-reason="${r.id}" data-reason="${x}">${x}</button>`).join('')}<button class="linkish" data-rec-cancel="${r.id}">Cancel</button></div>`
+      : `<div class="rec-actions"><button class="btn btn-primary" data-rec-send="${r.id}" ${blocked ? 'disabled' : ''}>${r.when === 'Now' ? 'Send' : 'Schedule'} to ${num(r.count)} ${r.owners ? (r.count === 1 ? 'owner' : 'owners') : 'clients'}</button><button class="btn" data-rec-edit="${r.id}">${edit ? 'Done editing' : 'Edit'}</button><button class="btn" data-rec-snooze="${r.id}">Snooze</button><button class="btn" data-rec-dismiss="${r.id}" aria-label="Dismiss" title="Dismiss">✕</button></div>`;
+    const intro = `<div class="rec-top"><span class="rec-kind">${esc(r.kind)}</span><span class="rec-est">Est. ${esc(r.est)}</span></div>
+      <h3>${esc(r.title)}</h3>
+      <p class="rec-why">${esc(r.why)}</p>
+      <div class="rec-who"><b>${num(r.count)}</b><span>${esc(r.audience)}</span><button class="linkish" data-rec-who="${r.id}">${ui.showWho ? 'Hide list' : 'See who'}</button></div>
+      ${ui.showWho ? `<div class="rec-names">${esc(who)}${r.owners ? '' : '. Opted-out clients are already left off.'}</div>` : ''}
+      <div class="rec-ch"><span class="label">Send by</span><div class="seg">${chBtns}</div><span class="hint">${ch === r.channel ? '★ Recommended. ' + esc(r.channelWhy) : esc(CH_HOW[ch])}</span></div>`;
+    const preview = `${editor}
+      <div id="rec-prev-${r.id}">${ch === 'email' && !edit && !ui.fullEmail ? emailMini(r, st.email) : msgPreview(ch, st.text, st.email, first, !!r.owners)}</div>
+      ${ch === 'email' && !edit ? `<button class="linkish" style="align-self:flex-start" data-rec-full="${r.id}">${ui.fullEmail ? 'Hide full email' : 'Preview full email'}</button>` : ''}`;
+    const finish = `<ul class="rec-checks">${checks.map(c => `<li class="${c.ok ? '' : 'no'}">${esc(c.t)}</li>`).join('')}</ul>
+      ${actions}`;
+    if (wide) return `<article class="rec wide" aria-label="${esc(r.title)}"><div class="rec-col">${intro}${finish}</div><div class="rec-col"><span class="label">Preview</span>${preview}</div></article>`;
+    return `<article class="rec" aria-label="${esc(r.title)}">${intro}${preview}${finish}</article>`;
+  }
+  function recsPanel(limit, tabbed, area, title) {
+    const all = hqRecs(), meta = state.recMeta;
+    const recs = area ? all.filter(r => r.area === area) : all.filter(r => r.area !== 'rent' || r.id === 'rent-overdue');
+    const hidden = Object.keys(meta.snoozed).length + Object.keys(meta.dismissed).length;
+    const sentN = Object.keys(meta.sent).length;
+    const shown = limit ? recs.slice(0, limit) : recs;
+    return `<section class="panel" style="margin-bottom:16px"><div class="panel-head"><h2>${title || 'Recommended for you'}</h2><span class="note">${recs.length ? recs.length + ' ready to send · drafted from this month’s numbers' : 'All caught up'}</span></div>
+      ${!shown.length ? `<div class="empty">${area === 'rent' ? 'All rent is paid and every owner is on ACH autopay. Nothing to send.' : 'No recommendations right now. New ones appear as bookings, sales and rent change.'}</div>`
+        : tabbed ? (() => { const cur = shown.find(r => r.id === state.recTab) || shown[0];
+            return `<div class="rec-tabs" role="tablist" aria-label="Recommendations">${shown.map(r => `<button role="tab" aria-selected="${r.id === cur.id}" data-rec-tab="${r.id}"><span>${esc(r.kind)}</span><b>${num(r.count)}</b></button>`).join('')}</div>${recCard(cur, true)}`; })()
+        : `<div class="recs">${shown.map(r => recCard(r)).join('')}</div>`}
+      <div class="rec-foot"><span>Nothing sends until you press Send. Every recommendation follows the owner marketing rules and opt-outs.</span>
+        <span>${[limit && recs.length > limit ? `<button class="linkish" data-goto="marketing">See all ${recs.length} in Marketing</button>` : '', !area && all.some(r => r.area === 'rent') && state.tab !== 'payments' ? '<button class="linkish" data-goto="payments">Rent messages on the Rent tab</button>' : '', sentN ? sentN + ' sent' : '', hidden ? `<button class="linkish" data-rec-restore="1">Show ${hidden} snoozed or dismissed</button>` : ''].filter(Boolean).join(' · ')}</span></div>
+    </section>`;
+  }
+
+  function relTime(iso) {
+    const d = new Date(iso); if (isNaN(d)) return '';
+    const s = Math.round((Date.now() - d.getTime()) / 1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.round(s / 60) + ' min ago';
+    if (s < 86400) return Math.round(s / 3600) + ' hr ago';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  async function fillLogNames() {
+    const cells = document.querySelectorAll('[data-by]');
+    const ids = Array.from(new Set(Array.from(cells).map(c => c.getAttribute('data-by')).filter(Boolean)));
+    if (!ids.length) return;
+    if (!user) { cells.forEach(c => { if (c.getAttribute('data-by')) c.textContent = 'By an RKVR admin'; }); return; }
+    const ps = await user.profiles(ids);
+    cells.forEach(c => { const id = c.getAttribute('data-by'); if (id) c.textContent = 'By ' + ((ps[id] && ps[id].name) || 'an RKVR admin') + ((ps[id] && ps[id].isMe) ? ' (you)' : ''); });
+  }
+
+  function render() {
+    renderTabs();
+    const views = { marketing: renderMarketing, overview: renderOverview, suites: renderSuites, members: renderMembers, payments: renderPayments, shop: renderShop, requests: renderRequests, controls: renderControls };
+    const main = $('#main');
+    main.setAttribute('role', 'tabpanel');
+    main.setAttribute('aria-labelledby', 'tab-' + state.tab);
+    main.innerHTML = views[state.tab]() + `<div class="foot"><span>RKVR HQ · corporate console</span><span>Powered by SalonHQ</span></div>`;
+    if (state.tab === 'controls' || state.tab === 'marketing') fillLogNames();
+  }
+
+  /* ---------------- persistence ---------------- */
+  async function writeDoc(path, body) {
+    if (!db) return true;
+    try { await db.doc(path).set(body); return true; }
+    catch (e) {
+      if (e && e.code === 'unavailable') { try { await new Promise(r => setTimeout(r, 400 + Math.random() * 600)); await db.doc(path).set(body); return true; } catch (e2) { /* fall through */ } }
+      toast('Couldn’t save that change. Try again in a moment.');
+      return false;
+    }
+  }
+
+  async function addLog(text) {
+    const entry = { at: new Date().toISOString(), text, by: state.me || null };
+    state.log = [entry].concat(state.log).slice(0, 40);
+    render();
+    await writeDoc('config/log', { entries: state.log });
+  }
+
+  async function toggleFlag(k) {
+    if (!canChange()) return;
+    const next = !state.flags[k];
+    if (!next && (k === 'rentAch' || k === 'rentCard')) {
+      const other = k === 'rentAch' ? 'rentCard' : 'rentAch';
+      if (!state.flags[other]) { toast('Owners need at least one way to pay rent. Turn on the other method first.'); return; }
+    }
+    state.flags = Object.assign({}, state.flags, { [k]: next });
+    render();
+    const ok = await writeDoc('config/features', state.flags);
+    if (ok) { toast(FLAG_NAMES[k] + (next ? ' turned on' : ' turned off')); addLog((next ? 'Turned on ' : 'Turned off ') + FLAG_NAMES[k]); }
+  }
+
+  async function togglePause(id) {
+    if (!canChange()) return;
+    const s = suiteById(id);
+    const paused = Object.assign({}, state.paused);
+    if (paused[id]) delete paused[id]; else paused[id] = true;
+    state.paused = paused;
+    render();
+    const ok = await writeDoc('config/suites', { paused });
+    if (ok) { const msg = (paused[id] ? 'Paused bookings at ' : 'Reopened bookings at ') + s.studio; toast(msg); addLog(msg); }
+  }
+
+  async function saveSettings() {
+    if (!canChange()) return;
+    const next = Object.assign({}, state.settings), changes = [];
+    for (const d of SETTING_DEFS) {
+      const el = document.getElementById('set-' + d.k);
+      const v = parseFloat(el.value);
+      if (!isFinite(v) || v < d.min) { toast(d.name + ' needs a number of ' + d.min + ' or more.'); el.focus(); return; }
+      if (v !== state.settings[d.k]) { changes.push(d.name + ' to ' + (d.pre === '$' ? '$' + v : d.pre === '%' ? v + '%' : v)); next[d.k] = v; }
+    }
+    if (!changes.length) { toast('No changes to save.'); return; }
+    state.settings = next;
+    render();
+    const ok = await writeDoc('config/settings', state.settings);
+    if (ok) { toast('Saved'); addLog('Changed ' + changes.join(', ')); }
+  }
+
+
+  async function sendCampaign() {
+    if (!canChange()) return;
+    const mk = state.mk, r = mkReach();
+    if (!r.reach) { toast('Pick at least one location.'); return; }
+    const name = (mk.name || '').trim() || (MK_TYPES.find(t => t.id === mk.type) || {}).name;
+    const now = mk.when === 'now';
+    const camp = {
+      name, from: 'RKVR', channel: (MK_CHANNELS.find(c => c.id === mk.channel) || {}).name, count: r.reach,
+      when: now ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : (MK_WHEN.find(w => w.id === mk.when) || {}).name,
+      status: now ? 'Sent' : 'Scheduled', opened: 0, booked: 0, rev: 0, note: now ? 'Results come in as clients respond' : 'Waiting to send',
+      audience: { locs: Object.keys(mk.locs).filter(k => mk.locs[k]).map(k => LOCS[+k]), segment: mk.seg, category: mk.seg === 'bought' ? mk.cat : null },
+      type: mk.type, text: mkText(), email: mk.channel === 'email' ? Object.assign({}, EMAIL_DEFAULT, mk.email || {}) : null, createdAt: new Date().toISOString(), by: state.me || null
+    };
+    state.campaigns = [camp].concat(state.campaigns);
+    render();
+    if (db) {
+      try { await db.collection('campaigns').add(camp); }
+      catch (e) { toast(e && e.code === 'quota_exceeded' ? 'The campaign list is full. Remove old campaigns to add more.' : 'Couldn’t save the campaign. Try again.'); return; }
+    }
+    toast(now ? 'Sent to ' + num(r.reach) + ' clients' : 'Scheduled');
+    addLog((now ? 'Sent campaign “' : 'Scheduled campaign “') + name + '” to ' + num(r.reach) + ' clients');
+    state.mk = Object.assign({}, state.mk, { text: '', name: '', email: null });
+  }
+
+  /* ---------------- product switches ---------------- */
+  async function toggleProd(key) {
+    if (!canChange()) return;
+    const off = Object.assign({}, state.prodOff);
+    if (off[key]) delete off[key]; else off[key] = true;
+    state.prodOff = off; render();
+    const [where, id] = key.split(':');
+    const name = where === 'shop' ? (IMG_PRODUCT[id] || {}).name : (SUPPLY_CATALOG.find(x => x.id === id) || {}).name;
+    const label = name + (where === 'shop' ? ' in the client shop' : ' in owner supply');
+    if (await writeDoc('config/products', { off })) { toast((off[key] ? 'Hid ' : 'Showing ') + label); addLog((off[key] ? 'Hid ' : 'Turned on ') + label); }
+  }
+
+  /* ---------------- service request updates ---------------- */
+  function reqDraft(id) { return Object.assign({}, state.reqDraft[id] || {}); }
+  async function sendReqUpdate(id) {
+    if (!canChange()) return;
+    const r = REQUESTS.find(x => x.id === id), s = suiteById(r.suite);
+    const ups = reqUpdates(r), cur = reqStatus(r);
+    const d = Object.assign({ status: cur === 'Open' && !ups.length ? 'Scheduled' : cur, eta: '', text: '', text2: false }, state.reqDraft[id] || {});
+    const text = (d.text || '').trim();
+    if (!text) { toast('Write a message or pick a quick reply first.'); document.getElementById('rq-text-' + id)?.focus(); return; }
+    const at = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    const u = { from: 'rkvr', at, text, status: d.status, eta: (d.eta || '').trim() || null, by: state.me || null, texted: !!d.text2 };
+    const live = Object.assign({}, state.reqLive[id] || {});
+    live.updates = (live.updates || []).concat([u]); live.status = d.status;
+    state.reqLive = Object.assign({}, state.reqLive, { [id]: live });
+    state.reqDraft = Object.assign({}, state.reqDraft, { [id]: {} });
+    render();
+    if (await writeDoc('config/requests', state.reqLive)) {
+      toast('Update sent to ' + s.pro + (d.text2 ? ' by app and text' : ' in RKVR Pro'));
+      addLog('Sent ' + id + ' update to ' + s.studio + ' · ' + d.status);
+    }
+  }
+
+  /* ---------------- recommendation actions ---------------- */
+  function recById(id) { return hqRecs().find(r => r.id === id); }
+  function setRecUI(id, patch) { state.recUI = Object.assign({}, state.recUI, { [id]: Object.assign({}, state.recUI[id] || {}, patch) }); }
+  async function saveRecMeta() { await writeDoc('config/recs', state.recMeta); }
+  async function sendRec(id) {
+    if (!canChange()) return;
+    const r = recById(id); if (!r) return;
+    const st = recState(r);
+    if (recChecks(r, st.ch).some(c => !c.ok)) { toast('This offer breaks a marketing rule. Edit it first.'); return; }
+    const now = r.when === 'Now';
+    const camp = { name: r.title, from: 'RKVR', channel: CH[st.ch], count: r.count,
+      when: now ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : r.when,
+      status: now ? 'Sent' : 'Scheduled', opened: 0, booked: 0, rev: 0, note: now ? 'Results come in as people respond' : 'Waiting to send',
+      audience: { segment: r.audience, recommendation: r.id }, type: r.type, text: st.text, email: st.ch === 'email' ? st.email : null,
+      createdAt: new Date().toISOString(), by: state.me || null };
+    if (r.owners) r.owners.forEach(o => { state.reminded[o.id] = true; });
+    state.campaigns = [camp].concat(state.campaigns);
+    state.recMeta = Object.assign({}, state.recMeta, { sent: Object.assign({}, state.recMeta.sent, { [id]: new Date().toISOString() }) });
+    render();
+    if (db) { try { await db.collection('campaigns').add(camp); } catch (e) { toast('Couldn’t save the campaign. Try again.'); return; } }
+    await saveRecMeta();
+    toast((now ? 'Sent to ' : 'Scheduled for ') + num(r.count) + (r.owners ? ' owners' : ' clients') + ' by ' + CH[st.ch].toLowerCase());
+    addLog((now ? 'Sent' : 'Scheduled') + ' recommended campaign “' + r.title + '” by ' + CH[st.ch].toLowerCase());
+  }
+  async function snoozeRec(id) {
+    if (!canChange()) return;
+    const until = new Date(Date.now() + 3 * 864e5).toISOString();
+    state.recMeta = Object.assign({}, state.recMeta, { snoozed: Object.assign({}, state.recMeta.snoozed, { [id]: until }) });
+    render(); await saveRecMeta(); toast('Snoozed for 3 days');
+  }
+  async function dismissRec(id, reason) {
+    if (!canChange()) return;
+    state.recMeta = Object.assign({}, state.recMeta, { dismissed: Object.assign({}, state.recMeta.dismissed, { [id]: { at: new Date().toISOString(), reason } }) });
+    render(); await saveRecMeta(); toast('Dismissed · thanks, that helps tune future suggestions');
+  }
+  async function restoreRecs() {
+    if (!canChange()) return;
+    state.recMeta = Object.assign({}, state.recMeta, { snoozed: {}, dismissed: {} });
+    render(); await saveRecMeta(); toast('Snoozed and dismissed recommendations are back');
+  }
+  function emailSpecFor(target) {
+    if (target === 'mk') return Object.assign({}, EMAIL_DEFAULT, state.mk.email || {});
+    const r = recById(target.slice(4)); return r ? recState(r).email : Object.assign({}, EMAIL_DEFAULT);
+  }
+  function setEmailSpec(target, spec, rerender) {
+    if (target === 'mk') state.mk = Object.assign({}, state.mk, { email: spec });
+    else { const id = target.slice(4); setRecUI(id, { email: spec }); }
+    if (rerender) render(); else refreshPreview(target);
+  }
+  function refreshPreview(target) {
+    if (target === 'mk') {
+      const w = document.getElementById('mk-prev-wrap');
+      if (w && state.mk.channel === 'email') w.innerHTML = emailPreview(Object.assign({}, EMAIL_DEFAULT, state.mk.email || {}), mkText(), 'Ava');
+      return;
+    }
+    const id = target.slice(4), r = recById(id), w = document.getElementById('rec-prev-' + id);
+    if (!r || !w) return;
+    const st = recState(r);
+    const first = r.owners ? r.owners[0].pro.split(' ')[0] : SAMPLE_NAMES[r.seed % SAMPLE_NAMES.length].split(' ')[0];
+    w.innerHTML = msgPreview(st.ch, st.text, st.email, first, !!r.owners);
+  }
+
+  async function toggleMkRule(k) {
+    if (!canChange()) return;
+    const rules = mkRules();
+    const next = !rules[k];
+    if (!next && ['chText', 'chPush', 'chEmail'].includes(k) && ['chText', 'chPush', 'chEmail'].filter(x => rules[x]).length === 1) { toast('Owners need at least one channel. Turn another on first.'); return; }
+    state.mkRules = Object.assign({}, rules, { [k]: next });
+    render();
+    const labels = { approvePromos: 'promotion approval', chText: 'owner texts', chPush: 'owner app notifications', chEmail: 'owner email',
+      tplSlots: 'the Open slots template', tplPromo: 'the Promotion template', tplWinback: 'the Win-back template', tplNews: 'the Announcement template' };
+    if (await writeDoc('config/marketing', state.mkRules)) { toast('Saved'); addLog((next ? 'Turned on ' : 'Turned off ') + labels[k]); }
+  }
+
+  async function saveMkLimits() {
+    if (!canChange()) return;
+    const rules = mkRules();
+    const per = parseInt(document.getElementById('mkr-perWeek').value, 10);
+    const max = parseFloat(document.getElementById('mkr-maxDiscount').value);
+    const qs = document.getElementById('mkr-quietStart').value, qe = document.getElementById('mkr-quietEnd').value;
+    if (!(per >= 0)) { toast('Messages per client needs a number of 0 or more.'); return; }
+    if (!(max >= 0 && max <= 100)) { toast('Largest discount needs a number from 0 to 100.'); return; }
+    if (!qs || !qe) { toast('Set both quiet-hour times.'); return; }
+    const changes = [];
+    if (per !== rules.perWeek) changes.push('messages per client to ' + per);
+    if (max !== rules.maxDiscount) changes.push('largest discount to ' + max + '%');
+    if (qs !== rules.quietStart || qe !== rules.quietEnd) changes.push('quiet hours to ' + qs + '–' + qe);
+    if (!changes.length) { toast('No changes to save.'); return; }
+    state.mkRules = Object.assign({}, rules, { perWeek: per, maxDiscount: max, quietStart: qs, quietEnd: qe });
+    render();
+    if (await writeDoc('config/marketing', state.mkRules)) { toast('Saved'); addLog('Changed owner marketing ' + changes.join(', ')); }
+  }
+
+  async function connect() {
+    try {
+      user = window.claude && window.claude.use ? await window.claude.use('user') : null;
+      db = window.claude && window.claude.use ? await window.claude.use('db') : null;
+    } catch (e) { db = null; }
+    if (user) {
+      try {
+        const me = await user.me();
+        state.me = me.id;
+        const w = $('#who');
+        w.innerHTML = '';
+        const img = document.createElement('img'); img.src = me.avatarUrl; img.alt = '';
+        const nm = document.createElement('span'); nm.textContent = (me.name || 'You') + (me.canEdit ? ' · Admin' : ' · View only');
+        w.append(img, nm);
+      } catch (e) { /* identity is optional */ }
+    }
+    if (!db) { state.mode = 'local'; render(); return; }
+    const canEdit = user ? await user.canEdit() : false;
+    state.mode = canEdit ? 'saved' : 'readonly';
+    const listen = (path, apply) => db.doc(path).onSnapshot(snap => {
+      if (snap.exists) { apply(snap.data() || {}); render(); }
+    }, () => { /* keep the last known state */ });
+    listen('config/features', d => { state.flags = Object.assign({}, DEFAULT_FLAGS, d); });
+    listen('config/settings', d => { state.settings = Object.assign({}, DEFAULT_SETTINGS, d); });
+    listen('config/suites', d => { state.paused = Object.assign({}, d.paused || {}); });
+    listen('config/log', d => { state.log = Array.isArray(d.entries) ? d.entries.slice(0, 40) : []; });
+    listen('config/marketing', d => { state.mkRules = Object.assign({}, DEFAULT_MK_RULES, d); });
+    listen('config/products', d => { state.prodOff = Object.assign({}, d.off || {}); });
+    listen('config/requests', d => { state.reqLive = Object.assign({}, d); });
+    listen('config/recs', d => { state.recMeta = { sent: d.sent || {}, snoozed: d.snoozed || {}, dismissed: d.dismissed || {} }; });
+    db.collection('campaigns').orderBy('createdAt', 'desc').limit(50).onSnapshot(snap => {
+      state.campaigns = snap.docs.map(x => x.data() || {}); render();
+    }, () => { /* keep the last known list */ });
+    render();
+  }
+
+  /* ---------------- events ---------------- */
+  document.addEventListener('click', e => {
+    const t = e.target.closest('button');
+    if (!t) return;
+    if (t.dataset.tab) { state.tab = t.dataset.tab; try { history.replaceState(null, '', '#' + state.tab); } catch (_) {} render(); window.scrollTo({ top: 0 }); return; }
+    if (t.dataset.goto) { state.tab = t.dataset.goto; try { history.replaceState(null, '', '#' + state.tab); } catch (_) {} render(); window.scrollTo({ top: 0 }); return; }
+    if (t.dataset.flag) { toggleFlag(t.dataset.flag); return; }
+    if (t.dataset.pause) { togglePause(t.dataset.pause); return; }
+    if (t.dataset.remind) { const s = suiteById(t.dataset.remind); state.reminded[s.id] = true; render(); toast('Reminder queued for ' + s.studio + ' (sample)'); return; }
+    if (t.id === 'save-settings') { saveSettings(); return; }
+    if (t.dataset.mkLoc !== undefined) { const l = Object.assign({}, state.mk.locs); l[t.dataset.mkLoc] = !l[t.dataset.mkLoc]; state.mk = Object.assign({}, state.mk, { locs: l }); render(); return; }
+    if (t.dataset.mkChannel) { state.mk = Object.assign({}, state.mk, { channel: t.dataset.mkChannel }); render(); return; }
+    if (t.dataset.mkrule) { toggleMkRule(t.dataset.mkrule); return; }
+    if (t.id === 'mk-send') { sendCampaign(); return; }
+    if (t.id === 'mk-save-rules') { saveMkLimits(); return; }
+    const d = t.dataset;
+    if (d.recCh) { setRecUI(d.recCh, { channel: d.ch }); render(); return; }
+    if (d.prod) { toggleProd(d.prod); return; }
+    if (d.reqJump) { state.tab = 'requests'; state.reqOpen = d.reqJump; try { history.replaceState(null, '', '#requests'); } catch (_) {} render(); window.scrollTo({ top: 0 }); return; }
+    if (d.reqOpen) { state.reqOpen = state.reqOpen === d.reqOpen ? null : d.reqOpen; render(); return; }
+    if (d.reqSend) { sendReqUpdate(d.reqSend); return; }
+    if (d.reqQuick) {
+      const r = REQUESTS.find(x => x.id === d.reqQuick), s = suiteById(r.suite), q = REQ_QUICK[+d.i];
+      const dr = reqDraft(r.id), first = s.pro.replace(/^Dr\. /, '').split(' ')[0];
+      const eta = dr.eta || (q.status === 'Scheduled' ? 'tomorrow, 9–11 AM' : q.status === 'In progress' ? 'Friday' : '');
+      dr.status = q.status; dr.text = q.text.replace('{first}', first).replace('{eta}', eta); if (!dr.eta && eta && q.status !== 'Open') dr.eta = eta;
+      state.reqDraft = Object.assign({}, state.reqDraft, { [r.id]: dr }); render();
+      const el = document.getElementById('rq-text-' + r.id); if (el) el.focus();
+      return;
+    }
+    if (d.alertsAll) { state.alertsAll = !state.alertsAll; render(); return; }
+    if (d.clStatus || d.clPlan) { state.cl = Object.assign({}, state.cl, d.clStatus ? { status: d.clStatus } : { plan: d.clPlan }, { lim: 25 }); render(); return; }
+    if (d.clMore) { state.cl = Object.assign({}, state.cl, { lim: ((state.cl && state.cl.lim) || 25) + 25 }); render(); return; }
+    if (d.recTab) { state.recTab = d.recTab; render(); return; }
+    if (d.recFull) { setRecUI(d.recFull, { fullEmail: !(state.recUI[d.recFull] || {}).fullEmail }); render(); return; }
+    if (d.recWho) { setRecUI(d.recWho, { showWho: !(state.recUI[d.recWho] || {}).showWho }); render(); return; }
+    if (d.recEdit) { setRecUI(d.recEdit, { editing: !(state.recUI[d.recEdit] || {}).editing }); render(); return; }
+    if (d.recSend) { sendRec(d.recSend); return; }
+    if (d.recSnooze) { snoozeRec(d.recSnooze); return; }
+    if (d.recDismiss) { setRecUI(d.recDismiss, { dismissing: true }); render(); return; }
+    if (d.recCancel) { setRecUI(d.recCancel, { dismissing: false }); render(); return; }
+    if (d.recReason) { dismissRec(d.recReason, d.reason); return; }
+    if (d.recRestore) { restoreRecs(); return; }
+    if (d.emTarget && d.emHero !== undefined) { const sp = emailSpecFor(d.emTarget); sp.hero = d.emHero || null; setEmailSpec(d.emTarget, sp, true); return; }
+    if (d.emTarget && d.emProd) {
+      const sp = emailSpecFor(d.emTarget), cur = (sp.products || []).slice(), i = cur.indexOf(d.emProd);
+      if (i >= 0) cur.splice(i, 1); else { if (cur.length >= 2) { toast('Up to 2 featured products per email.'); return; } cur.push(d.emProd); }
+      sp.products = cur; setEmailSpec(d.emTarget, sp, true); return;
+    }
+  });
+  document.addEventListener('change', e => {
+    const rd = e.target.dataset || {};
+    if (rd.req && rd.reqField && (rd.reqField === 'status' || rd.reqField === 'text2')) {
+      const dr = reqDraft(rd.req); dr[rd.reqField] = rd.reqField === 'text2' ? e.target.checked : e.target.value;
+      state.reqDraft = Object.assign({}, state.reqDraft, { [rd.req]: dr }); return;
+    }
+    const f = e.target.dataset && e.target.dataset.mkField;
+    if (!f) return;
+    const patch = { [f]: e.target.value };
+    if (f === 'type') patch.text = '';
+    state.mk = Object.assign({}, state.mk, patch);
+    render();
+  });
+  document.addEventListener('input', e => {
+    if (e.target.id === 'cl-q') { state.cl = Object.assign({}, state.cl, { q: e.target.value, lim: 25 }); const b = clientBody(); $('#cl-body').innerHTML = b.html || '<tr><td colspan="7" class="cell-sub">No clients match.</td></tr>'; $('#cl-count').textContent = 'Showing ' + Math.min(b.n, 25) + ' of ' + num(b.n); const mb = document.querySelector('[data-cl-more]'); if (mb) mb.hidden = !b.more; return; }
+    const dd = e.target.dataset || {};
+    if (dd.req && (dd.reqField === 'text' || dd.reqField === 'eta')) { const dr = reqDraft(dd.req); dr[dd.reqField] = e.target.value; state.reqDraft = Object.assign({}, state.reqDraft, { [dd.req]: dr }); return; }
+    if (dd.recText) { setRecUI(dd.recText, { text: e.target.value }); refreshPreview('rec:' + dd.recText); return; }
+    if (dd.emTarget && dd.emField) { const sp = emailSpecFor(dd.emTarget); sp[dd.emField] = e.target.value; setEmailSpec(dd.emTarget, sp, false); return; }
+    const f = dd.mkText;
+    if (!f) return;
+    state.mk[f] = e.target.value;
+    const p = document.getElementById('mk-prev'); if (p && f === 'text') p.textContent = mkResolve();
+    const c = document.getElementById('mk-count'); if (c && f === 'text') c.textContent = smsInfo(mkResolve());
+    if (f === 'text' && state.mk.channel === 'email') refreshPreview('mk');
+  });
+  $('#loc').addEventListener('change', e => { state.loc = e.target.value; try { localStorage.setItem('rkvr-hq-loc', state.loc); } catch (_) {} render(); });
+
+  /* ---------------- boot ---------------- */
+  const fromHash = (location.hash || '').replace('#', '');
+  if (TABS.some(t => t.id === fromHash)) state.tab = fromHash;
+  try { const l = localStorage.getItem('rkvr-hq-loc'); if (l && (l === 'all' || LOCS[+l])) state.loc = l; } catch (_) {}
+  renderLocSelect();
+  render();
+  connect();
+})();
+</script>
+
+</body>
+</html>
