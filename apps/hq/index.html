@@ -543,8 +543,8 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
 
   /* ---------------- controls: feature switches and settings ---------------- */
   const FLAG_GROUPS = [
-    { id: 'launch', title: 'Membership', blurb: '12 services a month for $99 (founding rate) or $129. While off, clients see “Coming soon” with a waitlist and pay à la carte, and owners see no membership features.', items: [
-      { k: 'memberCredits', name: 'Membership', desc: '12 services a month: $99 founding rate, $129 after. The membership wallet, booking with membership, owner check-in and payouts.' }
+    { id: 'launch', title: 'Membership', blurb: 'Unlimited recovery services for $99 a month (founding rate) or $129. While off, clients see “Coming soon” with a waitlist and pay à la carte, and owners see no membership features.', items: [
+      { k: 'memberCredits', name: 'Membership', desc: 'Unlimited recovery services: $99 founding rate, $129 after. The membership wallet, booking with membership, owner check-in and payouts.' }
     ]},
     { id: 'client', title: 'Client app', blurb: 'What clients see in the RKVR app.', items: [
       { k: 'shop', name: 'Shop', desc: 'Product catalog, cart and checkout.' },
@@ -552,7 +552,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       { k: 'textToBook', name: 'Text-to-book', desc: 'Clients book by replying to a text.', parent: 'booking' },
       { k: 'care', name: 'Care and telehealth', desc: 'Async and video visits, intake forms, prescriptions.' },
       { k: 'wallet', name: 'Membership wallet', desc: 'Services left this month, resets and plan controls.', gate: 'memberCredits' },
-      { k: 'payWithCredits', name: 'Pay with membership', desc: 'Members use their 12 monthly services when they book.', parent: 'wallet' }
+      { k: 'payWithCredits', name: 'Pay with membership', desc: 'Members book recovery services with their membership, no charge.', parent: 'wallet' }
     ]},
     { id: 'cats', title: 'Shop categories', blurb: 'Tabs in the client Shop and the owner Supply screen.', parent: 'shop', items: [
       { k: 'catWeightLoss', name: 'Weight Loss', cat: 'weightLoss' },
@@ -897,7 +897,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
         <td>${esc(suiteLabel(suiteById(c.spa)))}</td>
         <td><span class="st ${c.active ? 'st-good' : 'st-off'}">${c.active ? 'Active' : 'Inactive'}</span></td>
         <td><span class="st ${PLAN_CLS[c.plan]}">${PLAN_LABEL[c.plan]}</span></td>
-        <td>${isMem ? `<div>${c.used} of 12 used</div><div class="mini-meter"><i style="width:${c.used / 12 * 100}%"></i></div>` : c.mtdN ? `${fmt(c.mtd)}<div class="cell-sub">${c.mtdN} ${c.mtdN === 1 ? 'service' : 'services'}</div>` : '<span class="cell-sub">—</span>'}</td>
+        <td>${isMem ? `<div>Unlimited</div><div class="cell-sub">${c.used} ${c.used === 1 ? 'service' : 'services'} this month</div>` : c.mtdN ? `${fmt(c.mtd)}<div class="cell-sub">${c.mtdN} ${c.mtdN === 1 ? 'service' : 'services'}</div>` : '<span class="cell-sub">—</span>'}</td>
         <td class="num">${c.ytd ? fmt(c.ytd) : '<span class="cell-sub">—</span>'}</td>
         <td><div>${c.lastDate}</div><div class="cell-sub">${esc(c.last)}</div></td></tr>`; }).join(''), more: rows.length > lim };
   }
@@ -924,9 +924,9 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       <div class="kpis">
         ${kpi('Active members', num(m.members), 'RKVR Membership · ' + fmt(st.planPrice) + ' / month')}
         ${kpi('Monthly recurring', fmtK(m.mrr), 'From memberships')}
-        ${kpi('Services issued', num(m.issued), st.credits + ' per member on the 1st')}
-        ${kpi('Redemption rate', Math.round(m.redeemed / m.issued * 100) + '%', num(m.redeemed) + ' services used so far')}
-        ${kpi('Unused · reset Nov 1', num(m.expiring), 'Services left this month, no rollover')}
+        ${kpi('Member services used', num(m.redeemed), 'This month · unlimited recovery')}
+        ${kpi('Services per member', (m.redeemed / Math.max(1, m.members)).toFixed(1), 'Average this month')}
+        ${kpi('Membership $ per service', fmt(Math.round(m.mrr / Math.max(1, m.redeemed))), 'Recurring revenue ÷ services used')}
       </div>
       <div class="grid cols-even">
         <section class="panel"><div class="panel-head"><h2>Member services by spa</h2><span class="note">Month to date</span></div>
@@ -1182,7 +1182,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       local: `<div class="banner banner-warn"><span><b>Changes here aren’t saved.</b> This view can’t reach the shared settings, so switches reset when you reload.</span></div>`,
       loading: `<div class="banner banner-ice"><span>Loading saved settings…</span></div>`
     }[state.mode];
-    const settingsRows = SETTING_DEFS.map(d => `<div class="setting"><label for="set-${d.k}">${d.name}<span class="flag-desc">${d.desc}</span></label><div class="field"><span>${d.pre}</span><input id="set-${d.k}" type="number" inputmode="decimal" step="${d.step}" min="${d.min}" value="${st[d.k]}" data-setting="${d.k}" ${canChange() ? '' : 'disabled'}></div></div>`).join('');
+    const settingsRows = SETTING_DEFS.filter(d => d.k !== 'credits').map(d => `<div class="setting"><label for="set-${d.k}">${d.name}<span class="flag-desc">${d.desc}</span></label><div class="field"><span>${d.pre}</span><input id="set-${d.k}" type="number" inputmode="decimal" step="${d.step}" min="${d.min}" value="${st[d.k]}" data-setting="${d.k}" ${canChange() ? '' : 'disabled'}></div></div>`).join('');
     const logIds = Array.from(new Set(state.log.map(l => l.by).filter(Boolean)));
     const logRows = state.log.length ? state.log.map(l => `<div class="log-row"><span>${esc(l.text)}</span><time class="cell-sub">${relTime(l.at)}</time><span class="by" data-by="${l.by ? esc(l.by) : ''}">${l.by ? '' : 'By an RKVR admin'}</span></div>`).join('') : '<div class="empty">No changes yet. Every switch and setting change is recorded here with who made it.</div>';
     return head('Controls', 'Turn features on or off across both apps and set the membership economics.') + modeBanner + `

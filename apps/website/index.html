@@ -13,20 +13,6 @@
   --body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   color-scheme: dark;
 }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --bg: #F2F0EA; --band: #E9E6DE; --panel: #FBFAF6; --panel-2: #EFECE5; --line: rgba(14,18,22,.12); --line-strong: rgba(14,18,22,.28);
-    --fg: #0E1216; --muted: #4A535C; --accent: #E04A23; --accent-text: #B83A18; --on-accent: #0E1216; --ice: #1F6FA8; --good: #1E8A55;
-    --accent-bg: rgba(224,74,35,.1); --ice-bg: rgba(31,111,168,.1);
-    color-scheme: light;
-  }
-}
-:root[data-theme="light"] {
-  --bg: #F2F0EA; --band: #E9E6DE; --panel: #FBFAF6; --panel-2: #EFECE5; --line: rgba(14,18,22,.12); --line-strong: rgba(14,18,22,.28);
-  --fg: #0E1216; --muted: #4A535C; --accent: #E04A23; --accent-text: #B83A18; --on-accent: #0E1216; --ice: #1F6FA8; --good: #1E8A55;
-  --accent-bg: rgba(224,74,35,.1); --ice-bg: rgba(31,111,168,.1);
-  color-scheme: light;
-}
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55; }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
@@ -282,6 +268,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       suites: [
         { id: 'sd-1', no: 1, studio: 'Cold Front', pro: 'Jordan Reid', what: 'Cryotherapy', svcs: [['Whole-Body Cryotherapy', 15, 45, 'cryo'], ['Localized Cryotherapy', 20, 40, 'cryo'], ['Cryo + Compression', 45, 79, 'cryo']] },
                 { id: 'sd-2', no: 2, studio: 'Red Room', pro: 'Priya Raman', what: 'Red light therapy', svcs: [['Full-Body Red Light', 20, 49, 'red'], ['Red Light + Infrared Sauna', 40, 69, 'red']] },
+        { id: 'sd-8', no: 8, studio: 'Recovery Lounge', pro: 'Jordan Reid', what: 'Compression and massage chairs', svcs: [['Compression Therapy', 30, 39, 'comp'], ['Massage Chair', 20, 25, 'chair']] },
         { id: 'sd-3', no: 3, studio: 'North Clinic', pro: 'Naomi Fields, NP', what: 'Weight loss, TeleWellness', svcs: [['Weight Loss Consult', 30, 95, 'wl'], ['Weight Loss Check-in', 20, 45, 'wl'], ['TeleWellness Video Visit', 20, 45, 'tw']] },
                 { id: 'sd-5', no: 5, studio: 'Arctic Lab', pro: 'Tasha Greene', what: 'Cryotherapy', svcs: [['Whole-Body Cryotherapy', 15, 45, 'cryo'], ['Cryo + Compression', 45, 79, 'cryo']] },
                 { id: 'sd-6', no: 6, studio: 'Lumen Light', pro: 'Jen Alvarez', what: 'Red light therapy', svcs: [['Full-Body Red Light', 20, 45, 'red'], ['Red Light + Compression', 40, 75, 'red']] },
@@ -292,7 +279,8 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     { id: 'uptown', city: 'Dallas', name: 'Uptown', area: 'Dallas, TX', open: false, lat: 32.800, lng: -96.801, suites: [] }
   ];
   let OPEN = LOCS.filter(l => l.open), SOON = LOCS.filter(l => !l.open);
-  const CAT_NAMES = { cryo: 'Cryotherapy', red: 'Red light', iv: 'IV therapy', tw: 'TeleWellness', wl: 'Weight loss' };
+  const CAT_NAMES = { cryo: 'Cryotherapy', red: 'Red light', comp: 'Compression', chair: 'Massage chair', iv: 'IV therapy', wl: 'Weight loss', tw: 'TeleWellness' };
+  const INCL = new Set(['cryo', 'red', 'comp', 'chair']);   // covered by membership; the rest is paid per visit
   const IV_MENU = [
     ['Myers’ Cocktail', 'High-dose B-complex, vitamin B12, vitamin C, calcium and magnesium. The classic drip for energy and general wellness.', 199],
     ['Immunity Defense', 'High-dose vitamin C, B vitamins and zinc, for when you want extra support through cold and flu season.', 189],
@@ -321,7 +309,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     { id: 'lip', name: 'Lip Treatment', cat: 'Beauty', sub: 'Overnight · 15 ml', price: 32 }
   ];
   const DEPOSIT = 40;
-  const PLAN = { name: 'RKVR Membership', founding: 99, price: 129, services: 12, cutoff: 'Dec 31, 2026' };
+  const PLAN = { name: 'RKVR Unlimited', founding: 99, price: 129, cutoff: 'Dec 31, 2026' };   // unlimited recovery services
   const LIVE = !!window.RKVR_CLOUD, C = window.RKVR_CLOUD;
   const TODAY = LIVE ? (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })() : new Date(2026, 9, 21); // preview uses a fixed sample day
   const SLOT_TIMES = ['9:00 AM', '10:30 AM', '12:00 PM', '1:30 PM', '3:00 PM', '4:30 PM', '6:00 PM'];
@@ -333,8 +321,8 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
   try { const saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved && typeof saved === 'object') S = Object.assign(blank(), saved); } catch (_) {}
   const CART_MEMBER = 'member';
   function cartItem(id) {
-    if (id === CART_MEMBER) return { id, kind: 'member', name: PLAN.name, sub: 'Founding rate · ' + PLAN.services + ' services a month · billed monthly, cancel any time', price: PLAN.founding, per: '/mo' };
-    if (id.startsWith('svc:')) { const x = svcByKey(id.slice(4)); if (!x) return null; return { id, kind: 'svc', key: x.key, name: x.name, sub: 'À la carte · ' + x.min + ' min · ' + x.suite.pro + ' · book any time', price: x.price, cat: ({ cryo: 'Cryo', red: 'Red', iv: 'IV', tw: 'Tele', wl: 'WL' })[x.cat] || '' }; }
+    if (id === CART_MEMBER) return { id, kind: 'member', name: PLAN.name, sub: 'Founding rate · unlimited recovery services · billed monthly, cancel any time', price: PLAN.founding, per: '/mo' };
+    if (id.startsWith('svc:')) { const x = svcByKey(id.slice(4)); if (!x) return null; return { id, kind: 'svc', key: x.key, name: x.name, sub: 'À la carte · ' + x.min + ' min · ' + x.suite.pro + ' · book any time', price: x.price, cat: ({ cryo: 'Cryo', red: 'Red', comp: 'Comp', chair: 'Chair', iv: 'IV', tw: 'Tele', wl: 'WL' })[x.cat] || '' }; }
     const p = PRODUCTS.find(q => q.id === id); return p ? Object.assign({ kind: 'prod' }, p) : null;
   }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(LIVE ? { cart: S.cart, notify: S.notify } : S)); } catch (_) {} };
@@ -348,7 +336,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
   const money = n => '$' + Math.round(n).toLocaleString('en-US');
   const locById = id => LOCS.find(l => l.id === id);
   const svcKey = (suiteId, i) => suiteId + ':' + i;
-  function svcByKey(k) { const [sid, i] = k.split(':'); for (const l of LOCS) { const s = l.suites.find(x => x.id === sid); if (s) { const v = s.svcs[+i]; return { key: k, name: v[0], min: v[1], price: v[2], cat: v[3], suite: s, loc: l }; } } return null; }
+  function svcByKey(k) { const [sid, i] = k.split(':'); for (const l of LOCS) { const s = l.suites.find(x => x.id === sid); if (s) { const v = s.svcs[+i]; return { key: k, name: v[0], min: v[1], price: v[2], cat: v[3], incl: v[5] != null ? !!v[5] : INCL.has(v[3]), suite: s, loc: l }; } } return null; }
   const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -378,7 +366,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
   const visitMins = b => visitSvcs(b).reduce((a, x) => a + x.min, 0);
   const visitPrice = b => visitSvcs(b).reduce((a, x) => a + x.price, 0);
   function memberUsed(y, m) { return S.bookings.filter(b => b.pay === 'member').reduce((a, b) => a + occurrences(b, y, m).length * b.svcs.length, 0); }
-  const memberLeft = d => S.member ? Math.max(0, PLAN.services - memberUsed(d.getFullYear(), d.getMonth())) : 0;
+  const memberExtra = keys => keys.map(svcByKey).filter(x => x && !x.incl).reduce((a, x) => a + x.price, 0);   // not covered by membership
   const rateLine = () => S.member ? (S.member.rate === PLAN.founding ? 'Founding rate · $' + PLAN.founding + '/month, locked in' : '$' + PLAN.price + '/month') : '';
   let toastT;
   function toast(m) { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2800); }
@@ -405,7 +393,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
   async function loadCatalog() {
     const [spas, svcs] = await Promise.all([
       C.rest('spas?select=id,slug,name,market,city,state,zip,address,time_zone,lat,lng,hours,status&status=in.(open,coming_soon)&order=name'),
-      C.rest('services?select=id,spa_id,name,category,minutes,price_cents,sort,providers(name,title)&active=eq.true&order=sort')
+      C.rest('services?select=id,spa_id,name,category,minutes,price_cents,member_included,sort,providers(name,title)&active=eq.true&order=sort')
     ]);
     if (!spas || !spas.length) return;
     LOCS.length = 0;
@@ -417,7 +405,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
         const prov = Array.from(new Set(groups[c].map(v => v.providers && v.providers.name).filter(Boolean)));
         groups[c].forEach((v, i) => { SVC_KEY[v.id] = gid + ':' + i; SVC_ID[gid + ':' + i] = v.id; });
         return { id: gid, no: 0, studio: CAT_NAMES[c], pro: prov.length ? prov.join(', ') : 'the RKVR team', what: CAT_NAMES[c],
-          svcs: groups[c].map(v => [v.name, v.minutes, v.price_cents / 100, v.category, v.id]) };
+          svcs: groups[c].map(v => [v.name, v.minutes, v.price_cents / 100, v.category, v.id, v.member_included]) };
       });
       LOCS.push({ id: sp.slug, uuid: sp.id, city: sp.market || sp.city, name: sp.name, area: [sp.city, sp.state].filter(Boolean).join(', '), open: sp.status === 'open',
         tz: sp.time_zone, lat: sp.lat, lng: sp.lng, hours: sp.hours || '', suites,
@@ -542,11 +530,11 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
         <div class="brandline"><svg class="brand-logo" viewBox="-4 -32 380 140" role="img" aria-label="RKVR"><g fill="currentColor"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g><g fill="currentColor" transform="translate(96 0)"><rect x="0" y="0" width="24" height="100"/><polygon points="24,50 51.5,0 79.5,0 52,50 79.5,100 51.5,100"/></g><g transform="translate(183 0)"><polygon fill="currentColor" points="0,0 26,0 58,100 32,100"/><polygon fill="#F2542D" points="78.32,-26 104.32,-26 64,100 38,100"/></g><g fill="currentColor" transform="translate(287 0)"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g></svg><span class="pron"><b>re·cov·er</b> /rɪˈkʌv·ər/</span></div>
         <h1 class="display" style="margin-top:14px"><span class="hl">Your go&#8209;to for</span> <span class="hl"><span class="ac">Recovery</span> and <span class="ac">Wellness.</span></span></h1>
 
-        <p class="lead">Cryotherapy, red light and IV therapy, plus weight loss and TeleWellness.</p>
+        <p class="lead">Cryotherapy, red light, compression and massage chairs, plus IV therapy, weight loss and TeleWellness.</p>
         <p class="display" style="font-size:clamp(24px,3vw,36px);margin-top:26px">Find a location near you.</p>
         <form class="finder" id="finder" role="search"><input id="near-q" aria-label="ZIP code or city" placeholder="ZIP code or city" value="${esc(ui.nearQuery)}" autocomplete="postal-code"><button class="btn btn-primary" type="submit">Find RKVR near me</button></form>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button class="btn" data-go="book">Book a visit</button><button class="btn" data-go="join">Join RKVR</button></div>
-        <div class="facts"><div><b>${OPEN.length}</b><span>RKVR spa open · ${SOON.length} coming soon</span></div><div><b>$${PLAN.founding}<small style="font-size:.45em">/mo</small></b><span>Limited time price.<br>Includes ${PLAN.services} services/month.<br>Get more à la carte.</span></div><div><b>${svcCount}</b><span>services to book</span></div><div><b>3</b><span>services per visit</span></div></div>
+        <div class="facts"><div><b>${OPEN.length}</b><span>RKVR spa open · ${SOON.length} coming soon</span></div><div><b>$${PLAN.founding}<small style="font-size:.45em">/mo</small></b><span>Limited time price.<br>Unlimited recovery services.<br>IV and more à la carte.</span></div><div><b>${svcCount}</b><span>services to book</span></div><div><b>3</b><span>services per visit</span></div></div>
       </div>
       <div class="hero-phone"><div class="visit-card" aria-label="Example visit with three services in order">
         <p class="eyebrow">Your visit · Thu, Oct 22</p>
@@ -564,8 +552,8 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       </div>
     </div></section>
     <section class="band alt"><div class="wrap">
-      <div class="section-head"><div><p class="eyebrow">Services</p><h2 class="display">What you can book</h2><p>Pay à la carte ($${DEPOSIT} deposit to hold your time), or join and get ${PLAN.services} services a month for $${PLAN.founding}.</p></div><button class="btn" data-go="services">All services</button></div>
-      <div class="grid g4">${['cryo', 'red', 'iv', 'tw'].map(c => catCard(c)).join('')}</div>
+      <div class="section-head"><div><p class="eyebrow">Services</p><h2 class="display">What you can book</h2><p>Pay à la carte ($${DEPOSIT} deposit to hold your time), or join for unlimited recovery at $${PLAN.founding} a month.</p></div><button class="btn" data-go="services">All services</button></div>
+      <div class="grid g4">${['cryo', 'red', 'comp', 'iv'].map(c => catCard(c)).join('')}</div>
     </div></section>
     <section class="band"><div class="wrap">
       <div class="section-head"><div><p class="eyebrow">IV therapy</p><h2 class="display">The drip menu</h2><p>Every drip is reviewed by a licensed provider before your visit and given by a registered nurse in the RKVR IV lounge.</p></div><button class="btn btn-primary" data-book-loc="sd">Book an IV</button></div>
@@ -697,17 +685,17 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     return `<section class="band"><div class="wrap">${stepper}<div class="book"><div style="min-width:0">${body}</div>${b.step > 0 ? bkSummary() : ''}</div></div></section>`;
   }
   function prepaidCovers(sel) { const pool = (S.prepaid || []).map(x => x.name); return sel.length > 0 && sel.every(k => { const n = svcByKey(k).name, i = pool.indexOf(n); if (i < 0) return false; pool.splice(i, 1); return true; }); }
-  function bkPay() { if (LIVE) return 'card'; const b = ui.bk; if (b.pay && !(b.pay === 'prepaid' && !prepaidCovers(b.sel))) return b.pay; if (prepaidCovers(b.sel)) return 'prepaid'; if (S.member) { const d = bkDays()[b.day]; return memberLeft(d) >= b.sel.length ? 'member' : 'card'; } return 'card'; }
+  function bkPay() { if (LIVE) return 'card'; const b = ui.bk; if (b.pay && !(b.pay === 'prepaid' && !prepaidCovers(b.sel))) return b.pay; if (prepaidCovers(b.sel)) return 'prepaid'; if (S.member) return 'member'; return 'card'; }
   function payChoice(d) {
     if (LIVE) { const tot = ui.bk.sel.reduce((a, k) => a + svcByKey(k).price, 0);
       return `<h3 style="margin-top:22px">How to pay</h3><div class="kv"><span>Pay at your visit</span><b>${money(tot)}</b></div><p class="note">Online payment and the ${PLAN.name} open soon. For now, nothing is charged when you book.</p>`; }
-    const b = ui.bk, n = b.sel.length, left = S.member ? memberLeft(d) : PLAN.services, ok = left >= n, pay = bkPay();
+    const b = ui.bk, extra = memberExtra(b.sel), ok = true, pay = bkPay();
     const total = b.sel.reduce((a, k) => a + svcByKey(k).price, 0);
     return `<h3 style="margin-top:22px">How to pay</h3><div style="display:grid;gap:8px;margin-top:8px">
-      <button class="pay-opt" aria-pressed="${pay === 'member'}" data-bk-pay="member" ${ok ? '' : 'disabled'}><span class="dot"></span><span><b>${S.member ? 'Use my membership' : 'Join and use membership · $' + PLAN.founding + '/month'}</b><br><span class="muted small">${S.member ? (ok ? 'Uses ' + n + ' of your ' + left + ' left in ' + MONTHS[d.getMonth()] + '. No deposit.' : 'Only ' + left + ' left in ' + MONTHS[d.getMonth()] + '. Pay à la carte or remove a service.') : PLAN.services + ' services a month, any service. Founding rate locked in by ' + PLAN.cutoff + '. No deposit.'}</span></span></button>
+      <button class="pay-opt" aria-pressed="${pay === 'member'}" data-bk-pay="member" ${ok ? '' : 'disabled'}><span class="dot"></span><span><b>${S.member ? 'Use my membership' : 'Join and use membership · $' + PLAN.founding + '/month'}</b><br><span class="muted small">${(S.member ? 'Covered by your unlimited membership.' : 'Unlimited recovery services. Founding rate locked in by ' + PLAN.cutoff + '.') + (extra ? ' ' + money(extra) + ' for services not included, paid at your visit.' : ' No deposit.')}</span></span></button>
       ${prepaidCovers(b.sel) ? `<button class="pay-opt" aria-pressed="${pay === 'prepaid'}" data-bk-pay="prepaid"><span class="dot"></span><span><b>Use prepaid services</b><br><span class="muted small">Already paid from your cart. No deposit.</span></span></button>` : ''}
       <button class="pay-opt" aria-pressed="${pay === 'card'}" data-bk-pay="card"><span class="dot"></span><span><b>À la carte · ${money(total)}</b><br><span class="muted small">$${DEPOSIT} deposit now, the rest at your visit.</span></span></button></div>
-      ${b.repeat !== 'once' && pay === 'member' ? `<p class="note" style="margin-top:8px">Each repeat uses ${n} ${n === 1 ? 'service' : 'services'} in its month. If a month runs out, that visit is charged à la carte.</p>` : ''}`;
+`;
   }
   const bkMins = () => ui.bk.sel.reduce((a, k) => a + svcByKey(k).min, 0);
   function bkSummary() {
@@ -717,7 +705,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     const total = b.sel.reduce((a, k) => a + svcByKey(k).price, 0);
     return `<aside class="card summary" aria-label="Your visit"><p class="eyebrow">Your visit</p><h3 class="display" style="font-size:30px">${l.name}</h3><p class="muted small">${l.city}${d ? ' · ' + DOW[d.getDay()] + ', ' + MON[d.getMonth()] + ' ' + d.getDate() : ''}${b.repeat !== 'once' && b.step === 3 ? ' · repeats ' + b.repeat : ''}</p>
       ${rows || '<p class="muted small">No services yet.</p>'}
-      ${b.sel.length && b.step === 3 && bkPay() === 'prepaid' ? `<div class="total"><span>Prepaid</span><b>${money(total)}</b></div><p class="note">Paid from your cart. Nothing due at your visit.</p>` : b.sel.length ? (b.step === 3 && bkPay() === 'member' ? `<div class="total"><span>Membership</span><b>${b.sel.length} of ${PLAN.services}</b></div><p class="note">Included in your membership. No deposit. À la carte value ${money(total)}.</p>` : `<div class="total"><span>Total</span><b>${money(total)}</b></div><p class="note">${LIVE ? 'Pay at your visit.' : '$' + DEPOSIT + ' deposit today, ' + money(Math.max(0, total - DEPOSIT)) + ' at your visit.' + (S.member ? '' : ' Members pay $' + PLAN.founding + '/month for ' + PLAN.services + ' services.')}</p>`) : ''}</aside>`;
+      ${b.sel.length && b.step === 3 && bkPay() === 'prepaid' ? `<div class="total"><span>Prepaid</span><b>${money(total)}</b></div><p class="note">Paid from your cart. Nothing due at your visit.</p>` : b.sel.length ? (b.step === 3 && bkPay() === 'member' ? `<div class="total"><span>${memberExtra(b.sel) ? 'Due at your visit' : 'Membership'}</span><b>${memberExtra(b.sel) ? money(memberExtra(b.sel)) : 'Included'}</b></div><p class="note">${memberExtra(b.sel) ? 'Recovery services are covered; the rest is paid at your visit.' : 'Covered by your unlimited membership. No deposit.'} À la carte value ${money(total)}.</p>` : `<div class="total"><span>Total</span><b>${money(total)}</b></div><p class="note">${LIVE ? 'Pay at your visit.' : '$' + DEPOSIT + ' deposit today, ' + money(Math.max(0, total - DEPOSIT)) + ' at your visit.' + (S.member ? '' : ' Members get unlimited recovery for $' + PLAN.founding + '/month.')}</p>`) : ''}</aside>`;
   }
   function confirmBooking() {
     if (LIVE) { confirmLive(); return; }
@@ -739,7 +727,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       <div class="success"><p class="eyebrow" style="color:var(--accent)">Booked</p><p class="display" style="margin-top:10px">${DOW[d.getDay()]}, ${MON[d.getMonth()]} ${d.getDate()}<br>${v.time}</p>
         <p style="margin-top:12px">${esc(visitTitle(v))}</p><p style="margin-top:4px">RKVR ${l.name} · ${esc(l.address)}</p>
         ${v.repeat !== 'once' ? `<p style="margin-top:6px;font-weight:700">Repeats every ${v.repeat === 'weekly' ? 'week' : 'month'}</p>` : ''}
-        <p style="margin-top:6px">${LIVE ? 'Pay at your visit · ' + money(visitPrice(v)) : v.pay === 'prepaid' ? 'Prepaid · nothing due at your visit' : v.pay === 'member' ? 'Included in your membership · ' + memberLeft(d) + ' of ' + PLAN.services + ' left in ' + MONTHS[d.getMonth()] : '$' + DEPOSIT + ' deposit · ' + money(Math.max(0, visitPrice(v) - DEPOSIT)) + ' at your visit'}</p></div>
+        <p style="margin-top:6px">${LIVE ? 'Pay at your visit · ' + money(visitPrice(v)) : v.pay === 'prepaid' ? 'Prepaid · nothing due at your visit' : v.pay === 'member' ? 'Covered by your unlimited membership' + (memberExtra(v.svcs) ? ' · ' + money(memberExtra(v.svcs)) + ' at your visit for the rest' : '') : '$' + DEPOSIT + ' deposit · ' + money(Math.max(0, visitPrice(v) - DEPOSIT)) + ' at your visit'}</p></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="btn btn-primary" data-ics="${v.id}">Add to my calendar</button><button class="btn" data-go="account" data-acct="calendar">See my calendar</button><button class="btn" id="bk-again">Book something else</button></div>
       <p class="note" id="ics-note" style="margin-top:10px">${S.user && S.user.sms ? 'We’ll text a reminder the day before.' : ''}</p>
     </div></section>`;
@@ -759,12 +747,12 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     const items = S.cart.map(cartItem).filter(Boolean);
     const total = items.reduce((a, p) => a + p.price, 0), goods = items.filter(p => p.kind === 'prod').reduce((a, p) => a + p.price, 0);
     const hasMember = items.some(p => p.kind === 'member');
-    const thumb = p => p.kind === 'prod' ? `<img src="img/${p.id}.webp" alt="">` : `<span class="li-ico ${p.kind}">${p.kind === 'member' ? '12×' : esc((p.cat || '').split(' ')[0])}</span>`;
+    const thumb = p => p.kind === 'prod' ? `<img src="img/${p.id}.webp" alt="">` : `<span class="li-ico ${p.kind}">${p.kind === 'member' ? '∞' : esc((p.cat || '').split(' ')[0])}</span>`;
     return `<div class="scrim" data-close></div><aside class="drawer" role="dialog" aria-label="Cart">
       <div style="display:flex;justify-content:space-between;align-items:center"><h2 class="display" style="font-size:34px">Cart</h2><button class="btn btn-sm" data-close>Close</button></div>
       <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px">${items.length ? items.map((p, i) => `<div class="line-item">${thumb(p)}<span><b>${esc(p.name)}</b><br><span class="muted small">${esc(p.sub)}</span></span><span style="text-align:right"><b>${money(p.price)}${p.per || ''}</b><br><button class="linkish small" data-remove="${i}">Remove</button></span></div>`).join('')
         : `<p class="muted">Your cart is empty.</p><div style="display:grid;gap:8px">${S.member ? '' : `<button class="btn" data-add="${CART_MEMBER}">Add membership · $${PLAN.founding}/month</button>`}<button class="btn" data-go="services">Browse services</button><button class="btn" data-go="shop">Shop products</button></div>`}
-        ${items.length && !hasMember && !S.member ? `<div class="notice" style="margin-top:4px"><b>Members get ${PLAN.services} services a month for $${PLAN.founding}.</b> <button class="linkish" data-add="${CART_MEMBER}">Add membership</button></div>` : ''}</div>
+        ${items.length && !hasMember && !S.member ? `<div class="notice" style="margin-top:4px"><b>Members get unlimited recovery for $${PLAN.founding} a month.</b> <button class="linkish" data-add="${CART_MEMBER}">Add membership</button></div>` : ''}</div>
       ${items.length ? `<div class="total"><span>Due today</span><b>${money(total)}</b></div><p class="note">${hasMember ? 'Membership renews monthly at $' + PLAN.founding + ' (founding rate). ' : ''}${items.some(p => p.kind === 'svc') ? 'Services are prepaid; book them any time in My RKVR. ' : ''}${goods ? (goods >= 50 ? 'Free shipping on products. ' : 'Add ' + money(50 - goods) + ' in products for free shipping. ') : ''}Nothing is charged in this preview.</p><button class="btn btn-primary" id="checkout">${S.user ? (LIVE ? 'Online checkout opens soon' : 'Check out · ' + money(total)) : 'Sign in to check out'}</button>` : ''}
     </aside>`;
   }
@@ -784,7 +772,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     return `<section class="band"><div class="wrap" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px">
       <div><p class="eyebrow">Join RKVR</p><h2 class="display" style="font-size:clamp(44px,6vw,72px);margin-top:10px">Make an account</h2>
         <p class="muted" style="margin-top:12px;max-width:44ch">Book and manage visits, see your calendar, reorder products and message your care team, on the website or in the app.</p>
-        <div class="notice" style="margin-top:18px"><b>Founding rate: $${PLAN.founding}/month for ${PLAN.services} services.</b> Join by ${PLAN.cutoff} and keep that price for as long as you stay ($${PLAN.price} after). Or pay à la carte with no membership.</div></div>
+        <div class="notice" style="margin-top:18px"><b>Founding rate: $${PLAN.founding}/month for unlimited recovery.</b> Join by ${PLAN.cutoff} and keep that price for as long as you stay ($${PLAN.price} after). Or pay à la carte with no membership.</div></div>
       <div class="card">
         ${S.user ? `<h3>You’re signed in as ${esc(S.user.name)}</h3><button class="btn btn-primary" data-go="account">Go to My RKVR</button>` : `
         <form id="join-form" style="display:grid;gap:12px">
@@ -794,7 +782,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
           <div class="field"><label for="j-home">Home location</label><select class="input" id="j-home">${LOCS.map(l => `<option value="${l.id}">${l.name}, ${l.city}${l.open ? '' : ' (coming soon)'}</option>`).join('')}</select></div>
           <label class="check"><input type="checkbox" id="j-sms" checked> Text me reminders and visit updates. Reply STOP any time.</label>
           ${ui.afterJoin || S.cart.length ? `<div class="notice ice">You have ${S.cart.length} ${S.cart.length === 1 ? 'item' : 'items'} in your cart${S.cart.includes(CART_MEMBER) ? ', including the membership' : ''}. Create your account and you’ll go straight to checkout.</div>` : `<fieldset style="border:0;padding:0;margin:0;display:grid;gap:8px"><legend class="small" style="font-weight:700;margin-bottom:6px">How do you want to pay?</legend>
-            <button type="button" class="pay-opt" aria-pressed="${ui.joinPlan === 'member'}" data-join-plan="member"><span class="dot"></span><span><b>Membership · $${PLAN.founding}/month</b><br><span class="muted small">${PLAN.services} services a month, any service. Founding rate locked in.</span></span></button>
+            <button type="button" class="pay-opt" aria-pressed="${ui.joinPlan === 'member'}" data-join-plan="member"><span class="dot"></span><span><b>Membership · $${PLAN.founding}/month</b><br><span class="muted small">Unlimited recovery services. Founding rate locked in.</span></span></button>
             <button type="button" class="pay-opt" aria-pressed="${ui.joinPlan === 'alacarte'}" data-join-plan="alacarte"><span class="dot"></span><span><b>À la carte · free account</b><br><span class="muted small">Pay for each service when you book.</span></span></button></fieldset>`}
           <button class="btn btn-primary" type="submit">${ui.afterJoin || S.cart.length ? 'Create account and check out' : ui.joinPlan === 'member' ? 'Join for $' + PLAN.founding + '/month' : 'Create my account'}</button>
           <p class="note">We’ll email a sign-in link; no password needed. In this preview, the account lives in this browser only.</p>
@@ -814,7 +802,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     return `<section class="band"><div class="wrap" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px">
       <div><p class="eyebrow">Join RKVR</p><h2 class="display" style="font-size:clamp(44px,6vw,72px);margin-top:10px">Make an account</h2>
         <p class="muted" style="margin-top:12px;max-width:44ch">Book and manage visits and see your calendar, on the website or in the app. No password: we email you a link each time you sign in.</p>
-        <div class="notice" style="margin-top:18px"><b>Membership is coming: $${PLAN.founding}/month for ${PLAN.services} services.</b> Online checkout for the membership opens soon. Make a free account now and book à la carte.</div>
+        <div class="notice" style="margin-top:18px"><b>Membership is coming: $${PLAN.founding}/month for unlimited recovery.</b> Online checkout for the membership opens soon. Make a free account now and book à la carte.</div>
         <div class="card" style="margin-top:22px"><h3>Already have an account?</h3>
           <form id="signin-form" style="display:grid;gap:10px"><div class="field"><label for="s-email">Email</label><input class="input" id="s-email" type="email" required autocomplete="email"></div>
           <button class="btn" type="submit">Email me a sign-in link</button></form></div></div>
@@ -838,22 +826,22 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       <div class="plan hot"><p class="eyebrow">Membership · founding rate</p><h3 class="display" style="font-size:40px">${PLAN.name}</h3>
         <div><span class="price">$${PLAN.founding}<small>/month</small></span> <span class="was">$${PLAN.price}</span></div>
         <p class="small"><b>Join by ${PLAN.cutoff} and keep $${PLAN.founding} a month for as long as you stay.</b> After that, membership is $${PLAN.price} a month.</p>
-        <ul class="small"><li><b>${PLAN.services} services every month</b>, any service: cryo, red light, IV drips, NAD+, weight loss and more</li><li>Book up to 3 in one visit, in the order you want</li><li>No deposits. Services reset on the 1st of each month</li><li>Cancel any time in My RKVR</li></ul>
+        <ul class="small"><li><b>Unlimited recovery services</b>: cryotherapy, red light, compression and massage chairs, as often as you like</li><li>Book up to 3 in one visit, in the order you want, or walk in</li><li>IV drips, weight loss and TeleWellness are paid per visit</li><li>Cancel any time in My RKVR</li></ul>
         <div style="margin-top:auto;padding-top:8px">${isMem ? '<span class="notice ice">You’re a member. ' + rateLine() + '.</span>' : `<button class="btn btn-primary" data-add="${CART_MEMBER}">Add membership to cart · $${PLAN.founding}/mo</button>`}</div></div>
       <div class="plan"><p class="eyebrow">À la carte</p><h3 class="display" style="font-size:40px">Pay per service</h3>
         <div><span class="price">$0<small>/month</small></span></div>
         <p class="small">No membership. Pay for each service you choose, at its menu price.</p>
-        <ul class="small"><li>Cryotherapy from $45, red light from $49, IV drips from $159</li><li>A $${DEPOSIT} deposit holds your time; the rest is paid at your visit</li><li>Bundle up to 3 services and make visits repeat</li><li>Switch to membership any time</li></ul>
+        <ul class="small"><li>Cryotherapy from $45, red light from $49, compression from $39, IV drips from $159</li><li>A $${DEPOSIT} deposit holds your time; the rest is paid at your visit</li><li>Bundle up to 3 services and make visits repeat</li><li>Switch to membership any time</li></ul>
         <div style="margin-top:auto;padding-top:8px"><button class="btn" data-go="services">Choose services</button> <button class="btn" data-plan="alacarte">${S.user ? 'Book a visit' : 'Create a free account'}</button></div></div>
     </div>`;
   }
   function vMembership() {
     return `<section class="band"><div class="wrap">
-      <p class="eyebrow">Membership</p><h2 class="display" style="font-size:clamp(48px,7vw,88px);margin-top:10px">${PLAN.services} services a month.<br><span style="color:var(--accent)">$${PLAN.founding}.</span></h2>
-      <p class="muted" style="margin-top:14px;font-size:18px;max-width:58ch">Join RKVR for $${PLAN.founding} a month (founding rate, locked in when you join by ${PLAN.cutoff}; $${PLAN.price} a month after) and use ${PLAN.services} services every month at any RKVR spa. Or skip the membership and pay à la carte.</p>
+      <p class="eyebrow">Membership</p><h2 class="display" style="font-size:clamp(48px,7vw,88px);margin-top:10px">Unlimited recovery.<br><span style="color:var(--accent)">$${PLAN.founding}.</span></h2>
+      <p class="muted" style="margin-top:14px;font-size:18px;max-width:58ch">Join RKVR for $${PLAN.founding} a month (founding rate, locked in when you join by ${PLAN.cutoff}; $${PLAN.price} a month after) and use cryotherapy, red light, compression and massage chairs as often as you like at any RKVR spa. Or skip the membership and pay à la carte.</p>
       <div style="margin-top:26px">${planCards()}</div>
-      <div class="grid g3" style="margin-top:22px">${[['What counts as a service?', 'Each service in a visit counts once. Cryo + red light + a Myers’ drip is 3 of your 12.'], ['What if I use them all?', 'Book more at the regular à la carte price, or wait for the 1st when your 12 reset.'], ['Unused services', 'They don’t roll over. Repeating visits are counted ahead, so the app shows what’s left.']].map(x => `<div class="card"><h3>${x[0]}</h3><p class="muted small">${x[1]}</p></div>`).join('')}</div>
-      <p class="note" style="margin-top:14px">A late cancel (under 24 hours) or a no-show uses that service. Some services, like IV therapy, need a provider’s review first.</p>
+      <div class="grid g3" style="margin-top:22px">${[['What’s included?', 'Cryotherapy, red light, compression and massage chairs, as often as you like.'], ['What isn’t?', 'IV drips, NAD+, weight loss and TeleWellness are paid per visit at the menu price.'], ['Up to 3 per visit', 'Line up to 3 services in one visit, in the order you want. Book online or walk in.']].map(x => `<div class="card"><h3>${x[0]}</h3><p class="muted small">${x[1]}</p></div>`).join('')}</div>
+      <p class="note" style="margin-top:14px">Some services, like IV therapy, need a provider’s review first.</p>
     </div></section>`;
   }
 
@@ -861,7 +849,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     return `<section class="band"><div class="wrap" style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:40px">
       <div><p class="eyebrow">Own an RKVR spa</p><h2 class="display" style="font-size:clamp(44px,6vw,72px);margin-top:10px">Bring RKVR to your city</h2>
         <p class="muted" style="margin-top:12px;max-width:52ch">RKVR spas open inside Phenix Salon Suites, using empty suites at its 450 locations nationwide. One RKVR spa per Phenix location, run by a Wellness Pro who rents 1–3 suites. Mission Valley in San Diego is the first, with Austin and Dallas next.</p>
-        <div class="grid g2" style="margin-top:20px">${[['A proven menu', 'Cryotherapy, red light, IV therapy, weight loss and TeleWellness.'], ['Membership revenue', PLAN.services + ' services a month at $' + PLAN.price + ', billed monthly.'], ['Clients from RKVR', 'Listed on the website and in the app from day one.'], ['RKVR Pro', 'Schedule, payments, marketing and supply on your phone.']].map(x => `<div class="card"><h3 style="font-size:17px">${x[0]}</h3><p class="muted small">${x[1]}</p></div>`).join('')}</div></div>
+        <div class="grid g2" style="margin-top:20px">${[['A proven menu', 'Cryotherapy, red light, compression, massage chairs, IV therapy, weight loss and TeleWellness.'], ['Membership revenue', 'Unlimited recovery at $' + PLAN.price + ' a month, billed monthly.'], ['Clients from RKVR', 'Listed on the website and in the app from day one.'], ['RKVR Pro', 'Schedule, payments, marketing and supply on your phone.']].map(x => `<div class="card"><h3 style="font-size:17px">${x[0]}</h3><p class="muted small">${x[1]}</p></div>`).join('')}</div></div>
       <div class="card">${ui.ownerSent ? `<h3>Thanks. Our development team will be in touch within 2 business days.</h3>` : `<form id="owner-form" style="display:grid;gap:12px"><h3>Ask about owning a spa</h3>
         <div class="field"><label for="o-name">Name</label><input class="input" id="o-name" required></div>
         <div class="field"><label for="o-email">Email</label><input class="input" id="o-email" type="email" required></div>
@@ -926,11 +914,10 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       <div class="card"><h3>Your care team</h3>${S.user.name === 'Ava Reyes' ? '<div class="kv"><span>Naomi Fields, NP</span><span class="muted">Weight loss · TeleWellness</span></div><div class="kv"><span>Lena Ortiz, RN</span><span class="muted">IV therapy</span></div>' : '<p class="muted">Book a visit to meet your providers.</p>'}<button class="btn btn-sm" style="align-self:flex-start" data-go="care">Start a TeleWellness visit</button></div></div>`;
   }
   function aMembership() {
-    if (!S.member) return `<div class="card"><p class="eyebrow">À la carte</p><h3 class="display" style="font-size:40px">You pay per service</h3><p class="muted">Join for $${PLAN.founding} a month (founding rate, locked in by ${PLAN.cutoff}) and get ${PLAN.services} services every month.</p><button class="btn btn-primary" style="align-self:flex-start" data-plan="member">Join for $${PLAN.founding}/month</button></div>`;
-    const used = memberUsed(TODAY.getFullYear(), TODAY.getMonth()), left = Math.max(0, PLAN.services - used);
-    return `<div class="grid g2" style="align-items:start"><div class="card"><p class="eyebrow">${MONTHS[TODAY.getMonth()]}</p><h3 class="display" style="font-size:56px">${left} of ${PLAN.services} left</h3>
-        <div class="meter" role="img" aria-label="${used} of ${PLAN.services} services used"><i style="width:${Math.min(100, used / PLAN.services * 100)}%"></i></div>
-        <p class="muted small">${used} used or booked this month, counting repeating visits. Services reset on ${S.member.renews}.</p><button class="btn btn-primary" style="align-self:flex-start" data-go="book">Book with membership</button></div>
+    if (!S.member) return `<div class="card"><p class="eyebrow">À la carte</p><h3 class="display" style="font-size:40px">You pay per service</h3><p class="muted">Join for $${PLAN.founding} a month (founding rate, locked in by ${PLAN.cutoff}) and get unlimited recovery services.</p><button class="btn btn-primary" style="align-self:flex-start" data-plan="member">Join for $${PLAN.founding}/month</button></div>`;
+    const used = memberUsed(TODAY.getFullYear(), TODAY.getMonth());
+    return `<div class="grid g2" style="align-items:start"><div class="card"><p class="eyebrow">${MONTHS[TODAY.getMonth()]}</p><h3 class="display" style="font-size:56px">Unlimited</h3>
+        <p class="muted small">${used} ${used === 1 ? 'service' : 'services'} used or booked this month. Recovery services are covered as often as you like.</p><button class="btn btn-primary" style="align-self:flex-start" data-go="book">Book with membership</button></div>
       <div class="card"><h3>${PLAN.name}</h3><div class="kv"><span>Rate</span><span>${rateLine()}</span></div><div class="kv"><span>Member since</span><span>${esc(S.member.since)}</span></div><div class="kv"><span>Next charge</span><span>$${S.member.rate} on ${esc(S.member.renews)}</span></div><div class="kv"><span>Pays with</span><span>Visa ···· 4242</span></div>
         <p class="note">Cancelling ends the founding rate; rejoining later is $${PLAN.price} a month.</p><button class="btn btn-sm" style="align-self:flex-start" id="cancel-member">Cancel membership</button></div></div>`;
   }
