@@ -1166,12 +1166,13 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
         <div class="tbl-wrap"><table><thead><tr><th>Person</th><th>Role</th><th>Spa</th><th>Status</th><th class="num"></th></tr></thead><tbody>${rows || '<tr><td colspan="5" class="cell-sub">Nobody yet.</td></tr>'}</tbody></table></div>
       </section>`;
   }
-  const teamRedirect = () => location.origin + location.pathname;
+  const PRO_URL = 'https://rkvrpro.netlify.app/';
+  const teamRedirect = role => role === 'operator' ? PRO_URL : location.origin + location.pathname;
   async function teamInvite(email, role, spaId) {
     const C = window.RKVR_CLOUD;
     await C.rest('team_invites', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal',
       body: { email, role, spa_id: role === 'operator' ? spaId : null, invited_by: C.profile.id, accepted_at: null, created_at: new Date().toISOString() } });
-    await C.sendLink(email, teamRedirect());
+    await C.sendLink(email, teamRedirect(role));
   }
 
   function renderControls() {
@@ -1804,7 +1805,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   function showNoAccess(p) {
     if (p && p.role === 'operator') {
       gate(`<h1>You’re set up as a spa operator</h1><p>${esc(p.email || p.full_name || 'This account')} has RKVR Pro access. RKVR HQ is for corporate staff, so there’s nothing to see here.</p>
-        <p class="cell-sub">RKVR Pro sign-in is being connected now. Your RKVR contact will let you know when it’s ready.</p>
+        <p class="cell-sub">Run your spa in RKVR Pro: <a href="https://rkvrpro.netlify.app/">rkvrpro.netlify.app</a>. Open it on your phone and add it to your home screen.</p>
         <button class="btn" type="button" data-signout="1">Sign out</button>`);
       return;
     }
@@ -1896,7 +1897,8 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     if (t.id === 'pw-skip') { location.reload(); return; }
     if (t.dataset.teamResend) {
       const em = t.dataset.teamResend; t.disabled = true;
-      window.RKVR_CLOUD.sendLink(em, teamRedirect()).then(() => toast('New link sent to ' + em), err => { t.disabled = false; toast(err.message); });
+      const inv = (state.team && state.team.invites || []).find(i => i.email === em);
+      window.RKVR_CLOUD.sendLink(em, teamRedirect(inv && inv.role)).then(() => toast('New link sent to ' + em), err => { t.disabled = false; toast(err.message); });
       return;
     }
     if (t.dataset.teamCancel) {
