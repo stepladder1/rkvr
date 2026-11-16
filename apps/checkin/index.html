@@ -460,6 +460,7 @@ h1, h2, p { margin: 0; }
       <h1 class="disp" style="font-size:88px;line-height:.9">${c.path === 'walkin' ? 'You’re in.' : 'You’re checked in.'}</h1>
       <p style="color:var(--soft);font-size:23px;max-width:680px;line-height:1.45">First up: <b style="color:var(--accentText)">${esc(f.name)}</b>${ROOM[f.category] ? ' in the ' + ROOM[f.category] : ''}. A team member will meet you there.</p>
       <p class="muted" style="font-size:17px">${fine}</p>
+      ${!upsell ? `<div class="band" style="max-width:780px;gap:24px"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-size:17px">Next time, check in from your phone.</b><span style="font-size:15px;color:var(--soft)">Scan to get the RKVR app: book, check in and see your membership.</span></span><img class="qr" src="qr-app.svg" width="92" height="92" alt="QR code to get the RKVR app"></div>` : ''}
       ${upsell ? `<div class="band" style="max-width:780px;gap:24px"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-size:17px">Today is ${money(listPrice(its))} à la carte.</b><span style="font-size:15px;color:var(--soft)">Members get unlimited recovery for ${money(MONTHLY())} a month. Founding rate ends ${CUTOFF()}. Scan to join.</span></span>${QR(92)}</div>` : ''}
       ${back}</div>`;
   }
