@@ -79,6 +79,18 @@
     }
   } catch (_) {}
 
+  // Newer email links carry a one-time code (?token_hash=…&type=…) instead of a session
+  let pendingLink = null;
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.get('token_hash')) {
+      pendingLink = { token_hash: q.get('token_hash'), type: q.get('type') || 'magiclink' };
+      q.delete('token_hash'); q.delete('type');
+      const r = q.toString();
+      history.replaceState(null, '', location.pathname + (r ? '?' + r : '') + location.hash);
+    }
+  } catch (_) {}
+
   let profile = null;
   async function loadProfile() {
     if (!session) return null;
@@ -96,6 +108,19 @@
     rest, rpc,
     get linkType() { return linkType; },
     get linkError() { return linkError; },
+    // Turns an emailed code into a session. If it was already used but this browser is
+    // still signed in from the first click, that's fine too.
+    async verifyLink() {
+      const l = pendingLink; pendingLink = null;
+      if (!l) return;
+      try {
+        const s = await auth('verify', { type: l.type === 'email' ? 'magiclink' : l.type, token_hash: l.token_hash });
+        saveSession(withExpiry(s)); linkType = l.type;
+      } catch (e) {
+        if (session && await token()) { linkType = l.type; return; }
+        linkError = 'That sign-in link has already been used or has expired. Enter your email to get a new one.';
+      }
+    },
     get profile() { return profile; },
     get signedIn() { return !!session; },
     loadProfile,

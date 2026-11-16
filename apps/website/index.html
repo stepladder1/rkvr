@@ -490,6 +490,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
   }
   async function bootLive() {
     try { await loadCatalog(); } catch (e) { console.warn('[RKVR] menu not loaded', e); }
+    try { await C.verifyLink(); } catch (_) {}
     if (C.linkError) toast(C.linkError);
     if (C.signedIn) {
       try { S.user = profileToUser(await C.loadProfile()); if (S.user) await loadMyBookings(); } catch (e) { console.warn('[RKVR] account not loaded', e); }

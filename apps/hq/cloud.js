@@ -159,6 +159,19 @@
     }
   } catch (_) {}
 
+  // Newer email links carry a one-time code (?token_hash=…&type=…) that is only used up when the
+  // person presses Continue, so link scanners and a cancelled first visit don't spend it.
+  let pendingLink = null;
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.get('token_hash')) {
+      pendingLink = { token_hash: q.get('token_hash'), type: q.get('type') || 'magiclink' };
+      q.delete('token_hash'); q.delete('type');
+      const rest_ = q.toString();
+      history.replaceState(null, '', location.pathname + (rest_ ? '?' + rest_ : '') + location.hash);
+    }
+  } catch (_) {}
+
   async function fillUser() {
     if (session && !session.user) {
       const t = await token();
@@ -168,8 +181,26 @@
   }
 
   window.RKVR_CLOUD = {
-    db, user,
+    db, user, rest,
+    // Emails a one-time sign-in link; creates the account if the email is new
+    async sendLink(email, redirectTo) {
+      await authCall('otp?redirect_to=' + encodeURIComponent(redirectTo || (location.origin + location.pathname)), { email, create_user: true });
+    },
     get linkType() { return linkType; },
+    get pendingLink() { return pendingLink; },
+    get hasSession() { return !!session; },
+    // Uses the emailed code. If it was already used but this browser is still signed in, carry on.
+    async verifyLink() {
+      const l = pendingLink; pendingLink = null;
+      if (!l) return;
+      try {
+        const s = await authCall('verify', { type: l.type === 'email' ? 'magiclink' : l.type, token_hash: l.token_hash });
+        saveSession(withExpiry(s)); linkType = l.type; profile = null;
+      } catch (e) {
+        if (session && await token()) return;
+        throw new Error('That link has already been used or has expired. Ask your RKVR admin to resend it, or use “Email me a sign-in link” below.');
+      }
+    },
     async updatePassword(password) {
       const t = await token();
       const res = await fetch(URL_ + '/auth/v1/user', { method: 'PUT', headers: { apikey: KEY, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });

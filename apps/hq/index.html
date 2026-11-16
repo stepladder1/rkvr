@@ -681,7 +681,8 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     { id: 'shop', name: 'Shop and supply' },
     { id: 'requests', name: 'Service requests' },
     { id: 'marketing', name: 'Marketing' },
-    { id: 'controls', name: 'Controls' }
+    { id: 'controls', name: 'Controls' },
+    { id: 'team', name: 'Team' }
   ];
 
   function tabName(t) {
@@ -1109,6 +1110,70 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     </div>`;
   }
 
+  /* ---------------- team ---------------- */
+  const ROLE_NAME = { hq_admin: 'RKVR HQ staff', operator: 'Spa operator' };
+  async function loadTeam() {
+    const C = window.RKVR_CLOUD;
+    if (!C || !C.profile) return;
+    try {
+      const [people, spas, invites] = await Promise.all([
+        C.rest('profiles?select=id,full_name,email,role&role=in.(hq_admin,operator)&order=email'),
+        C.rest('spas?select=id,name,slug,operator_id,status&order=name'),
+        C.rest('team_invites?select=email,role,spa_id,created_at&accepted_at=is.null&order=created_at.desc')
+      ]);
+      state.team = { people: people || [], spas: spas || [], invites: invites || [], error: null };
+    } catch (e) {
+      state.team = { people: [], spas: [], invites: [], error: e.status === 404 || /team_invites/.test(e.message) ? 'setup' : e.message };
+    }
+    if (state.tab === 'team') render();
+  }
+  function renderTeam() {
+    const C = window.RKVR_CLOUD;
+    const top = head('Team', 'Who can sign in to RKVR HQ and RKVR Pro.');
+    if (!C || !C.profile) return top + `<section class="panel"><div class="empty">Team management works on the live dashboard, signed in as RKVR HQ staff.</div></section>`;
+    const t = state.team;
+    if (!t) { loadTeam(); return top + `<section class="panel"><div class="empty">Loading the team…</div></section>`; }
+    if (t.error === 'setup') return top + `<div class="banner banner-warn"><span><b>One setup step left.</b> Run the team update (20261116000005_team.sql) in the Supabase SQL Editor, then reload this page.</span></div>`;
+    const spaName = id => { const x = t.spas.find(p => p.id === id); return x ? x.name : '—'; };
+    const meId = C.profile.id;
+    const rows = t.people.map(p => {
+      const spas = t.spas.filter(x => x.operator_id === p.id).map(x => x.name).join(', ');
+      return `<tr><td class="cell-main">${esc(p.full_name || p.email)}${p.id === meId ? ' <span class="cell-sub">(you)</span>' : ''}<div class="cell-sub">${esc(p.full_name ? p.email : '')}</div></td>
+        <td>${ROLE_NAME[p.role] || esc(p.role)}</td><td>${esc(spas || (p.role === 'operator' ? 'No spa yet' : 'All spas'))}</td><td>${statusChip('Active')}</td>
+        <td class="num">${p.id === meId ? '' : `<button class="btn btn-sm" type="button" data-team-remove="${esc(p.id)}" data-email="${esc(p.email || '')}">Remove</button>`}</td></tr>`;
+    }).concat(t.invites.map(i => `<tr><td class="cell-main">${esc(i.email)}<div class="cell-sub">Invited ${relTime(Date.parse(i.created_at))}</div></td>
+        <td>${ROLE_NAME[i.role] || esc(i.role)}</td><td>${i.role === 'operator' ? esc(spaName(i.spa_id)) : 'All spas'}</td><td><span class="st st-warn">Invite sent</span></td>
+        <td class="num"><button class="btn btn-sm" type="button" data-team-resend="${esc(i.email)}">Resend link</button> <button class="btn btn-sm" type="button" data-team-cancel="${esc(i.email)}">Cancel</button></td></tr>`)).join('');
+    const spaOpts = t.spas.map(x => `<option value="${esc(x.id)}">${esc(x.name)}${x.status && x.status !== 'open' ? ' (coming soon)' : ''}${x.operator_id ? ' · has an operator' : ''}</option>`).join('');
+    const isOp = (state.teamRole || 'hq_admin') === 'operator';
+    return top + `
+      <div class="grid cols-2">
+        <section class="panel"><div class="panel-head"><h2>Add someone</h2></div>
+          <form id="team-form">
+            <div class="form-row"><label for="tm-email">Email</label><input class="input" id="tm-email" type="email" autocomplete="off" required></div>
+            <div class="form-row"><label for="tm-role">Role</label><select class="input" id="tm-role"><option value="hq_admin" ${isOp ? '' : 'selected'}>RKVR HQ staff: full dashboard</option><option value="operator" ${isOp ? 'selected' : ''}>Spa operator: RKVR Pro for one spa</option></select></div>
+            <div class="form-row" ${isOp ? '' : 'hidden'} id="tm-spa-row"><label for="tm-spa">Spa</label><select class="input" id="tm-spa">${spaOpts}</select><span class="hint">Each spa has one operator. Choosing a spa that already has one replaces them.</span></div>
+            <div class="form-row"><button class="btn btn-primary" type="submit">Send invite</button><span class="hint">They get an email with a sign-in link that works for 24 hours. Their access is set as soon as they use it. If they already have an account, access starts right away.</span></div>
+          </form>
+        </section>
+        <section class="panel"><div class="panel-head"><h2>Good to know</h2></div>
+          <p class="hint" style="font-size:13px;line-height:1.55">Links can be opened more than once until the person taps Continue. If a link has expired, tap <b>Resend link</b>. Nobody needs a password: they can always use “Email me a sign-in link” on the sign-in page.</p>
+          <p class="hint" style="font-size:13px;line-height:1.55">Removing someone takes away their HQ or Pro access straight away. Their account stays, as a regular client account.</p>
+        </section>
+      </div>
+      <section class="panel" style="margin-top:16px"><div class="panel-head"><h2>People with access</h2><span class="note">${t.people.length} active · ${t.invites.length} invited</span></div>
+        ${t.error ? `<div class="banner banner-warn"><span>${esc(t.error)}</span></div>` : ''}
+        <div class="tbl-wrap"><table><thead><tr><th>Person</th><th>Role</th><th>Spa</th><th>Status</th><th class="num"></th></tr></thead><tbody>${rows || '<tr><td colspan="5" class="cell-sub">Nobody yet.</td></tr>'}</tbody></table></div>
+      </section>`;
+  }
+  const teamRedirect = () => location.origin + location.pathname;
+  async function teamInvite(email, role, spaId) {
+    const C = window.RKVR_CLOUD;
+    await C.rest('team_invites', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal',
+      body: { email, role, spa_id: role === 'operator' ? spaId : null, invited_by: C.profile.id, accepted_at: null, created_at: new Date().toISOString() } });
+    await C.sendLink(email, teamRedirect());
+  }
+
   function renderControls() {
     const st = state.settings, m = metrics();
     const modeBanner = {
@@ -1489,7 +1554,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
 
   function render() {
     renderTabs();
-    const views = { marketing: renderMarketing, overview: renderOverview, suites: renderSuites, members: renderMembers, payments: renderPayments, shop: renderShop, requests: renderRequests, controls: renderControls };
+    const views = { marketing: renderMarketing, overview: renderOverview, suites: renderSuites, members: renderMembers, payments: renderPayments, shop: renderShop, requests: renderRequests, controls: renderControls, team: renderTeam };
     const main = $('#main');
     main.setAttribute('role', 'tabpanel');
     main.setAttribute('aria-labelledby', 'tab-' + state.tab);
@@ -1719,6 +1784,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
         <label class="label" for="li-email">Email</label><input class="input" id="li-email" type="email" autocomplete="username" required>
         <label class="label" for="li-pass">Password</label><input class="input" id="li-pass" type="password" autocomplete="current-password" required>
         <button class="btn btn-primary" type="submit">Sign in</button>
+        <button class="btn" type="button" id="li-link">Email me a sign-in link</button>
         <button class="linkish" type="button" id="li-forgot">Forgot password?</button>
       </form>`);
     const em = $('#li-email'); if (em) em.focus();
@@ -1728,9 +1794,20 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       <form id="pw-form" class="gate-form">
         <label class="label" for="pw-new">New password</label><input class="input" id="pw-new" type="password" autocomplete="new-password" minlength="8" required>
         <button class="btn btn-primary" type="submit">Save password</button>
+        <button class="linkish" type="button" id="pw-skip">Skip. I’ll sign in with email links</button>
       </form>`);
   }
+  function showContinue() {
+    gate(`<h1>Welcome to RKVR HQ</h1><p class="cell-sub">Tap Continue to finish signing in.</p>
+      <div class="gate-form"><button class="btn btn-primary" type="button" id="link-go">Continue</button></div>`);
+  }
   function showNoAccess(p) {
+    if (p && p.role === 'operator') {
+      gate(`<h1>You’re set up as a spa operator</h1><p>${esc(p.email || p.full_name || 'This account')} has RKVR Pro access. RKVR HQ is for corporate staff, so there’s nothing to see here.</p>
+        <p class="cell-sub">RKVR Pro sign-in is being connected now. Your RKVR contact will let you know when it’s ready.</p>
+        <button class="btn" type="button" data-signout="1">Sign out</button>`);
+      return;
+    }
     gate(`<h1>No HQ access</h1><p>${esc((p && (p.email || p.full_name)) || 'This account')} is signed in, but it isn’t set up as RKVR HQ staff.</p>
       <p class="cell-sub">Ask an RKVR admin to give this account HQ access, then sign in again.</p>
       <button class="btn" type="button" data-signout="1">Sign out</button>`);
@@ -1740,12 +1817,13 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   async function connect() {
     const C = window.RKVR_CLOUD;
     if (C) {
+      if (C.pendingLink) { showContinue(); return; }
       let p = null;
       try { p = await C.ensureSession(); }
       catch (e) { showLogin('Can’t reach the RKVR database right now. Check your connection and try again.', true); return; }
       if (C.linkType && C.linkType.startsWith('error:')) { showLogin(C.linkType.slice(6), true); return; }
       if (!p) { showLogin(); return; }
-      if (C.linkType === 'recovery' || C.linkType === 'invite') { showSetPassword(); return; }
+      if (C.linkType === 'recovery' || C.linkType === 'invite' || C.linkType === 'signup') { showSetPassword(); return; }
       if (p.role !== 'hq_admin') { showNoAccess(p); return; }
       ungate();
       user = C.user; db = C.db;
@@ -1803,6 +1881,42 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     if (t.dataset.tab) { state.tab = t.dataset.tab; try { history.replaceState(null, '', '#' + state.tab); } catch (_) {} render(); window.scrollTo({ top: 0 }); return; }
     if (t.dataset.goto) { state.tab = t.dataset.goto; try { history.replaceState(null, '', '#' + state.tab); } catch (_) {} render(); window.scrollTo({ top: 0 }); return; }
     if (t.dataset.flag) { toggleFlag(t.dataset.flag); return; }
+    if (t.id === 'li-link') {
+      const em = ($('#li-email').value || '').trim();
+      if (!em) { showLogin('Enter your email first, then tap Email me a sign-in link.', true); return; }
+      t.disabled = true;
+      window.RKVR_CLOUD.sendLink(em).then(() => showLogin('Check your email. The sign-in link works for 24 hours.'), err => showLogin(err.message, true));
+      return;
+    }
+    if (t.id === 'link-go') {
+      t.disabled = true; t.textContent = 'Signing in…';
+      window.RKVR_CLOUD.verifyLink().then(() => connect(), err => showLogin(err.message, true));
+      return;
+    }
+    if (t.id === 'pw-skip') { location.reload(); return; }
+    if (t.dataset.teamResend) {
+      const em = t.dataset.teamResend; t.disabled = true;
+      window.RKVR_CLOUD.sendLink(em, teamRedirect()).then(() => toast('New link sent to ' + em), err => { t.disabled = false; toast(err.message); });
+      return;
+    }
+    if (t.dataset.teamCancel) {
+      const em = t.dataset.teamCancel; t.disabled = true;
+      window.RKVR_CLOUD.rest('team_invites?email=eq.' + encodeURIComponent(em), { method: 'DELETE' })
+        .then(() => { toast('Invite cancelled'); loadTeam(); }, err => { t.disabled = false; toast(err.message); });
+      return;
+    }
+    if (t.dataset.teamRemove) {
+      const id = t.dataset.teamRemove, em = t.dataset.email;
+      if (t.dataset.sure !== '1') { t.dataset.sure = '1'; t.textContent = 'Tap again to remove'; setTimeout(() => { if (t.isConnected) { t.dataset.sure = ''; t.textContent = 'Remove'; } }, 4000); return; }
+      t.disabled = true;
+      const C = window.RKVR_CLOUD;
+      Promise.all([
+        C.rest('spas?operator_id=eq.' + id, { method: 'PATCH', body: { operator_id: null } }),
+        em ? C.rest('team_invites?email=eq.' + encodeURIComponent(em.toLowerCase()), { method: 'DELETE' }) : null
+      ]).then(() => C.rest('profiles?id=eq.' + id, { method: 'PATCH', body: { role: 'client' } }))
+        .then(() => { toast('Access removed'); loadTeam(); }, err => { t.disabled = false; toast(err.message); });
+      return;
+    }
     if (t.dataset.pause) { togglePause(t.dataset.pause); return; }
     if (t.dataset.remind) { const s = suiteById(t.dataset.remind); state.reminded[s.id] = true; render(); toast('Reminder queued for ' + s.studio + ' (sample)'); return; }
     if (t.id === 'save-settings') { saveSettings(); return; }
@@ -1847,6 +1961,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     }
   });
   document.addEventListener('change', e => {
+    if (e.target.id === 'tm-role') { state.teamRole = e.target.value; const r = $('#tm-spa-row'); if (r) r.hidden = e.target.value !== 'operator'; return; }
     const rd = e.target.dataset || {};
     if (rd.req && rd.reqField && (rd.reqField === 'status' || rd.reqField === 'text2')) {
       const dr = reqDraft(rd.req); dr[rd.reqField] = rd.reqField === 'text2' ? e.target.checked : e.target.value;
@@ -1880,6 +1995,15 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       const b = e.target.querySelector('button[type=submit]'); b.disabled = true; b.textContent = 'Signing in…';
       try { await window.RKVR_CLOUD.signIn($('#li-email').value.trim(), $('#li-pass').value); location.reload(); }
       catch (err) { showLogin(err.status === 400 ? 'That email and password don’t match.' : err.message, true); }
+    }
+    if (e.target.id === 'team-form') {
+      e.preventDefault();
+      const email = ($('#tm-email').value || '').trim().toLowerCase(), role = $('#tm-role').value, spa = $('#tm-spa') && $('#tm-spa').value;
+      if (role === 'operator' && !spa) { toast('Pick a spa for this operator.'); return; }
+      const b = e.target.querySelector('button[type=submit]'); b.disabled = true; b.textContent = 'Sending…';
+      try { await teamInvite(email, role, spa); toast('Invite sent to ' + email); state.teamRole = role; await loadTeam(); }
+      catch (err) { toast(/rate|seconds/i.test(err.message) ? 'Too many emails just now. Wait a minute and try again.' : err.message); b.disabled = false; b.textContent = 'Send invite'; }
+      return;
     }
     if (e.target.id === 'pw-form') {
       e.preventDefault();
