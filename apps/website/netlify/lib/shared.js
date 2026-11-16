@@ -3,6 +3,8 @@
 //   STRIPE_SECRET_KEY      sk_test_… (test) or sk_live_… (live)
 //   STRIPE_WEBHOOK_SECRET  whsec_…  (from the Stripe webhook endpoint)
 //   SUPABASE_SECRET_KEY    Supabase secret key (sb_secret_…) or legacy service_role key
+//   STRIPE_ACCOUNT_ID      acct_… RKVR's connected account under the SalonHQ platform. When set, every
+//                          customer, checkout and subscription is created inside RKVR's account.
 const crypto = require('crypto');
 
 const SUPABASE_URL = 'https://inoyndkciffwqquhvsid.supabase.co';
@@ -37,10 +39,14 @@ function form(obj, prefix, out) {
   });
   return out.join('&');
 }
-async function stripe(method, path, params) {
+const RKVR_ACCOUNT = () => (process.env.STRIPE_ACCOUNT_ID || '').trim() || null;
+async function stripe(method, path, params, account) {
+  const acct = account === undefined ? RKVR_ACCOUNT() : account;
+  const headers = { Authorization: 'Bearer ' + need('STRIPE_SECRET_KEY'), 'Content-Type': 'application/x-www-form-urlencoded' };
+  if (acct) headers['Stripe-Account'] = acct;
   const res = await fetch('https://api.stripe.com/v1/' + path + (method === 'GET' && params ? '?' + form(params) : ''), {
     method,
-    headers: { Authorization: 'Bearer ' + need('STRIPE_SECRET_KEY'), 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers,
     body: method === 'GET' ? undefined : form(params || {})
   });
   const data = await res.json();
@@ -89,4 +95,4 @@ function allowedReturn(url) {
   try { const u = new URL(url); return ORIGINS.includes(u.origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(u.origin); } catch (_) { return false; }
 }
 
-module.exports = { reply, stripe, db, caller, verifyStripe, need, allowedReturn, ORIGINS };
+module.exports = { reply, stripe, db, caller, verifyStripe, need, allowedReturn, ORIGINS, RKVR_ACCOUNT };

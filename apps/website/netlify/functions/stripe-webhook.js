@@ -1,6 +1,6 @@
 // Stripe tells RKVR when a membership starts, renews, fails to renew or is cancelled.
 // Keeps the memberships table in step. Stripe → Developers → Webhooks points here.
-const { stripe, db, verifyStripe, need } = require('../lib/shared');
+const { stripe, db, verifyStripe, need, RKVR_ACCOUNT } = require('../lib/shared');
 
 const STATUS = { active: 'active', trialing: 'active', past_due: 'past_due', unpaid: 'past_due', paused: 'paused', canceled: 'canceled', incomplete_expired: 'canceled', incomplete: 'pending' };
 const day = ts => ts ? new Date(ts * 1000).toISOString().slice(0, 10) : null;
@@ -33,16 +33,20 @@ exports.handler = async event => {
   try { secret = need('STRIPE_WEBHOOK_SECRET'); } catch (e) { return { statusCode: 500, body: e.message }; }
   if (!verifyStripe(raw, sig, secret)) return { statusCode: 400, body: 'Bad signature' };
   const evt = JSON.parse(raw);
+  // With RKVR as a connected account, events arrive tagged with that account. Ignore anyone else's.
+  const acct = evt.account || null;
+  if (RKVR_ACCOUNT() && acct && acct !== RKVR_ACCOUNT()) return { statusCode: 200, body: JSON.stringify({ received: true, note: 'other account' }) };
+  const as = acct || RKVR_ACCOUNT();
   try {
     let note = 'ignored';
     const o = evt.data && evt.data.object;
     if (evt.type === 'checkout.session.completed' && o.mode === 'subscription' && o.subscription) {
-      note = await syncSubscription(await stripe('GET', 'subscriptions/' + o.subscription));
+      note = await syncSubscription(await stripe('GET', 'subscriptions/' + o.subscription, null, as));
     } else if (/^customer\.subscription\.(created|updated|deleted|paused|resumed)$/.test(evt.type)) {
       note = await syncSubscription(o);
     } else if (evt.type === 'invoice.payment_failed' || evt.type === 'invoice.paid') {
       const subId = o.subscription || (o.parent && o.parent.subscription_details && o.parent.subscription_details.subscription);
-      if (subId) note = await syncSubscription(await stripe('GET', 'subscriptions/' + subId));
+      if (subId) note = await syncSubscription(await stripe('GET', 'subscriptions/' + subId, null, as));
     }
     return { statusCode: 200, body: JSON.stringify({ received: true, note }) };
   } catch (e) {
