@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="RKVR Desk">
+<meta name="theme-color" content="#0E1216">
+<title>RKVR Check-In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* One iPad on a swivel stand, landscape. The stage is drawn at 1194x834 and scaled to fit the screen.
+   Pro side = staff; Client side = self check-in, walk-ins, join. */
+:root { --bg:#0E1216; --panel:#182027; --panel2:#1F2830; --line:rgba(242,240,234,.12); --line2:rgba(242,240,234,.26); --fg:#F2F0EA; --muted:#A9B1B8; --soft:#C9CFD4; --accent:#F2542D; --accentText:#FF7A57; --ink:#0E1216; --ice:#7CCBFF; --iceBg:rgba(124,203,255,.12); --iceLine:rgba(124,203,255,.4); --accBg:rgba(242,84,45,.14);
+  --display:'Big Shoulders Display','Arial Narrow',sans-serif; --body:'Instrument Sans',system-ui,-apple-system,sans-serif; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #05080A; overflow: hidden; }
+body { font-family: var(--body); color: var(--fg); -webkit-tap-highlight-color: transparent; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, p { margin: 0; }
+#stage { position: absolute; left: 0; top: 0; width: 1194px; height: 834px; transform-origin: 0 0; background: var(--bg); overflow: hidden; }
+.disp { font-family: var(--display); font-weight: 800; text-transform: uppercase; line-height: .95; }
+.eyebrow { font-size: 12.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accentText); }
+.muted { color: var(--muted); }
+.logo { height: 28px; width: auto; display: block; color: var(--fg); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.btn { height: 44px; padding: 0 14px; border: 1px solid var(--line2); background: transparent; color: var(--fg); font-weight: 700; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn.pri { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+.btn.big { height: 52px; font-size: 16px; }
+.btn.off, .btn:disabled { background: var(--panel2); border-color: var(--panel2); color: var(--muted); }
+.link { background: none; border: 0; color: var(--accentText); font-weight: 700; padding: 0; height: 44px; }
+.chip { padding: 5px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; white-space: nowrap; border: 1px solid transparent; }
+
+/* ---------- Pro ---------- */
+.pro { height: 100%; display: flex; flex-direction: column; font-size: 15px; }
+.pro header { display: flex; align-items: center; gap: 18px; padding: 12px 24px; border-bottom: 1px solid var(--line); }
+.protag { padding: 3px 7px; border: 1px solid var(--line2); color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .14em; }
+.spasel { background: transparent; border: 0; padding: 0; font: 800 20px/1 var(--display); text-transform: uppercase; color: var(--fg); max-width: 220px; }
+.spasel option { background: var(--panel); font: 600 14px var(--body); }
+.search { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line2); padding: 0 12px; height: 44px; width: 190px; }
+.search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; font-size: 14px; }
+.pro main { flex: 1; min-height: 0; padding: 16px 24px 18px; display: flex; flex-direction: column; gap: 16px; }
+.cols { flex: 1; min-height: 0; display: grid; grid-template-columns: 620px minmax(0,1fr); gap: 16px; }
+.box { background: var(--panel); border: 1px solid var(--line); min-width: 0; min-height: 0; }
+.list { display: flex; flex-direction: column; overflow: hidden; }
+.list-h { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.rows { overflow-y: auto; }
+.row { display: grid; grid-template-columns: 88px minmax(0,1fr) auto; gap: 14px; align-items: center; width: 100%; text-align: left; min-height: 60px; padding: 10px 18px; border: 0; border-bottom: 1px solid rgba(242,240,234,.08); background: transparent; color: var(--fg); }
+.row.on { background: var(--panel2); box-shadow: inset 3px 0 0 var(--accent); }
+.row .t { font: 800 19px/1 var(--display); white-space: nowrap; }
+.row .nm { font-weight: 700; }
+.row .sub { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side { padding: 20px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.vrow { display: grid; grid-template-columns: 22px 70px minmax(0,1fr) auto; gap: 10px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.vrow .n { font: 800 20px/1 var(--display); color: var(--accentText); }
+.paybox { background: var(--panel2); padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.note { padding: 10px 12px; border-left: 3px solid var(--ice); background: var(--iceBg); font-size: 13.5px; }
+.warn { padding: 12px 14px; border-left: 3px solid var(--accent); background: var(--accBg); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.seg { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); border: 1px solid var(--line2); }
+.seg button { height: 44px; border: 0; background: transparent; font-weight: 700; font-size: 13.5px; }
+.seg button.on { background: var(--accent); color: var(--ink); }
+.pick { display: grid; grid-template-columns: 26px minmax(0,1fr) auto; gap: 12px; align-items: center; width: 100%; text-align: left; padding: 10px 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--fg); }
+.pick:disabled { opacity: .4; }
+.cb { width: 24px; height: 24px; border: 2px solid var(--line2); color: var(--ink); font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.cb.on { background: var(--accent); border-color: var(--accent); }
+.rooms { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0,1fr); gap: 8px; }
+.room { background: var(--panel); border: 1px solid var(--line); padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.room b { font: 800 17px/1 var(--display); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.room span { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 700; }
+.mini input { height: 44px; padding: 0 12px; border: 1px solid var(--line2); background: var(--panel2); font-size: 15px; }
+
+/* ---------- Client ---------- */
+.client { height: 100%; padding: 32px 48px 36px; display: flex; flex-direction: column; gap: 26px; }
+.ctop { display: flex; justify-content: space-between; align-items: center; gap: 24px; min-height: 44px; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; }
+.steps li { white-space: nowrap; padding: 7px 11px; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--line); color: var(--muted); }
+.steps li.on { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+.steps li.done { color: var(--fg); border-color: var(--line2); }
+.two { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 56px; }
+.col { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+.col.mid { justify-content: center; }
+.h1 { font: 800 72px/.92 var(--display); text-transform: uppercase; }
+.lede { color: var(--muted); font-size: 21px; line-height: 1.45; }
+.tile { text-align: left; padding: 26px; border: 1px solid var(--line2); background: var(--panel); color: var(--fg); display: flex; flex-direction: column; gap: 8px; }
+.tile.hot { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+.tile .disp { font-size: 44px; }
+.band { display: flex; align-items: center; justify-content: space-between; gap: 16px; text-align: left; min-height: 64px; padding: 14px 20px; border: 1px solid var(--iceLine); background: var(--iceBg); color: var(--fg); }
+.screen { height: 76px; flex-shrink: 0; background: var(--panel); border: 1px solid var(--line2); display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.keys { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.keys button { height: 76px; border: 1px solid var(--line); background: var(--panel); font-size: 30px; font-weight: 600; }
+.cta { height: 76px; flex-shrink: 0; border: 1px solid var(--accent); background: var(--accent); color: var(--ink); font-size: 21px; font-weight: 700; }
+.cta:disabled { background: var(--panel2); border-color: var(--panel2); color: var(--muted); }
+.ghost { height: 60px; border: 1px solid var(--line2); background: transparent; font-size: 18px; font-weight: 700; }
+.err { padding: 12px 14px; border-left: 3px solid var(--accent); background: var(--accBg); font-size: 16px; }
+.card { background: var(--panel); border: 1px solid var(--line2); padding: 24px; }
+.crow { display: grid; grid-template-columns: 28px 86px minmax(0,1fr) auto; gap: 12px; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.crow .n { font: 800 28px/1 var(--display); color: var(--accentText); }
+.tiles { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; overflow-y: auto; min-height: 0; }
+.svc { position: relative; text-align: left; min-height: 118px; padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; border: 2px solid var(--line); background: var(--panel); color: var(--fg); }
+.svc.on { border-color: var(--accent); background: var(--panel2); }
+.svc:disabled { opacity: .4; }
+.svc .cb { width: 30px; height: 30px; font: 800 18px/1 var(--display); }
+.paycards { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.pc { text-align: left; padding: 24px; display: flex; flex-direction: column; gap: 12px; border: 2px solid var(--line); background: var(--panel); color: var(--fg); }
+.pc.on { border-color: var(--accent); background: var(--panel2); }
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 15px; font-weight: 700; }
+.field input { height: 56px; padding: 0 16px; border: 1px solid var(--line2); background: var(--panel); font-size: 19px; }
+.field input:focus { outline: none; border-color: var(--accent); }
+.sigwrap { position: relative; flex: 1; min-height: 200px; border: 2px dashed var(--line2); background: var(--panel); }
+.sigwrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+.sigwrap .ph[hidden] { display: none; }
+.sigwrap .ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 19px; pointer-events: none; }
+.done { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center; }
+.tick { width: 112px; height: 112px; background: var(--accent); display: flex; align-items: center; justify-content: center; }
+.qr { background: #fff; padding: 10px; display: block; }
+
+/* Gate (sign-in), PIN */
+.gate .logo { align-self: flex-start; }
+.gate { height: 100%; display: grid; grid-template-columns: 1fr 460px; gap: 64px; align-items: center; padding: 48px 72px; }
+.gate form, .gate .gbox { display: flex; flex-direction: column; gap: 14px; }
+.gmsg { padding: 12px 14px; border-left: 3px solid var(--ice); background: var(--iceBg); font-size: 15px; }
+.gmsg.bad { border-color: var(--accent); background: var(--accBg); }
+.scrim { position: absolute; inset: 0; background: rgba(5,8,10,.8); display: flex; align-items: center; justify-content: center; z-index: 5; }
+.pin { width: 420px; background: var(--panel); border: 1px solid var(--line2); padding: 28px; display: flex; flex-direction: column; gap: 16px; }
+.dots { display: flex; gap: 14px; justify-content: center; }
+.dots i { width: 18px; height: 18px; border: 2px solid var(--line2); border-radius: 50%; }
+.dots i.on { background: var(--fg); border-color: var(--fg); }
+.pin .keys button { height: 64px; font-size: 26px; }
+.toast { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--fg); color: var(--ink); padding: 12px 18px; font-weight: 700; z-index: 6; max-width: 80%; text-align: center; }
+.offline { position: absolute; top: 0; left: 0; right: 0; background: var(--accent); color: var(--ink); text-align: center; font-weight: 700; font-size: 13px; padding: 4px; z-index: 4; }
+</style>
+</head>
+<body>
+<div id="stage" aria-live="off"></div>
+<script src="config.js"></script>
+<script src="cloud.js"></script>
+<script>
+(function () {
+  const C = window.RKVR_CLOUD;
+  const CFG = window.RKVR_CONFIG || {};
+  const MAX = 3, POLL = 15000, PIN_KEY = 'rkvr-desk-pin', SPA_KEY = 'rkvr-desk-spa';
+  const ROOM = { cryo: 'Cryo Chamber', red: 'Red Light Bed', comp: 'Compression', chair: 'Massage Chair', iv: 'IV Lounge', wl: 'Consult Room', tw: 'Consult Room' };
+
+  /* ---------------- state ---------------- */
+  const freshClient = () => ({ step: 'start', path: null, digits: '', err: '', agree: false, signed: false, sel: [], pay: 'alacarte', found: null, name: '', phone: '', busy: false });
+  const S = {
+    gate: 'loading', gateMsg: '', gateBad: false,
+    mode: 'pro', pin: null, pinMode: 'check', pinNext: null,
+    spas: [], spa: null, svcs: [], plan: null, visits: [], day: null, offline: false,
+    pro: { sel: null, q: '', panel: 'client', wiSel: [], wiPay: 'alacarte', wiName: '', wiPhone: '' },
+    c: freshClient(), busy: false
+  };
+  let toastT, focusSearch = false, pollT = null;
+
+  /* ---------------- helpers ---------------- */
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const money = c => '$' + (c % 100 ? (c / 100).toFixed(2) : String(c / 100));
+  const tz = () => (S.spa && S.spa.time_zone) || 'America/Los_Angeles';
+  const tfmt = iso => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz() });
+  const fmtPhone = d => !d ? '' : d.length < 4 ? '(' + d : '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + (d.length > 6 ? '-' + d.slice(6, 10) : '');
+  const svcById = id => S.svcs.find(s => s.id === id);
+  const MONTHLY = () => S.plan ? S.plan.founding_price_cents || S.plan.price_cents : 9900;
+  const LATER = () => S.plan ? S.plan.price_cents : 12900;
+  const CUTOFF = () => S.plan && S.plan.founding_cutoff ? new Date(S.plan.founding_cutoff + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Dec 31, 2026';
+  const covers = (pay, it) => (pay === 'member' || pay === 'join') && it.member_included;
+  const dueOf = (pay, items) => items.reduce((a, it) => a + (covers(pay, it) ? 0 : it.price_cents), 0);
+  const listPrice = items => items.reduce((a, it) => a + it.price_cents, 0);
+  const asItems = ids => ids.map(svcById).filter(Boolean).map(s => ({ service_id: s.id, name: s.name, category: s.category, minutes: s.minutes, price_cents: s.price_cents, member_included: s.member_included }));
+  const LOGO = '<svg class="logo" viewBox="-4 -32 380 140" role="img" aria-label="RKVR"><g fill="currentColor"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g><g fill="currentColor" transform="translate(96 0)"><rect x="0" y="0" width="24" height="100"/><polygon points="24,50 51.5,0 79.5,0 52,50 79.5,100 51.5,100"/></g><g transform="translate(183 0)"><polygon fill="currentColor" points="0,0 26,0 58,100 32,100"/><polygon fill="#F2542D" points="78.32,-26 104.32,-26 64,100 38,100"/></g><g fill="currentColor" transform="translate(287 0)"><rect x="0" y="0" width="24" height="100"/><path fill-rule="evenodd" d="M0 0H50A30 30 0 0 1 50 60H0Z M24 20H50A10 10 0 0 1 50 40H24Z"/><polygon points="28.5,50 56.5,50 84,100 56,100"/></g></svg>';
+  const TICK = '<div class="tick"><svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#0E1216" stroke-width="2.6" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>';
+  const QR = (size, label) => `<img class="qr" src="qr-join.svg" width="${size}" height="${size}" alt="${esc(label || 'QR code to join RKVR on your phone')}">`;
+  function toast(m) { clearTimeout(toastT); document.querySelectorAll('.toast').forEach(t => t.remove()); const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = m; $('#stage').appendChild(t); toastT = setTimeout(() => t.remove(), 3200); }
+  const META = {
+    booked: ['Booked', 'transparent', 'var(--fg)', 'var(--line2)'],
+    waiver: ['Needs waiver', 'rgba(242,84,45,.16)', 'var(--accentText)', 'rgba(242,84,45,.5)'],
+    checked_in: ['Here', 'rgba(124,203,255,.14)', 'var(--ice)', 'var(--iceLine)'],
+    in_room: ['In room', 'var(--accent)', 'var(--ink)', 'var(--accent)'],
+    done: ['Checked out', 'transparent', 'var(--muted)', 'var(--line)'],
+    no_show: ['No-show', 'transparent', 'var(--muted)', 'var(--line)']
+  };
+  const needsWaiver = v => v.status === 'booked' && !v.waiver;
+  const chipFor = v => { const m = META[needsWaiver(v) ? 'waiver' : v.status] || META.booked; return `<span class="chip" style="background:${m[1]};color:${m[2]};border-color:${m[3]}">${m[0]}</span>`; };
+  const payShort = p => p === 'member' ? 'Member' : p === 'join' ? 'New member' : 'À la carte';
+  const items = v => v.items || [];
+
+  /* ---------------- data ---------------- */
+  async function loadSpa() {
+    const sp = S.spa;
+    const [svcs, plans] = await Promise.all([
+      C.rest('services?select=id,name,category,minutes,price_cents,member_included,sort&active=is.true&spa_id=eq.' + sp.id + '&order=sort'),
+      C.rest('membership_plans?select=*&id=eq.rkvr')
+    ]);
+    S.svcs = svcs || []; S.plan = plans && plans[0];
+    await refresh(true);
+  }
+  async function refresh(force) {
+    if (!S.spa || (S.busy && !force)) return;
+    try {
+      const d = await C.rpc('desk_today', { spa_slug: S.spa.slug });
+      S.visits = (d && d.visits) || []; S.day = d && d.day; S.offline = false;
+      if (S.pro.sel && !S.visits.some(v => v.key === S.pro.sel)) S.pro.sel = null;
+      if (!S.pro.sel && S.visits.length) S.pro.sel = (S.visits.find(v => v.status !== 'done') || S.visits[0]).key;
+    } catch (e) {
+      S.offline = true;
+      if (e.status === 401) { S.gate = 'login'; S.gateMsg = 'You’ve been signed out. Sign in again.'; S.gateBad = true; }
+    }
+    // Don't redraw under someone typing or signing
+    const typing = document.activeElement && /INPUT|SELECT/.test(document.activeElement.tagName) && document.activeElement.id !== 'q';
+    if (!typing && !(S.mode === 'client' && S.c.step === 'details')) render();
+  }
+  function startPolling() {
+    clearInterval(pollT);
+    pollT = setInterval(() => { if (!document.hidden) refresh(); }, POLL);
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+
+  async function act(fn, okMsg) {
+    if (S.busy) return false;
+    S.busy = true;
+    try { const r = await fn(); if (okMsg) toast(okMsg); await refresh(true); return r == null ? true : r; }
+    catch (e) { toast(e.message || 'Something went wrong. Try again.'); return false; }
+    finally { S.busy = false; }
+  }
+
+  /* ---------------- gate ---------------- */
+  function renderGate() {
+    const left = `<div style="display:flex;flex-direction:column;gap:20px">${LOGO}<span class="eyebrow">Front desk</span><h1 class="disp" style="font-size:96px;line-height:.9">RKVR<br>Check-In.</h1><p class="lede" style="max-width:28ch">For RKVR spa staff. Sign in once on this iPad and it stays signed in.</p></div>`;
+    const msg = S.gateMsg ? `<div class="gmsg ${S.gateBad ? 'bad' : ''}" role="${S.gateBad ? 'alert' : 'status'}">${esc(S.gateMsg)}</div>` : '';
+    let right = '';
+    if (S.gate === 'loading') right = `<p class="lede">Loading…</p>`;
+    else if (S.gate === 'continue') right = `<div class="gbox"><h2 class="disp" style="font-size:40px">Welcome</h2><p class="muted">Tap Continue to finish signing in.</p><button class="cta" data-a="gContinue">Continue</button></div>`;
+    else if (S.gate === 'noaccess') right = `<div class="gbox"><h2 class="disp" style="font-size:40px">No desk access</h2>${msg}<p class="muted" style="font-size:16px;line-height:1.5">This account isn’t set up as a spa operator or RKVR HQ staff. Ask RKVR HQ to add you on the Team page, then sign in again.</p><button class="ghost" data-a="signOut">Sign out</button></div>`;
+    else if (S.gate === 'nospa') right = `<div class="gbox"><h2 class="disp" style="font-size:40px">No spa yet</h2><p class="muted" style="font-size:16px;line-height:1.5">You’re signed in, but no RKVR spa is assigned to you yet. Ask RKVR HQ to pick your spa on the Team page.</p><button class="ghost" data-a="signOut">Sign out</button></div>`;
+    else right = `<form id="gForm" class="gbox"><h2 class="disp" style="font-size:40px">Staff sign-in</h2>${msg}
+        <label class="field">Email<input id="gEmail" type="email" autocomplete="username" required></label>
+        <label class="field">Password<input id="gPass" type="password" autocomplete="current-password"></label>
+        <button class="cta" type="submit" style="height:64px">Sign in</button>
+        <button class="ghost" type="button" data-a="gLink" style="height:52px;font-size:16px">Email me a sign-in link</button></form>`;
+    return `<div class="gate">${left}${right}</div>`;
+  }
+  async function boot() {
+    if (!C) { S.gate = 'login'; S.gateMsg = 'This copy isn’t connected to the RKVR database.'; S.gateBad = true; render(); return; }
+    if (C.pendingLink) { S.gate = 'continue'; render(); return; }
+    let p = null;
+    try { p = await C.loadProfile(); } catch (e) { S.gate = 'login'; S.gateMsg = 'Can’t reach RKVR right now. Check the Wi-Fi and try again.'; S.gateBad = true; render(); return; }
+    if (!p) { S.gate = 'login'; render(); return; }
+    if (p.role !== 'operator' && p.role !== 'hq_admin') { S.gate = 'noaccess'; render(); return; }
+    const spas = await C.rest(p.role === 'hq_admin' ? 'spas?select=id,slug,name,time_zone,status&order=name' : 'spas?select=id,slug,name,time_zone,status&operator_id=eq.' + p.id + '&order=name');
+    S.spas = (spas || []).sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1));
+    if (!S.spas.length) { S.gate = 'nospa'; render(); return; }
+    let saved = null; try { saved = localStorage.getItem(SPA_KEY); } catch (_) {}
+    S.spa = S.spas.find(s => s.slug === saved) || S.spas[0];
+    try { S.pin = localStorage.getItem(PIN_KEY); } catch (_) {}
+    S.gate = null; S.gateMsg = '';
+    render();
+    await loadSpa(); startPolling();
+  }
+
+  /* ---------------- Pro ---------------- */
+  function renderPro() {
+    const P = S.pro, all = S.visits, q = P.q.toLowerCase(), qd = q.replace(/\D/g, '');
+    const shown = all.filter(v => !q || v.name.toLowerCase().includes(q) || (qd && (v.phone || '').includes(qd)));
+    const count = k => all.filter(v => v.status === k).length;
+    const walk = P.panel === 'walkin';
+    const busy = {}; all.forEach(v => { if (v.status === 'in_room' && items(v)[0]) busy[ROOM[items(v)[0].category]] = v.name.split(' ')[0]; });
+    const roomNames = Array.from(new Set(S.svcs.map(s => ROOM[s.category]).filter(Boolean)));
+    const spaPick = S.spas.length > 1
+      ? `<label><span class="sr">Spa</span><select class="spasel" id="spaSel">${S.spas.map(s => `<option value="${esc(s.slug)}" ${s.slug === S.spa.slug ? 'selected' : ''}>${esc(s.name)}${s.status !== 'open' ? ' (not open)' : ''}</option>`).join('')}</select></label>`
+      : `<span class="disp" style="font-size:20px">${esc(S.spa.name)}</span>`;
+    return `<div class="pro">
+      <header>
+        <div style="display:flex;align-items:center;gap:12px">${LOGO}<span class="protag">PRO</span></div>
+        <div style="display:flex;flex-direction:column;gap:1px">${spaPick}<span class="muted" style="font-size:12px">Today · <button class="link" style="height:auto;font-size:12px;color:var(--muted);text-decoration:underline" data-a="signOut">Sign out</button></span></div>
+        <div style="display:flex;gap:6px">
+          <span class="chip" style="border-color:var(--line2)">${count('booked')} booked</span>
+          <span class="chip" style="background:rgba(124,203,255,.14);color:var(--ice)">${count('checked_in')} here</span>
+          <span class="chip" style="background:rgba(242,84,45,.16);color:var(--accentText)">${count('in_room')} in room</span>
+        </div>
+        <div style="flex:1;display:flex;justify-content:flex-end;align-items:center;gap:8px">
+          <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A9B1B8" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span class="sr">Search clients</span><input id="q" type="search" placeholder="Name or phone" value="${esc(P.q)}" autocomplete="off"></label>
+          <button class="btn" data-a="walkin" style="${walk ? 'border-color:var(--accent);background:var(--panel2)' : ''}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Walk-in</button>
+          <button class="btn pri" data-a="toClient"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>Turn to client</button>
+        </div>
+      </header>
+      <main>
+        <div class="cols">
+          <section class="box list" aria-label="Arrivals">
+            <div class="list-h"><h2 class="disp" style="font-size:26px">Arrivals</h2><span class="muted" style="font-size:13px">Up to ${MAX} services a visit</span></div>
+            <div class="rows">${shown.length ? shown.map(v => `<button class="row ${v.key === P.sel && !walk ? 'on' : ''}" data-a="pick" data-id="${esc(v.key)}">
+              <span class="t">${v.walk_in ? '<span style="font-size:13px;color:var(--accentText)">WALK-IN</span><br>' : ''}${tfmt(v.starts_at)}</span>
+              <span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="nm">${esc(v.name)} <span class="muted" style="font-weight:500;font-size:13px">· ${payShort(v.pay)}</span></span><span class="sub">${esc(items(v).map(i => i.name).join(' + '))}</span></span>
+              <span style="display:flex;align-items:center;gap:8px">${v.source === 'kiosk' && v.status === 'checked_in' ? '<span class="muted" style="font-size:12px">self check-in</span>' : ''}${chipFor(v)}</span></button>`).join('')
+              : `<p class="muted" style="padding:18px;line-height:1.5">${all.length ? 'No one matches that search.' : 'No bookings yet today. Walk-ins and website bookings show up here.'}</p>`}</div>
+          </section>
+          ${walk ? walkPanel() : clientPanel()}
+        </div>
+        ${roomNames.length ? `<section aria-label="Rooms" style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 class="disp" style="font-size:22px">Rooms</h2><span class="muted" style="font-size:13px">${roomNames.filter(r => !busy[r]).length} open now</span></div>
+          <div class="rooms">${roomNames.map(r => `<div class="room" style="border-top:3px solid ${busy[r] ? 'var(--accent)' : 'var(--ice)'}"><b>${r}</b><span style="color:${busy[r] ? 'var(--accentText)' : 'var(--ice)'}">${busy[r] ? 'With ' + esc(busy[r]) : 'Open'}</span></div>`).join('')}</div>
+        </section>` : ''}
+      </main>
+    </div>`;
+  }
+  function clientPanel() {
+    const v = S.visits.find(x => x.key === S.pro.sel);
+    if (!v) return `<aside class="box side" aria-label="Selected client"><div style="margin:auto;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center"><span class="disp" style="font-size:34px">Ready when they are</span><p class="muted" style="max-width:34ch;line-height:1.5">Pick someone from Arrivals, add a walk-in, or turn the iPad to the client so they can check themselves in.</p></div></aside>`;
+    const its = items(v), due = dueOf(v.pay, its), list = listPrice(its), member = v.pay !== 'alacarte';
+    const rows = its.map((it, i) => `<div class="vrow"><span class="n">${i + 1}</span><b style="font-size:13px">${it.starts_at ? tfmt(it.starts_at) : i === 0 ? 'Now' : 'Next'}</b><span style="display:flex;flex-direction:column;min-width:0"><b style="font-size:14px;font-weight:600">${esc(it.name)}</b><span class="muted" style="font-size:12px">${ROOM[it.category] || ''} · ${it.minutes} min</span></span><b style="font-size:14px">${covers(v.pay, it) ? 'Included' : money(it.price_cents)}</b></div>`).join('');
+    let label, title, detail, big;
+    if (v.pay === 'member') { label = 'Unlimited member'; title = due ? 'Membership + ' + money(due) + ' extra' : 'Covered by membership'; detail = due ? 'Not every service is included' : 'Would be ' + money(list) + ' à la carte'; }
+    else if (v.pay === 'join') { label = 'New unlimited member · joined today'; title = 'Start their membership at the desk'; detail = money(MONTHLY()) + '/mo founding rate'; }
+    else { label = 'À la carte'; title = v.paid ? 'Paid in full' : 'Collect at checkout'; detail = v.paid ? 'Marked paid' : 'Card reader at the desk'; }
+    big = v.paid ? '$0' : money(due);
+    const labels = { booked: 'Check in', checked_in: 'Send to room', in_room: due && !v.paid ? 'Check out · collected ' + money(due) : 'Check out', done: 'Visit complete', no_show: 'No-show' };
+    const disabled = needsWaiver(v) || v.status === 'done' || v.status === 'no_show';
+    return `<aside class="box side" aria-label="Selected client">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><span class="eyebrow">${v.first_visit && !v.walk_in ? 'First visit · ' : ''}${label}</span><h2 class="disp" style="font-size:34px">${esc(v.name)}</h2><span class="muted" style="font-size:13px">${fmtPhone(v.phone) || 'No mobile on file'}</span></div>${chipFor(v)}</div>
+      <div style="border-top:1px solid var(--line)">${rows}</div>
+      <div class="paybox"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-size:14px">${title}</b><span class="muted" style="font-size:12.5px">${detail}</span></span><span class="disp" style="font-size:26px">${big}</span></div>
+      ${v.note ? `<div class="note">${esc(v.note)}</div>` : ''}
+      ${needsWaiver(v) ? `<div class="warn"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-size:14px">Waiver not signed</b><span style="color:var(--soft);font-size:12.5px">Turn the iPad so they can sign, or mark it if they signed on paper.</span></span><button class="btn" data-a="markWaiver">Mark signed</button></div>` : ''}
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto">
+        <button class="btn big ${disabled ? 'off' : 'pri'}" data-a="advance" ${disabled ? 'disabled' : ''}>${needsWaiver(v) ? 'Waiting on waiver' : labels[v.status] || 'Check in'}</button>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">${v.status === 'booked' && !v.walk_in ? `<button class="btn" data-a="noShow">Mark no-show</button>` : `<button class="btn" data-a="soon">Add a service</button>`}<button class="btn" data-a="${v.pay === 'alacarte' ? 'offer' : 'soon'}">${v.pay === 'alacarte' ? 'Offer membership' : 'View member'}</button></div>
+      </div></aside>`;
+  }
+  function walkPanel() {
+    const P = S.pro, n = P.wiSel.length, its = asItems(P.wiSel), due = dueOf(P.wiPay, its);
+    const summary = !n ? 'Pick a service' : P.wiPay === 'alacarte' ? n + (n === 1 ? ' service' : ' services') + ' · collect at the desk' : P.wiPay === 'join' ? 'Start membership at the desk' + (due ? ' + ' + money(due) + ' extra' : '') : due ? money(due) + ' for services not included' : 'Covered by membership';
+    const cta = !n ? 'Pick a service' : P.wiPay === 'alacarte' ? 'Check in · ' + money(due) + ' due' : P.wiPay === 'join' ? 'Check in new member' : 'Check in member';
+    return `<aside class="box side" aria-label="New walk-in">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><div style="display:flex;flex-direction:column;gap:4px"><span class="eyebrow">New walk-in</span><h2 class="disp" style="font-size:30px">Pick up to ${MAX}</h2></div><button class="link" data-a="closeWalk">Cancel</button></div>
+      <div class="seg" role="group" aria-label="How they pay">${[['alacarte', 'À la carte'], ['member', 'Member'], ['join', 'Join · ' + money(MONTHLY())]].map(p => `<button class="${P.wiPay === p[0] ? 'on' : ''}" aria-pressed="${P.wiPay === p[0]}" data-a="wiPay" data-id="${p[0]}">${p[1]}</button>`).join('')}</div>
+      <div style="display:grid;grid-template-columns:${P.wiPay === 'member' ? '1fr' : '1fr 1fr'};gap:8px">
+        ${P.wiPay === 'member' ? '' : `<label class="mini">Name<input id="wiName" type="text" autocomplete="off" value="${esc(P.wiName)}" placeholder="First and last"></label>`}
+        <label class="mini">${P.wiPay === 'member' ? 'Member’s mobile' : 'Mobile (optional)'}<input id="wiPhone" type="tel" inputmode="tel" autocomplete="off" value="${esc(P.wiPhone)}" placeholder="(619) 555-0142"></label>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;border-top:1px solid var(--line)">${S.svcs.map(s => { const i = P.wiSel.indexOf(s.id), on = i >= 0, full = !on && n >= MAX; return `<button class="pick" data-a="wiToggle" data-id="${s.id}" aria-pressed="${on}" ${full ? 'disabled' : ''}><span class="cb ${on ? 'on' : ''}">${on ? i + 1 : ''}</span><span style="display:flex;flex-direction:column;gap:1px"><b style="font-size:14px;font-weight:600">${esc(s.name)} · ${s.minutes} min</b><span class="muted" style="font-size:12px">${ROOM[s.category] || ''}</span></span><b style="font-size:14px">${covers(P.wiPay, s) ? 'Included' : money(s.price_cents)}</b></button>`; }).join('')}</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:13px">${summary}</span><span class="disp" style="font-size:28px">${money(P.wiPay === 'join' ? MONTHLY() + due : due)}</span></div>
+      <button class="btn big ${n ? 'pri' : 'off'}" data-a="addWalk" ${n ? '' : 'disabled'}>${cta}</button></aside>`;
+  }
+
+  /* ---------------- Client ---------------- */
+  function stepsFor(c) {
+    let o = [];
+    if (c.path === 'booking') o = c.found && !c.found.waiver ? [['phone', 'Find booking'], ['confirm', 'Confirm'], ['details', 'Waiver'], ['done', 'Done']] : [['phone', 'Find booking'], ['confirm', 'Confirm'], ['done', 'Done']];
+    else if (c.path === 'walkin') o = c.pay === 'member' ? [['services', 'Services'], ['pay', 'Pay'], ['phone', 'Member'], ['done', 'Done']] : [['services', 'Services'], ['pay', 'Pay'], ['details', 'Details'], ['done', 'Done']];
+    else if (c.path === 'join') o = [['join', 'Membership'], ['done', 'Done']];
+    const idx = o.map(x => x[0]).indexOf(c.step);
+    return o.map((x, i) => `<li class="${i === idx ? 'on' : i < idx ? 'done' : ''}">${i + 1} · ${x[1]}</li>`).join('');
+  }
+  function renderClient() {
+    const c = S.c;
+    const body = { start: cStart, phone: cPhone, confirm: cConfirm, services: cServices, pay: cPay, details: cDetails, done: cDone, join: cJoin }[c.step]();
+    return `<div class="client">
+      <div class="ctop">${LOGO}<ol class="steps" aria-label="Check-in steps">${stepsFor(c)}</ol>
+        <button class="btn" data-a="toPro" aria-label="Back to Pro view, staff PIN required" style="color:var(--muted)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="1"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Pro</button></div>
+      ${body}</div>`;
+  }
+  function menuLine() {
+    const cats = new Set(S.svcs.map(s => s.category));
+    const words = [['cryo', 'cryotherapy'], ['red', 'red light'], ['comp', 'compression'], ['chair', 'massage chairs'], ['iv', 'IV drips'], ['wl', 'weight loss'], ['tw', 'TeleWellness']].filter(w => cats.has(w[0])).map(w => w[1]);
+    if (!words.length) return 'Check in for your visit or walk in.';
+    const s = words.length > 1 ? words.slice(0, -1).join(', ') + ' and ' + words[words.length - 1] : words[0];
+    return s.charAt(0).toUpperCase() + s.slice(1) + '. Check in for your visit or walk in.';
+  }
+  const cStart = () => `<div class="two" style="align-items:center">
+      <div class="col"><span class="eyebrow">RKVR ${esc(S.spa.name)}</span><h1 class="disp" style="font-size:92px;line-height:.9">Welcome<br>in.</h1><p class="lede" style="max-width:32ch">${menuLine()}</p></div>
+      <div class="col">
+        <button class="tile hot" data-a="cBooking"><span class="disp">I have a booking</span><span style="font-size:18px;font-weight:600">Check in with your mobile number</span></button>
+        <button class="tile" data-a="cWalk"><span class="disp">Walk in</span><span class="muted" style="font-size:18px">Pick your services. Use your membership or pay à la carte.</span></button>
+        <button class="band" data-a="cJoin"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-size:17px">Join RKVR · unlimited for ${money(MONTHLY())}/mo</b><span class="muted" style="font-size:14px">Founding rate ends ${CUTOFF()}</span></span><b style="color:var(--ice);white-space:nowrap">See how →</b></button>
+      </div></div>`;
+  function cPhone() {
+    const c = S.c, mode = c.path === 'walkin' ? 'member' : 'booking';
+    const T = { booking: ['Find your booking', 'Enter the mobile number you booked with.', 'Find my booking'], member: ['Find your membership', 'Enter the mobile number on your RKVR account.', c.busy ? 'Checking…' : 'Use my membership'] }[mode];
+    const inc = c.digits.length < 10 || c.busy;
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'Clear', '0', 'Delete'];
+    return `<div class="two">
+      <div class="col mid"><h1 class="h1">${T[0]}</h1><p class="lede">${T[1]}</p>${c.err ? `<div class="err" role="alert">${esc(c.err)}</div>` : ''}
+        <button class="link" style="align-self:flex-start;font-size:17px" data-a="cBack">Back</button></div>
+      <div class="col" style="gap:12px"><div class="screen" aria-live="polite" style="color:${c.digits ? 'var(--fg)' : '#5B656E'}">${c.digits ? fmtPhone(c.digits) : '(619) 555-0100'}</div>
+        <div class="keys">${keys.map(k => `<button data-a="key" data-id="${k}" aria-label="${k}" style="${k.length > 1 ? 'font-size:18px' : ''}">${k === 'Delete' ? '⌫' : k}</button>`).join('')}</div>
+        <button class="cta" data-a="cFind" ${inc ? 'disabled' : ''}>${T[2]}</button></div></div>`;
+  }
+  function cConfirm() {
+    const v = S.c.found, its = items(v), due = dueOf(v.pay, its);
+    return `<div class="two">
+      <div class="col mid"><span class="eyebrow">${v.first_visit ? 'First visit · ' : ''}${payShort(v.pay)}</span><h1 class="disp" style="font-size:84px;line-height:.9">Hi, ${esc(v.name.split(' ')[0])}.</h1><p class="lede">Here's your visit today.</p></div>
+      <div class="col mid" style="gap:14px"><div class="card" style="padding:8px 24px 20px">${its.map((it, i) => `<div class="crow"><span class="n">${i + 1}</span><b style="font-size:16px">${it.starts_at ? tfmt(it.starts_at) : ''}</b><span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:19px;font-weight:600">${esc(it.name)}</span><span class="muted" style="font-size:14px">${ROOM[it.category] || ''}</span></span><b style="font-size:17px">${covers(v.pay, it) ? 'Included' : money(it.price_cents)}</b></div>`).join('')}
+        <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:12px"><span class="muted" style="font-size:16px">${due ? 'Due after your visit' : 'Covered by your membership'}</span><span class="disp" style="font-size:30px">${money(due)}</span></div></div>
+        <button class="cta" data-a="cConfirm" ${S.c.busy ? 'disabled' : ''}>${S.c.busy ? 'Checking you in…' : 'That’s me. Check me in'}</button><button class="ghost" data-a="cReset">Not me. Start over</button></div></div>`;
+  }
+  function cServices() {
+    const c = S.c, n = c.sel.length, its = asItems(c.sel);
+    const busyCats = new Set(S.visits.filter(v => v.status === 'in_room' && items(v)[0]).map(v => items(v)[0].category));
+    return `<div style="flex:1;display:flex;flex-direction:column;gap:20px;min-height:0">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px"><div style="display:flex;flex-direction:column;gap:8px"><h1 class="h1" style="font-size:64px">Pick your services</h1><p class="lede" style="font-size:19px">Up to ${MAX}. We'll line them up in the order you tap.</p></div><button class="link" style="font-size:17px" data-a="cReset">Back</button></div>
+      <div class="tiles">${S.svcs.map(s => { const i = c.sel.indexOf(s.id), on = i >= 0, full = !on && n >= MAX, open = !busyCats.has(s.category); return `<button class="svc ${on ? 'on' : ''}" data-a="cToggle" data-id="${s.id}" aria-pressed="${on}" ${full ? 'disabled' : ''}><span style="display:flex;justify-content:space-between;gap:10px"><span style="font-size:19px;font-weight:700;line-height:1.2">${esc(s.name)}</span><span class="cb ${on ? 'on' : ''}">${on ? i + 1 : ''}</span></span><span style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:14px;color:${open ? 'var(--ice)' : 'var(--muted)'}">${open ? 'Open now' : 'Short wait'}${s.member_included ? '' : ' · not in membership'}</span><b style="font-size:15px;white-space:nowrap">${s.minutes} min · ${money(s.price_cents)}</b></span></button>`; }).join('')}</div>
+      <div style="margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:24px;border-top:1px solid var(--line);padding-top:18px"><span class="muted" style="font-size:18px">${n ? n + ' of ' + MAX + ' picked · ' + its.reduce((a, s) => a + s.minutes, 0) + ' min · ' + money(listPrice(its)) + ' à la carte' : 'Nothing picked yet'}</span><button class="cta" style="padding:0 40px;height:72px" data-a="cToPay" ${n ? '' : 'disabled'}>Continue</button></div></div>`;
+  }
+  function cPay() {
+    const c = S.c, its = asItems(c.sel), n = its.length, sum = listPrice(its), mDue = dueOf('member', its);
+    const cards = [
+      ['member', 'Already a member', 'Use my membership', money(mDue), ' today', mDue ? 'Membership covers recovery services. ' + money(mDue) + ' for the rest.' : 'Covered by your unlimited membership. We’ll look you up by mobile number.', mDue ? 'Pay the rest at the desk.' : 'Nothing to pay today.'],
+      ['alacarte', 'No membership', 'Pay à la carte', money(sum), '', 'Pay for today’s ' + (n === 1 ? 'service' : n + ' services') + ' only. No sign-up, no monthly charge.', 'Pay at the front desk.'],
+      ['join', 'Founding rate', 'Join RKVR', money(MONTHLY()), '/mo', 'Unlimited recovery services. Today’s visit is included' + (sum - mDue > MONTHLY() ? ', so you save ' + money(sum - mDue - MONTHLY()) + ' today.' : '.'), money(LATER()) + '/mo after ' + CUTOFF() + '. Cancel any time.']
+    ];
+    const cta = c.pay === 'member' ? 'Find my membership' : 'Continue';
+    return `<div style="flex:1;display:flex;flex-direction:column;gap:22px;min-height:0">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px"><div style="display:flex;flex-direction:column;gap:8px"><h1 class="h1" style="font-size:64px">How do you want to pay?</h1><p class="lede" style="font-size:19px">${esc(its.map(s => s.name).join(' + '))}</p></div><button class="link" style="font-size:17px;white-space:nowrap" data-a="cToServices">Change services</button></div>
+      <div class="paycards">${cards.map(p => `<button class="pc ${c.pay === p[0] ? 'on' : ''}" data-a="cPick" data-id="${p[0]}" aria-pressed="${c.pay === p[0]}"><span class="eyebrow">${p[1]}</span><span class="disp" style="font-size:38px">${p[2]}</span><span class="disp" style="font-size:54px;line-height:1">${p[3]}<span style="font-size:22px;color:var(--muted)">${p[4]}</span></span><span style="font-size:16px;color:var(--soft);line-height:1.45">${p[5]}</span><span class="muted" style="margin-top:auto;font-size:14px">${p[6]}</span></button>`).join('')}</div>
+      <div style="display:flex;justify-content:flex-end"><button class="cta" style="padding:0 40px;height:72px" data-a="cPayNext">${cta}</button></div></div>`;
+  }
+  function cDetails() {
+    const c = S.c, booking = c.path === 'booking', ok = c.agree && c.signed && (booking || c.name) && !c.busy;
+    return `<div class="two" style="gap:48px">
+      <div class="col"><h1 class="h1" style="font-size:60px">${booking ? 'One quick form' : 'A few details'}</h1>
+        ${booking ? '<p class="lede" style="font-size:19px">You only sign this before your first visit.</p>' : `<label class="field">Full name<input id="dName" type="text" autocomplete="name" placeholder="First and last name" value="${esc(c.name)}"></label><label class="field">Mobile<input id="dPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(619) 555-0100" value="${esc(c.phone)}"></label>`}
+        <div class="note" style="font-size:15px;line-height:1.5">[YOUR WAIVER SUMMARY: cold and heat exposure, health conditions to tell staff about, and stopping a service any time.]</div>
+        <label style="display:flex;align-items:center;gap:14px;font-size:17px;min-height:48px"><input type="checkbox" id="dAgree" ${c.agree ? 'checked' : ''} style="width:28px;height:28px;accent-color:#F2542D"> I've read the waiver and agree to it.</label></div>
+      <div class="col" style="gap:12px"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">Signature</b><button class="link" style="height:auto" data-a="cSigClear">Clear</button></div>
+        <div class="sigwrap"><canvas id="sig" aria-label="Signature pad. Sign with your finger."></canvas><span class="ph" ${c.signed ? 'hidden' : ''}>Sign here with your finger</span></div>
+        <button class="cta" style="height:72px" data-a="cDetailsNext" ${ok ? '' : 'disabled'}>${c.busy ? 'One moment…' : booking ? 'Sign and check in' : 'Sign and check in'}</button>
+        <button class="link" style="font-size:16px" data-a="cDetailsBack">Back</button></div></div>`;
+  }
+  function cJoin() {
+    const inc = S.svcs.filter(s => s.member_included), extra = S.svcs.filter(s => !s.member_included);
+    return `<div class="two" style="align-items:center">
+      <div class="col"><span class="eyebrow">Founding rate · ends ${CUTOFF()}</span><h1 class="disp" style="font-size:92px;line-height:.9">Unlimited<br>RKVR.</h1><span class="disp" style="font-size:64px;line-height:1">${money(MONTHLY())}<span style="font-size:26px;color:var(--muted)">/mo</span></span>
+        <p class="lede" style="font-size:20px;max-width:34ch">Unlimited recovery services, as often as you like. ${money(LATER())}/mo after the founding period. Cancel any time.</p>
+        <div style="display:flex;gap:18px;align-items:center;margin-top:8px">${QR(132)}<span style="font-size:17px;line-height:1.45;color:var(--soft)">Scan with your phone camera to join online,<br>or ask the front desk to sign you up.</span></div></div>
+      <div class="col" style="gap:14px"><div class="card" style="padding:8px 24px">${inc.map(s => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:12px 0;border-bottom:1px solid var(--line)"><span style="font-size:17px;font-weight:600">${esc(s.name)}</span><span style="display:flex;gap:12px;align-items:baseline"><s class="muted" style="font-size:15px">${money(s.price_cents)}</s><b style="color:var(--ice)">Unlimited</b></span></div>`).join('')}<p class="muted" style="padding:12px 0;font-size:14px;line-height:1.45">${extra.length ? esc(Array.from(new Set(extra.map(s => ({ iv: 'IV drips', wl: 'weight loss', tw: 'TeleWellness' }[s.category] || s.name)))).join(', ')) + ' are booked and paid per visit.' : 'Members pay nothing extra.'}</p></div>
+        <button class="cta" data-a="cJoinDesk">I’d like to join at the desk</button><button class="link" style="font-size:16px" data-a="cReset">Back</button></div></div>`;
+  }
+  function cDone() {
+    const c = S.c;
+    const back = `<button class="ghost" style="padding:0 48px;height:64px" data-a="cReset">Done. Turn back to the desk</button>`;
+    if (c.path === 'join') {
+      return `<div class="done">${TICK}<h1 class="disp" style="font-size:88px;line-height:.9">Great choice.</h1>
+        <p style="color:var(--soft);font-size:23px;max-width:680px;line-height:1.45">Turn the iPad back to the front desk and we’ll start your unlimited membership at ${money(MONTHLY())} a month.</p>${back}</div>`;
+    }
+    const its = c.path === 'walkin' ? asItems(c.sel) : items(c.found);
+    const f = its[0] || { name: 'your visit', category: '' };
+    const pay = c.path === 'walkin' ? c.pay : c.found.pay;
+    const due = dueOf(pay, its);
+    const fine = pay === 'join' ? 'Welcome to RKVR. The front desk will start your membership.' : due ? 'Your ' + money(due) + ' is due at the front desk.' : 'Covered by your unlimited membership.';
+    const upsell = pay === 'alacarte';
+    return `<div class="done">${TICK}
+      <h1 class="disp" style="font-size:88px;line-height:.9">${c.path === 'walkin' ? 'You’re in.' : 'You’re checked in.'}</h1>
+      <p style="color:var(--soft);font-size:23px;max-width:680px;line-height:1.45">First up: <b style="color:var(--accentText)">${esc(f.name)}</b>${ROOM[f.category] ? ' in the ' + ROOM[f.category] : ''}. A team member will meet you there.</p>
+      <p class="muted" style="font-size:17px">${fine}</p>
+      ${upsell ? `<div class="band" style="max-width:780px;gap:24px"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-size:17px">Today is ${money(listPrice(its))} à la carte.</b><span style="font-size:15px;color:var(--soft)">Members get unlimited recovery for ${money(MONTHLY())} a month. Founding rate ends ${CUTOFF()}. Scan to join.</span></span>${QR(92)}</div>` : ''}
+      ${back}</div>`;
+  }
+
+  /* ---------------- PIN ---------------- */
+  function renderPin() {
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'Cancel', '0', 'Delete'];
+    const setting = S.pinMode !== 'check';
+    const title = S.pinMode === 'set' ? 'Choose a staff PIN' : S.pinMode === 'confirm' ? 'Enter it again' : 'Enter staff PIN';
+    const sub = S.pinMode === 'set' ? 'Staff use this 4-digit PIN to switch the iPad back to the Pro view. It’s saved on this iPad only.' : '';
+    const p = S.pinEntry || '';
+    return `<div class="scrim"><div class="pin" role="dialog" aria-modal="true" aria-labelledby="pinT">
+      <span class="eyebrow">Staff only</span><h2 class="disp" id="pinT" style="font-size:36px">${title}</h2>${sub ? `<p class="muted" style="font-size:14px;line-height:1.45">${sub}</p>` : ''}
+      <div class="dots" aria-label="${p.length} of 4 digits">${[0, 1, 2, 3].map(i => `<i class="${i < p.length ? 'on' : ''}"></i>`).join('')}</div>
+      <div class="keys">${keys.map(k => `<button data-a="pinKey" data-id="${k}" aria-label="${k}" style="${k === 'Cancel' ? 'font-size:16px' : ''}">${k === 'Delete' ? '⌫' : k}</button>`).join('')}</div>
+      ${setting ? '' : '<button class="link" style="align-self:center;font-size:14px;color:var(--muted)" data-a="pinForgot">Forgot the PIN? Sign in again</button>'}</div></div>`;
+  }
+
+  /* ---------------- render + fit ---------------- */
+  function render() {
+    let html;
+    if (S.gate) html = renderGate();
+    else html = (S.mode === 'pro' ? renderPro() : renderClient()) + (S.pinOpen ? renderPin() : '') + (S.offline ? '<div class="offline" role="status">Can’t reach RKVR. Retrying…</div>' : '');
+    $('#stage').innerHTML = html;
+    if (focusSearch) { const q = $('#q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } focusSearch = false; }
+    if (!S.gate && S.mode === 'client' && S.c.step === 'details') setupSig();
+  }
+  function fit() {
+    const st = $('#stage'), s = Math.min(innerWidth / 1194, innerHeight / 834);
+    st.style.transform = `translate(${(innerWidth - 1194 * s) / 2}px, ${(innerHeight - 834 * s) / 2}px) scale(${s})`;
+    S.scale = s;
+  }
+  addEventListener('resize', fit);
+
+  // Signature pad: draws with a finger or mouse; we keep only that it was signed and when
+  function setupSig() {
+    const cv = $('#sig'); if (!cv) return;
+    const r = cv.getBoundingClientRect(), s = S.scale || 1;
+    cv.width = Math.round(r.width / s); cv.height = Math.round(r.height / s);
+    const ctx = cv.getContext('2d'); ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#F2F0EA';
+    let down = false, len = 0;
+    const pt = e => { const b = cv.getBoundingClientRect(); return [(e.clientX - b.left) / (S.scale || 1), (e.clientY - b.top) / (S.scale || 1)]; };
+    cv.onpointerdown = e => { down = true; cv.setPointerCapture(e.pointerId); const [x, y] = pt(e); ctx.beginPath(); ctx.moveTo(x, y); };
+    cv.onpointermove = e => { if (!down) return; const [x, y] = pt(e); ctx.lineTo(x, y); ctx.stroke(); len++; };
+    cv.onpointerup = () => { down = false; if (len > 8 && !S.c.signed) { S.c.signed = true; const ph = document.querySelector('.sigwrap .ph'); if (ph) ph.hidden = true; updateDetailsBtn(); } };
+  }
+  function updateDetailsBtn() { const c = S.c, b = document.querySelector('[data-a="cDetailsNext"]'); if (b) b.disabled = !(c.agree && c.signed && (c.path === 'booking' || c.name) && !c.busy); }
+
+  /* ---------------- actions ---------------- */
+  const sel = () => S.visits.find(x => x.key === S.pro.sel);
+  function goC(step, extra) { Object.assign(S.c, { step, err: '' }, extra || {}); render(); }
+  function openPin(mode, next) { S.pinOpen = true; S.pinMode = mode; S.pinEntry = ''; S.pinNext = next; render(); }
+  const A = {
+    gContinue: async () => { try { await C.verifyLink(); } catch (e) { S.gate = 'login'; S.gateMsg = e.message; S.gateBad = true; render(); return; } boot(); },
+    gLink: async () => {
+      const em = ($('#gEmail').value || '').trim();
+      if (!em) { S.gateMsg = 'Enter your email first.'; S.gateBad = true; render(); return; }
+      try { await C.sendLink(em); S.gateMsg = 'Check your email on this iPad. The link works for 24 hours.'; S.gateBad = false; }
+      catch (e) { S.gateMsg = /not found|signups/i.test(e.message) ? 'That email isn’t set up for RKVR. Ask RKVR HQ to add you.' : e.message; S.gateBad = true; }
+      render();
+    },
+    signOut: async () => { await C.signOut(); try { localStorage.removeItem(PIN_KEY); } catch (_) {} location.reload(); },
+    pick: id => { S.pro.sel = id; S.pro.panel = 'client'; render(); },
+    walkin: () => { S.pro.panel = 'walkin'; render(); },
+    closeWalk: () => { S.pro.panel = 'client'; render(); },
+    toClient: () => {
+      const go = () => { S.mode = 'client'; S.c = freshClient(); render(); };
+      if (!S.pin) openPin('set', go); else go();
+    },
+    toPro: () => openPin('check', () => { S.mode = 'pro'; render(); }),
+    pinForgot: () => A.signOut(),
+    pinKey: k => {
+      if (k === 'Cancel') { S.pinOpen = false; render(); return; }
+      if (k === 'Delete') S.pinEntry = S.pinEntry.slice(0, -1); else if (S.pinEntry.length < 4) S.pinEntry += k;
+      if (S.pinEntry.length < 4) { render(); return; }
+      const entry = S.pinEntry;
+      if (S.pinMode === 'set') { S.pinFirst = entry; S.pinMode = 'confirm'; S.pinEntry = ''; render(); return; }
+      if (S.pinMode === 'confirm') {
+        if (entry !== S.pinFirst) { S.pinMode = 'set'; S.pinEntry = ''; render(); toast('Those didn’t match. Try again.'); return; }
+        S.pin = entry; try { localStorage.setItem(PIN_KEY, entry); } catch (_) {}
+        S.pinOpen = false; toast('PIN saved on this iPad'); const n = S.pinNext; S.pinNext = null; if (n) n(); else render(); return;
+      }
+      if (entry === S.pin) { S.pinOpen = false; const n = S.pinNext; S.pinNext = null; if (n) n(); else render(); return; }
+      S.pinEntry = ''; render(); toast('Wrong PIN');
+    },
+    markWaiver: () => { const v = sel(); if (v && v.booking_id) act(() => C.rpc('desk_waiver', { p_booking: v.booking_id }), 'Waiver marked signed'); },
+    advance: () => {
+      const v = sel(); if (!v) return;
+      const due = dueOf(v.pay, items(v));
+      if (v.status === 'booked') act(() => C.rpc('desk_check_in', { p_booking: v.booking_id, p_source: 'desk' }), v.name.split(' ')[0] + ' is checked in');
+      else if (v.status === 'checked_in') act(() => C.rpc('desk_move', { p_visit: v.visit_id, p_status: 'in_room' }));
+      else if (v.status === 'in_room') act(() => C.rpc('desk_move', { p_visit: v.visit_id, p_status: 'done', p_paid_how: due && !v.paid ? 'desk' : null }), 'Checked out' + (due && !v.paid ? ' · ' + money(due) + ' collected' : ''));
+    },
+    noShow: async () => {
+      const v = sel(); if (!v || !v.booking_id) return;
+      await act(async () => { const id = await C.rpc('desk_check_in', { p_booking: v.booking_id, p_source: 'desk' }); await C.rpc('desk_move', { p_visit: id, p_status: 'no_show' }); }, 'Marked no-show');
+    },
+    offer: () => { S.mode = 'client'; S.c = Object.assign(freshClient(), { step: 'join', path: 'join' }); if (!S.pin) { S.mode = 'pro'; openPin('set', () => { S.mode = 'client'; render(); }); return; } render(); },
+    soon: () => toast('Coming soon'),
+    wiPay: id => { S.pro.wiPay = id; render(); },
+    wiToggle: id => { const a = S.pro.wiSel, i = a.indexOf(id); if (i >= 0) a.splice(i, 1); else if (a.length < MAX) a.push(id); render(); },
+    addWalk: async () => {
+      const P = S.pro;
+      const ph = (P.wiPhone || '').replace(/\D/g, '').slice(-10);
+      if (P.wiPay === 'member' && ph.length !== 10) { toast('Enter the member’s 10-digit mobile number'); return; }
+      if (P.wiPay !== 'member' && !P.wiName.trim()) { toast('Add their name'); return; }
+      const r = await act(() => C.rpc('desk_walk_in', { spa_slug: S.spa.slug, p_services: P.wiSel, p_pay: P.wiPay, p_phone: ph || null, p_name: P.wiName.trim() || null, p_source: 'desk', p_waiver: false }));
+      if (!r) return;
+      if (r.error === 'no_member') { toast('No active membership for that number. Try à la carte or Join.'); return; }
+      toast(r.name + ' is checked in');
+      S.pro = Object.assign(S.pro, { panel: 'client', sel: 'v:' + r.visit_id, wiSel: [], wiName: '', wiPhone: '' }); render();
+    },
+    key: k => { const c = S.c; if (k === 'Clear') c.digits = ''; else if (k === 'Delete') c.digits = c.digits.slice(0, -1); else if (c.digits.length < 10) c.digits += k; c.err = ''; render(); },
+    cBooking: () => goC('phone', { path: 'booking', digits: '' }),
+    cWalk: () => goC('services', { path: 'walkin', sel: [] }),
+    cJoin: () => goC('join', { path: 'join' }),
+    cJoinDesk: () => goC('done', { path: 'join' }),
+    cBack: () => { const c = S.c; goC(c.path === 'walkin' ? 'pay' : 'start'); },
+    cReset: () => { S.c = freshClient(); render(); },
+    cFind: async () => {
+      const c = S.c, d = c.digits;
+      if (c.path === 'booking') {
+        await refresh(true);
+        const v = S.visits.find(x => x.phone === d && x.status === 'booked' && !x.walk_in);
+        if (!v) { c.err = 'We couldn’t find a booking for that number today. Walk in instead, or ask the front desk.'; render(); return; }
+        goC('confirm', { found: v });
+      } else {
+        c.busy = true; render();
+        const r = await act(() => C.rpc('desk_walk_in', { spa_slug: S.spa.slug, p_services: c.sel, p_pay: 'member', p_phone: d, p_source: 'kiosk', p_waiver: false }));
+        c.busy = false;
+        if (!r) { render(); return; }
+        if (r.error === 'no_member') { c.err = 'We couldn’t find a membership for that number. Pay à la carte or join instead.'; render(); return; }
+        goC('done');
+      }
+    },
+    cConfirm: async () => {
+      const v = S.c.found;
+      if (!v.waiver) { goC('details', { agree: false, signed: false }); return; }
+      S.c.busy = true; render();
+      const ok = await act(() => C.rpc('desk_check_in', { p_booking: v.booking_id, p_source: 'kiosk' }));
+      S.c.busy = false;
+      if (ok) goC('done'); else render();
+    },
+    cToggle: id => { const a = S.c.sel, i = a.indexOf(id); if (i >= 0) a.splice(i, 1); else if (a.length < MAX) a.push(id); render(); },
+    cToPay: () => goC('pay'),
+    cToServices: () => goC('services'),
+    cPick: id => { S.c.pay = id; render(); },
+    cPayNext: () => goC(S.c.pay === 'member' ? 'phone' : 'details', { digits: '', agree: false, signed: false }),
+    cSigClear: () => { S.c.signed = false; render(); },
+    cDetailsBack: () => { const c = S.c; goC(c.path === 'booking' ? 'confirm' : 'pay'); },
+    cDetailsNext: async () => {
+      const c = S.c; if (c.busy) return;
+      c.busy = true; updateDetailsBtn();
+      let ok;
+      if (c.path === 'booking') ok = await act(() => C.rpc('desk_check_in', { p_booking: c.found.booking_id, p_source: 'kiosk', p_waiver: true }));
+      else ok = await act(() => C.rpc('desk_walk_in', { spa_slug: S.spa.slug, p_services: c.sel, p_pay: c.pay, p_phone: c.phone.replace(/\D/g, '').slice(-10) || null, p_name: c.name, p_source: 'kiosk', p_waiver: true }));
+      c.busy = false;
+      if (ok) goC('done'); else render();
+    }
+  };
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
+    const fn = A[b.dataset.a]; if (fn) { e.preventDefault(); fn(b.dataset.id); }
+  });
+  document.addEventListener('input', e => {
+    const id = e.target.id;
+    if (id === 'q') { S.pro.q = e.target.value; focusSearch = true; render(); }
+    else if (id === 'wiName') S.pro.wiName = e.target.value;
+    else if (id === 'wiPhone') S.pro.wiPhone = e.target.value;
+    else if (id === 'dName') { S.c.name = e.target.value.trim(); updateDetailsBtn(); }
+    else if (id === 'dPhone') S.c.phone = e.target.value;
+  });
+  document.addEventListener('change', e => {
+    if (e.target.id === 'dAgree') { S.c.agree = e.target.checked; updateDetailsBtn(); }
+    if (e.target.id === 'spaSel') {
+      S.spa = S.spas.find(s => s.slug === e.target.value) || S.spa; S.pro.sel = null; S.visits = [];
+      try { localStorage.setItem(SPA_KEY, S.spa.slug); } catch (_) {}
+      render(); loadSpa();
+    }
+  });
+  document.addEventListener('submit', async e => {
+    if (e.target.id !== 'gForm') return;
+    e.preventDefault();
+    const em = $('#gEmail').value.trim(), pw = $('#gPass').value;
+    if (!pw) { A.gLink(); return; }
+    try { await C.signIn(em, pw); boot(); }
+    catch (err) { S.gateMsg = err.status === 400 ? 'That email and password don’t match. Or use “Email me a sign-in link”.' : err.message; S.gateBad = true; render(); }
+  });
+
+  fit(); render(); boot();
+})();
+</script>
+</body>
+</html>
