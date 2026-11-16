@@ -187,6 +187,12 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
     try { await loadMine(); } catch (e) { toast('Couldn’t load your visits. Pull down to retry.'); }
     if (C.linkType) toast('Welcome, ' + firstName() + '. You’re signed in.');
     render();
+    if (/[?&]joined=1/.test(location.search)) {
+      try { history.replaceState(null, '', location.pathname); } catch (_) {}
+      S.tab = 'member'; render(); toast('Welcome to RKVR Unlimited. Starting your membership…');
+      for (let i = 0; i < 8 && !isMember(); i++) { await new Promise(r => setTimeout(r, 2000)); try { await loadMine(); } catch (_) {} }
+      render(); if (isMember()) toast('You’re a member. Founding rate locked in.');
+    }
   }
   const firstName = () => ((S.user && S.user.full_name) || 'there').split(' ')[0];
   document.addEventListener('visibilitychange', async () => { if (!document.hidden && S.user && !S.sheet) { try { await loadMine(); render(); } catch (_) {} } });
@@ -345,14 +351,15 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
           <div class="kv"><span class="muted">Used this month</span><b>${m.used || 0}</b></div></div>
         <div class="card"><h2 class="h2">Included, unlimited</h2>${inc.map(s => `<div class="kv"><span>${esc(s.name)}</span><b style="color:var(--ice)">Unlimited</b></div>`).join('')}${extra.length ? `<p class="muted small">${esc(extra.join(', '))}: paid per visit.</p>` : ''}</div>
         <button class="btn pri big" data-tab="book">Book with membership</button>
-        <p class="muted small">To change or cancel your membership, ask the front desk.</p>`;
+        <button class="btn big" data-a="portal">Update card or cancel</button>`;
     }
     return `<span class="eyebrow">Founding rate · ends ${CUTOFF()}</span><h1 class="h1" style="font-size:64px">Unlimited RKVR.</h1>
       <p><span class="disp" style="font-size:56px">${money(MONTHLY())}</span><span class="muted" style="font-size:20px"> /mo</span></p>
       <p class="muted" style="font-size:17px">Recovery services as often as you like. ${money(LATER())}/mo after the founding period. Cancel any time.</p>
       <div class="card">${inc.map(s => `<div class="kv"><span>${esc(s.name)}</span><span><s class="muted small">${money(s.price_cents)}</s> <b style="color:var(--ice)">Unlimited</b></span></div>`).join('')}${extra.length ? `<p class="muted small">${esc(extra.join(', '))}: paid per visit.</p>` : ''}</div>
-      <div class="note">Online sign-up opens soon. To join today, ask the front desk at your next visit and your founding rate is locked in.</div>
-      <button class="btn pri big" data-tab="book">Book a visit</button>`;
+      <button class="btn pri big" data-a="join">Join for ${money(MONTHLY())}/mo</button>
+      <p class="muted small">Secure checkout by Stripe. Your founding rate is locked in for as long as you stay.</p>
+      <button class="btn big" data-tab="book">Book a visit à la carte</button>`;
   }
   function vMe() {
     const u = S.user, open = S.spas.filter(s => s.status === 'open');
@@ -443,6 +450,16 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
       if (el.dataset.sure !== '1') { el.dataset.sure = '1'; el.textContent = 'Tap again to cancel'; setTimeout(() => { if (el.isConnected) { el.dataset.sure = ''; el.textContent = 'Cancel visit'; } }, 4000); return; }
       try { await C.rpc('cancel_booking', { booking: id }); await loadMine(); render(); toast('Visit cancelled'); }
       catch (e) { toast('Couldn’t cancel: ' + e.message); }
+    },
+    join: async (id, el) => {
+      el.disabled = true; el.textContent = 'Opening secure checkout…';
+      try { const r = await C.callFn('membership-checkout', { return_url: location.origin + location.pathname }); location.href = r.url; }
+      catch (e) { el.disabled = false; el.textContent = 'Join for ' + money(MONTHLY()) + '/mo'; toast(e.message); if (e.code === 'already_member') { await loadMine(); render(); } }
+    },
+    portal: async (id, el) => {
+      el.disabled = true;
+      try { const r = await C.callFn('billing-portal', { return_url: location.origin + location.pathname }); location.href = r.url; }
+      catch (e) { el.disabled = false; toast(e.message); }
     },
     checkIn: async id => { try { await doCheckIn(id, false); } catch (e) { toast(e.message); } },
     sheetClose: () => { S.sheet = null; render(); },

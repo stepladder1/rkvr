@@ -130,6 +130,16 @@
       try { localStorage.setItem(STORE + ':return', returnTo || ''); } catch (_) {}
       await auth('otp?redirect_to=' + encodeURIComponent(redirect), { email, create_user: true, data: data || {} });
     },
+    // Calls RKVR's server functions (Stripe checkout and billing) as the signed-in person
+    async callFn(name, body) {
+      const t = await token();
+      if (!t) { const e = new Error('Please sign in first.'); e.status = 401; throw e; }
+      const base = (cfg.functionsUrl || '/.netlify/functions').replace(/\/$/, '');
+      const res = await fetch(base + '/' + name, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify(body || {}) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { const e = new Error(data.error || 'Something went wrong. Try again.'); e.status = res.status; e.code = data.code; throw e; }
+      return data;
+    },
     takeReturn() {
       let v = '';
       try { v = localStorage.getItem(STORE + ':return') || ''; localStorage.removeItem(STORE + ':return'); } catch (_) {}

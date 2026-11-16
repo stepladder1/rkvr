@@ -418,6 +418,13 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     return { id: p.id, name: p.full_name || (p.email || '').split('@')[0], email: p.email || '', phone: p.phone || '', sms: !!p.sms_opt_in,
       home: (LOCS.find(l => l.uuid === p.home_spa_id) || {}).id || '', since: new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) };
   }
+  async function loadMember() {
+    try {
+      const rows = await C.rpc('my_membership_summary');
+      const m = rows && rows[0];
+      S.member = m && /active|past_due/.test(m.status) ? { rate: m.rate_cents / 100, since: '', renews: m.period_end ? new Date(m.period_end + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '', status: m.status } : null;
+    } catch (_) { S.member = null; }
+  }
   async function loadMyBookings() {
     const rows = await C.rest('bookings?select=id,spa_id,starts_at,repeat,pay_method,status,booking_items(service_id,position)&status=neq.canceled&order=starts_at');
     S.bookings = (rows || []).map(r => {
@@ -458,12 +465,12 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     }
     const btn = $('#bk-confirm'); if (btn) { btn.disabled = true; btn.textContent = 'Booking…'; }
     let at = parseT(b.slot);
-    const items = b.sel.map((k, i) => { const x = svcByKey(k), it = { service_id: SVC_ID[k], position: i + 1, starts_at: zonedToUtc(dateStr, at, l.tz), minutes: x.min, price_cents: Math.round(x.price * 100), uses_member_service: false }; at += x.min; return it; });
-    const total = items.reduce((a, x) => a + x.price_cents, 0);
+    const items = b.sel.map((k, i) => { const x = svcByKey(k), it = { service_id: SVC_ID[k], position: i + 1, starts_at: zonedToUtc(dateStr, at, l.tz), minutes: x.min, price_cents: Math.round(x.price * 100), uses_member_service: !!(S.member && x.incl) }; at += x.min; return it; });
+    const total = items.reduce((a, x) => a + (x.uses_member_service ? 0 : x.price_cents), 0);
     let created = null;
     try {
       const rows = await C.rest('bookings', { method: 'POST', prefer: 'return=representation',
-        body: { client_id: S.user.id, spa_id: l.uuid, starts_at: items[0].starts_at, repeat: b.repeat, pay_method: 'card', status: 'booked', deposit_cents: 0, balance_cents: total } });
+        body: { client_id: S.user.id, spa_id: l.uuid, starts_at: items[0].starts_at, repeat: b.repeat, pay_method: S.member ? 'member' : 'card', status: 'booked', deposit_cents: 0, balance_cents: total } });
       created = rows[0];
       await C.rest('booking_items', { method: 'POST', prefer: 'return=minimal', body: items.map(it => Object.assign({ booking_id: created.id }, it)) });
       await loadMyBookings();
@@ -481,7 +488,14 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     try { await C.verifyLink(); } catch (_) {}
     if (C.linkError) toast(C.linkError);
     if (C.signedIn) {
-      try { S.user = profileToUser(await C.loadProfile()); if (S.user) await loadMyBookings(); } catch (e) { console.warn('[RKVR] account not loaded', e); }
+      try { S.user = profileToUser(await C.loadProfile()); if (S.user) { await loadMyBookings(); await loadMember(); } } catch (e) { console.warn('[RKVR] account not loaded', e); }
+      if (S.user && /[?&]joined=1/.test(location.search)) {
+        try { history.replaceState(null, '', location.pathname + location.hash); } catch (_) {}
+        S.cart = S.cart.filter(x => x !== CART_MEMBER); save(); ui.view = 'account'; ui.acct = 'membership';
+        toast('Welcome to RKVR Unlimited. Your membership is starting…');
+        for (let i = 0; i < 6 && !S.member; i++) { await new Promise(r => setTimeout(r, 2000)); await loadMember(); }
+        if (S.member) toast('You’re a member. Founding rate locked in.');
+      }
     }
     if (C.linkType && S.user) {
       const ret = C.takeReturn();
@@ -685,10 +699,10 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     return `<section class="band"><div class="wrap">${stepper}<div class="book"><div style="min-width:0">${body}</div>${b.step > 0 ? bkSummary() : ''}</div></div></section>`;
   }
   function prepaidCovers(sel) { const pool = (S.prepaid || []).map(x => x.name); return sel.length > 0 && sel.every(k => { const n = svcByKey(k).name, i = pool.indexOf(n); if (i < 0) return false; pool.splice(i, 1); return true; }); }
-  function bkPay() { if (LIVE) return 'card'; const b = ui.bk; if (b.pay && !(b.pay === 'prepaid' && !prepaidCovers(b.sel))) return b.pay; if (prepaidCovers(b.sel)) return 'prepaid'; if (S.member) return 'member'; return 'card'; }
+  function bkPay() { if (LIVE) return S.member ? 'member' : 'card'; const b = ui.bk; if (b.pay && !(b.pay === 'prepaid' && !prepaidCovers(b.sel))) return b.pay; if (prepaidCovers(b.sel)) return 'prepaid'; if (S.member) return 'member'; return 'card'; }
   function payChoice(d) {
-    if (LIVE) { const tot = ui.bk.sel.reduce((a, k) => a + svcByKey(k).price, 0);
-      return `<h3 style="margin-top:22px">How to pay</h3><div class="kv"><span>Pay at your visit</span><b>${money(tot)}</b></div><p class="note">Online payment and the ${PLAN.name} open soon. For now, nothing is charged when you book.</p>`; }
+    if (LIVE) { const tot = S.member ? memberExtra(ui.bk.sel) : ui.bk.sel.reduce((a, k) => a + svcByKey(k).price, 0);
+      return `<h3 style="margin-top:22px">How to pay</h3><div class="kv"><span>${S.member ? (tot ? 'Covered by membership, plus at your visit' : 'Covered by your membership') : 'Pay at your visit'}</span><b>${money(tot)}</b></div><p class="note">${S.member ? 'Recovery services are included in RKVR Unlimited.' : 'Nothing is charged when you book. Members get unlimited recovery for $' + PLAN.founding + '/month.'}</p>`; }
     const b = ui.bk, extra = memberExtra(b.sel), ok = true, pay = bkPay();
     const total = b.sel.reduce((a, k) => a + svcByKey(k).price, 0);
     return `<h3 style="margin-top:22px">How to pay</h3><div style="display:grid;gap:8px;margin-top:8px">
@@ -727,7 +741,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       <div class="success"><p class="eyebrow" style="color:var(--accent)">Booked</p><p class="display" style="margin-top:10px">${DOW[d.getDay()]}, ${MON[d.getMonth()]} ${d.getDate()}<br>${v.time}</p>
         <p style="margin-top:12px">${esc(visitTitle(v))}</p><p style="margin-top:4px">RKVR ${l.name} · ${esc(l.address)}</p>
         ${v.repeat !== 'once' ? `<p style="margin-top:6px;font-weight:700">Repeats every ${v.repeat === 'weekly' ? 'week' : 'month'}</p>` : ''}
-        <p style="margin-top:6px">${LIVE ? 'Pay at your visit · ' + money(visitPrice(v)) : v.pay === 'prepaid' ? 'Prepaid · nothing due at your visit' : v.pay === 'member' ? 'Covered by your unlimited membership' + (memberExtra(v.svcs) ? ' · ' + money(memberExtra(v.svcs)) + ' at your visit for the rest' : '') : '$' + DEPOSIT + ' deposit · ' + money(Math.max(0, visitPrice(v) - DEPOSIT)) + ' at your visit'}</p></div>
+        <p style="margin-top:6px">${LIVE ? (v.pay === 'member' ? 'Covered by your unlimited membership' + (memberExtra(v.svcs) ? ' · ' + money(memberExtra(v.svcs)) + ' at your visit for the rest' : '') : 'Pay at your visit · ' + money(visitPrice(v))) : v.pay === 'prepaid' ? 'Prepaid · nothing due at your visit' : v.pay === 'member' ? 'Covered by your unlimited membership' + (memberExtra(v.svcs) ? ' · ' + money(memberExtra(v.svcs)) + ' at your visit for the rest' : '') : '$' + DEPOSIT + ' deposit · ' + money(Math.max(0, visitPrice(v) - DEPOSIT)) + ' at your visit'}</p></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="btn btn-primary" data-ics="${v.id}">Add to my calendar</button><button class="btn" data-go="account" data-acct="calendar">See my calendar</button><button class="btn" id="bk-again">Book something else</button></div>
       <p class="note" id="ics-note" style="margin-top:10px">${S.user && S.user.sms ? 'We’ll text a reminder the day before.' : ''}</p>
     </div></section>`;
@@ -802,7 +816,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     return `<section class="band"><div class="wrap" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px">
       <div><p class="eyebrow">Join RKVR</p><h2 class="display" style="font-size:clamp(44px,6vw,72px);margin-top:10px">Make an account</h2>
         <p class="muted" style="margin-top:12px;max-width:44ch">Book and manage visits and see your calendar, on the website or in the app. No password: we email you a link each time you sign in.</p>
-        <div class="notice" style="margin-top:18px"><b>Membership is coming: $${PLAN.founding}/month for unlimited recovery.</b> Online checkout for the membership opens soon. Make a free account now and book à la carte.</div>
+        <div class="notice" style="margin-top:18px"><b>Join RKVR Unlimited: $${PLAN.founding}/month for unlimited recovery.</b> Make your account, then add the membership to your cart and check out. Or book à la carte.</div>
         <div class="card" style="margin-top:22px"><h3>Already have an account?</h3>
           <form id="signin-form" style="display:grid;gap:10px"><div class="field"><label for="s-email">Email</label><input class="input" id="s-email" type="email" required autocomplete="email"></div>
           <button class="btn" type="submit">Email me a sign-in link</button></form></div></div>
@@ -918,8 +932,8 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     const used = memberUsed(TODAY.getFullYear(), TODAY.getMonth());
     return `<div class="grid g2" style="align-items:start"><div class="card"><p class="eyebrow">${MONTHS[TODAY.getMonth()]}</p><h3 class="display" style="font-size:56px">Unlimited</h3>
         <p class="muted small">${used} ${used === 1 ? 'service' : 'services'} used or booked this month. Recovery services are covered as often as you like.</p><button class="btn btn-primary" style="align-self:flex-start" data-go="book">Book with membership</button></div>
-      <div class="card"><h3>${PLAN.name}</h3><div class="kv"><span>Rate</span><span>${rateLine()}</span></div><div class="kv"><span>Member since</span><span>${esc(S.member.since)}</span></div><div class="kv"><span>Next charge</span><span>$${S.member.rate} on ${esc(S.member.renews)}</span></div><div class="kv"><span>Pays with</span><span>Visa ···· 4242</span></div>
-        <p class="note">Cancelling ends the founding rate; rejoining later is $${PLAN.price} a month.</p><button class="btn btn-sm" style="align-self:flex-start" id="cancel-member">Cancel membership</button></div></div>`;
+      <div class="card"><h3>${PLAN.name}</h3><div class="kv"><span>Rate</span><span>${rateLine()}</span></div>${S.member.since ? `<div class="kv"><span>Member since</span><span>${esc(S.member.since)}</span></div>` : ''}<div class="kv"><span>Next charge</span><span>$${S.member.rate}${S.member.renews ? ' on ' + esc(S.member.renews) : ''}</span></div><div class="kv"><span>Pays with</span><span>${LIVE ? 'Card on file with Stripe' : 'Visa ···· 4242'}</span></div>
+        <p class="note">Cancelling ends the founding rate; rejoining later is $${PLAN.price} a month.</p><button class="btn btn-sm" style="align-self:flex-start" id="cancel-member">${LIVE ? 'Update card or cancel' : 'Cancel membership'}</button></div></div>`;
   }
   function aSettings() {
     const u = S.user;
@@ -954,7 +968,19 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       if (t.id === 'link-again') { ui.linkSent = null; render(); return; }
       if (t.id === 'sign-out') { C.signOut().then(() => { S.user = null; S.bookings = []; save(); go('home'); toast('Signed out'); }); return; }
       if (d.cancel) { C.rpc('cancel_booking', { booking: d.cancel }).then(loadMyBookings).then(() => { Object.keys(busy).forEach(k => delete busy[k]); render(); toast('Cancelled.'); }, err => toast('Couldn’t cancel: ' + err.message)); return; }
-      if (t.id === 'checkout' && S.user) { toast('Online checkout opens soon. Your cart is saved on this device.'); return; }
+      if (t.id === 'checkout' && S.user) {
+        if (!S.cart.includes(CART_MEMBER)) { toast('Online checkout for services and products opens soon. Your cart is saved on this device.'); return; }
+        if (S.member) { S.cart = S.cart.filter(x => x !== CART_MEMBER); save(); render(); toast('You’re already a member.'); return; }
+        t.disabled = true; t.textContent = 'Opening secure checkout…';
+        C.callFn('membership-checkout', { return_url: location.origin + location.pathname + '#account' })
+          .then(r => { location.href = r.url; }, err => { t.disabled = false; t.textContent = 'Check out'; if (err.code === 'already_member') { S.cart = S.cart.filter(x => x !== CART_MEMBER); save(); loadMember().then(render); } toast(err.message); });
+        return;
+      }
+      if (t.id === 'cancel-member') {
+        t.disabled = true;
+        C.callFn('billing-portal', { return_url: location.origin + location.pathname + '#account' }).then(r => { location.href = r.url; }, err => { t.disabled = false; toast(err.message); });
+        return;
+      }
       if (d.plan === 'member') { if (!S.cart.includes(CART_MEMBER)) S.cart = S.cart.concat([CART_MEMBER]); save(); ui.drawer = 'cart'; render(); return; }
     }
     if (d.close !== undefined) { ui.drawer = null; render(); return; }

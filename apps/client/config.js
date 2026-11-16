@@ -6,5 +6,7 @@ window.RKVR_CONFIG = {
   supabaseUrl: 'https://inoyndkciffwqquhvsid.supabase.co',
   supabaseKey: 'sb_publishable_HMFhcC_cEnGT2yeh1bfU6Q_YWZDLsoD',
   sessionKey: 'rkvr-app-session',
-  siteUrl: 'https://rkvr.netlify.app'
+  siteUrl: 'https://rkvr.netlify.app',
+  // Stripe checkout runs on the website's server functions
+  functionsUrl: 'https://rkvr.netlify.app/.netlify/functions'
 };

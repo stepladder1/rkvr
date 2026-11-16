@@ -1,3 +1,8 @@
 # Used when a Netlify site has its base directory set to apps/website.
 [build]
   publish = "."
+
+# Server code for Stripe (secrets live in Netlify environment variables, never in the repo)
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

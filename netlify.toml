@@ -2,3 +2,8 @@
 # that site is the public website.
 [build]
   publish = "apps/website"
+
+# Server code for Stripe (secrets live in Netlify environment variables, never in the repo)
+[functions]
+  directory = "apps/website/netlify/functions"
+  node_bundler = "esbuild"

@@ -5,5 +5,6 @@
 window.RKVR_CONFIG = {
   supabaseUrl: 'https://inoyndkciffwqquhvsid.supabase.co',
   supabaseKey: 'sb_publishable_HMFhcC_cEnGT2yeh1bfU6Q_YWZDLsoD',
-  sessionKey: 'rkvr-session'
+  sessionKey: 'rkvr-session',
+  functionsUrl: '/.netlify/functions'
 };
