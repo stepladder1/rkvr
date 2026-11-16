@@ -78,6 +78,15 @@
       try { save(withExpiry(await authCall('verify', { type: l.type === 'email' ? 'magiclink' : l.type, token_hash: l.token_hash }))); linkType = l.type; }
       catch (e) { if (session && await token()) return; throw new Error('That link has already been used or has expired. Enter your email for a new one.'); }
     },
+    // RKVR's server functions (Stripe checkout) on the website, called as the signed-in staff member
+    async callFn(name, body) {
+      const t = await token();
+      if (!t) { const e = new Error('Please sign in again.'); e.status = 401; throw e; }
+      const res = await fetch((cfg.functionsUrl || 'https://rkvr.netlify.app/.netlify/functions').replace(/\/$/, '') + '/' + name, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify(body || {}) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { const e = new Error(data.error || 'Something went wrong. Try again.'); e.status = res.status; e.code = data.code; throw e; }
+      return data;
+    },
     async signIn(email, password) { save(withExpiry(await authCall('token?grant_type=password', { email, password }))); return loadProfile(); },
     async sendLink(email) { await authCall('otp?redirect_to=' + encodeURIComponent(location.origin + location.pathname), { email, create_user: false }); },
     async signOut() {

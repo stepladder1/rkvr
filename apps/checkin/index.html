@@ -150,7 +150,7 @@ h1, h2, p { margin: 0; }
   const ROOM = { cryo: 'Cryo Chamber', red: 'Red Light Bed', comp: 'Compression', chair: 'Massage Chair', iv: 'IV Lounge', wl: 'Consult Room', tw: 'Consult Room' };
 
   /* ---------------- state ---------------- */
-  const freshClient = () => ({ step: 'start', path: null, digits: '', err: '', agree: false, signed: false, sel: [], pay: 'alacarte', found: null, name: '', phone: '', busy: false });
+  const freshClient = () => ({ step: 'start', path: null, digits: '', err: '', agree: false, signed: false, sel: [], pay: 'alacarte', found: null, name: '', phone: '', email: '', busy: false, visitId: null, due: 0, paidOnline: false, joinedOnline: false });
   const S = {
     gate: 'loading', gateMsg: '', gateBad: false,
     mode: 'pro', pin: null, pinMode: 'check', pinNext: null,
@@ -231,6 +231,36 @@ h1, h2, p { margin: 0; }
     finally { S.busy = false; }
   }
 
+  /* ---------------- Stripe (pay or join on this iPad) ---------------- */
+  const RETURN_KEY = 'rkvr-desk-return';
+  // Sends the iPad to Stripe's secure page. `done` and `cancel` say what to show when it comes back.
+  async function goStripe(fn, args, done, cancel, btn) {
+    if (btn) { btn.disabled = true; btn.textContent = 'Opening secure checkout…'; }
+    try {
+      const r = await C.callFn(fn, Object.assign({ return_url: location.origin + location.pathname }, args));
+      try { sessionStorage.setItem(RETURN_KEY, JSON.stringify({ done, cancel, spa: S.spa.slug })); } catch (_) {}
+      location.href = r.url;
+      return true;
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || 'Try again'; }
+      toast(e.code === 'paid' ? 'That visit is already paid.' : e.message);
+      return false;
+    }
+  }
+  function restoreReturn() {
+    let m = null; try { m = JSON.parse(sessionStorage.getItem(RETURN_KEY) || 'null'); sessionStorage.removeItem(RETURN_KEY); } catch (_) {}
+    const q = new URLSearchParams(location.search), ok = q.has('paid') || q.has('joined');
+    if (q.has('paid') || q.has('joined')) { try { history.replaceState(null, '', location.pathname); } catch (_) {} }
+    if (!m) return;
+    const st = ok ? m.done : m.cancel;
+    if (!st) return;
+    S.mode = st.mode || 'pro';
+    if (st.c) S.c = Object.assign(freshClient(), st.c);
+    if (st.sel) S.pro.sel = st.sel;
+    if (st.toast) toast(ok ? st.toast : 'Payment cancelled. Nothing was charged.');
+    else if (!ok) toast('Nothing was charged.');
+  }
+
   /* ---------------- gate ---------------- */
   function renderGate() {
     const left = `<div style="display:flex;flex-direction:column;gap:20px">${LOGO}<span class="eyebrow">Front desk</span><h1 class="disp" style="font-size:96px;line-height:.9">RKVR<br>Check-In.</h1><p class="lede" style="max-width:28ch">For RKVR spa staff. Sign in once on this iPad and it stays signed in.</p></div>`;
@@ -261,6 +291,8 @@ h1, h2, p { margin: 0; }
     S.spa = S.spas.find(s => s.slug === saved) || S.spas[0];
     try { S.pin = localStorage.getItem(PIN_KEY); } catch (_) {}
     S.gate = null; S.gateMsg = '';
+    render();
+    restoreReturn();
     render();
     await loadSpa(); startPolling();
   }
@@ -318,7 +350,7 @@ h1, h2, p { margin: 0; }
     let label, title, detail, big;
     if (v.pay === 'member') { label = 'Unlimited member'; title = due ? 'Membership + ' + money(due) + ' extra' : 'Covered by membership'; detail = due ? 'Not every service is included' : 'Would be ' + money(list) + ' à la carte'; }
     else if (v.pay === 'join') { label = 'New unlimited member · joined today'; title = 'Start their membership at the desk'; detail = money(MONTHLY()) + '/mo founding rate'; }
-    else { label = 'À la carte'; title = v.paid ? 'Paid in full' : 'Collect at checkout'; detail = v.paid ? 'Marked paid' : 'Card reader at the desk'; }
+    else { label = 'À la carte'; title = v.paid ? 'Paid in full' : 'Collect at checkout'; detail = v.paid ? 'Paid' : 'Card on this iPad, or at the desk'; }
     big = v.paid ? '$0' : money(due);
     const labels = { booked: 'Check in', checked_in: 'Send to room', in_room: due && !v.paid ? 'Check out · collected ' + money(due) : 'Check out', done: 'Visit complete', no_show: 'No-show' };
     const disabled = needsWaiver(v) || v.status === 'done' || v.status === 'no_show';
@@ -330,6 +362,7 @@ h1, h2, p { margin: 0; }
       ${v.note ? `<div class="note">${esc(v.note)}</div>` : ''}
       ${needsWaiver(v) ? `<div class="warn"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-size:14px">Waiver not signed</b><span style="color:var(--soft);font-size:12.5px">Turn the iPad so they can sign, or mark it if they signed on paper.</span></span><button class="btn" data-a="markWaiver">Mark signed</button></div>` : ''}
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto">
+        ${due && !v.paid && /booked|checked_in|in_room/.test(v.status) && !needsWaiver(v) ? `<button class="btn big" data-a="payCard" data-label="Take card payment on this iPad · ${money(due)}" style="border-color:var(--ice);color:var(--ice)">Take card payment on this iPad · ${money(due)}</button>` : ''}
         <button class="btn big ${disabled ? 'off' : 'pri'}" data-a="advance" ${disabled ? 'disabled' : ''}>${needsWaiver(v) ? 'Waiting on waiver' : labels[v.status] || 'Check in'}</button>
         <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">${v.status === 'booked' && !v.walk_in ? `<button class="btn" data-a="noShow">Mark no-show</button>` : `<button class="btn" data-a="soon">Add a service</button>`}<button class="btn" data-a="${v.pay === 'alacarte' ? 'offer' : 'soon'}">${v.pay === 'alacarte' ? 'Offer membership' : 'View member'}</button></div>
       </div></aside>`;
@@ -337,13 +370,14 @@ h1, h2, p { margin: 0; }
   function walkPanel() {
     const P = S.pro, n = P.wiSel.length, its = asItems(P.wiSel), due = dueOf(P.wiPay, its);
     const summary = !n ? 'Pick a service' : P.wiPay === 'alacarte' ? n + (n === 1 ? ' service' : ' services') + ' · collect at the desk' : P.wiPay === 'join' ? 'Start membership at the desk' + (due ? ' + ' + money(due) + ' extra' : '') : due ? money(due) + ' for services not included' : 'Covered by membership';
-    const cta = !n ? 'Pick a service' : P.wiPay === 'alacarte' ? 'Check in · ' + money(due) + ' due' : P.wiPay === 'join' ? 'Check in new member' : 'Check in member';
+    const cta = !n ? 'Pick a service' : P.wiPay === 'alacarte' ? 'Check in · ' + money(due) + ' due' : P.wiPay === 'join' ? 'Check in and take membership payment' : 'Check in member';
     return `<aside class="box side" aria-label="New walk-in">
       <div style="display:flex;justify-content:space-between;align-items:baseline"><div style="display:flex;flex-direction:column;gap:4px"><span class="eyebrow">New walk-in</span><h2 class="disp" style="font-size:30px">Pick up to ${MAX}</h2></div><button class="link" data-a="closeWalk">Cancel</button></div>
       <div class="seg" role="group" aria-label="How they pay">${[['alacarte', 'À la carte'], ['member', 'Member'], ['join', 'Join · ' + money(MONTHLY())]].map(p => `<button class="${P.wiPay === p[0] ? 'on' : ''}" aria-pressed="${P.wiPay === p[0]}" data-a="wiPay" data-id="${p[0]}">${p[1]}</button>`).join('')}</div>
       <div style="display:grid;grid-template-columns:${P.wiPay === 'member' ? '1fr' : '1fr 1fr'};gap:8px">
         ${P.wiPay === 'member' ? '' : `<label class="mini">Name<input id="wiName" type="text" autocomplete="off" value="${esc(P.wiName)}" placeholder="First and last"></label>`}
         <label class="mini">${P.wiPay === 'member' ? 'Member’s mobile' : 'Mobile (optional)'}<input id="wiPhone" type="tel" inputmode="tel" autocomplete="off" value="${esc(P.wiPhone)}" placeholder="(619) 555-0142"></label>
+        ${P.wiPay === 'join' ? `<label class="mini" style="grid-column:1/-1">Email (their membership account)<input id="wiEmail" type="email" autocomplete="off" value="${esc(P.wiEmail || '')}" placeholder="name@example.com"></label>` : ''}
       </div>
       <div style="flex:1;min-height:0;overflow-y:auto;border-top:1px solid var(--line)">${S.svcs.map(s => { const i = P.wiSel.indexOf(s.id), on = i >= 0, full = !on && n >= MAX; return `<button class="pick" data-a="wiToggle" data-id="${s.id}" aria-pressed="${on}" ${full ? 'disabled' : ''}><span class="cb ${on ? 'on' : ''}">${on ? i + 1 : ''}</span><span style="display:flex;flex-direction:column;gap:1px"><b style="font-size:14px;font-weight:600">${esc(s.name)} · ${s.minutes} min</b><span class="muted" style="font-size:12px">${ROOM[s.category] || ''}</span></span><b style="font-size:14px">${covers(P.wiPay, s) ? 'Included' : money(s.price_cents)}</b></button>`; }).join('')}</div>
       <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:13px">${summary}</span><span class="disp" style="font-size:28px">${money(P.wiPay === 'join' ? MONTHLY() + due : due)}</span></div>
@@ -354,14 +388,15 @@ h1, h2, p { margin: 0; }
   function stepsFor(c) {
     let o = [];
     if (c.path === 'booking') o = c.found && !c.found.waiver ? [['phone', 'Find booking'], ['confirm', 'Confirm'], ['details', 'Waiver'], ['done', 'Done']] : [['phone', 'Find booking'], ['confirm', 'Confirm'], ['done', 'Done']];
-    else if (c.path === 'walkin') o = c.pay === 'member' ? [['services', 'Services'], ['pay', 'Pay'], ['phone', 'Member'], ['done', 'Done']] : [['services', 'Services'], ['pay', 'Pay'], ['details', 'Details'], ['done', 'Done']];
-    else if (c.path === 'join') o = [['join', 'Membership'], ['done', 'Done']];
+    else if (c.path === 'walkin') o = c.pay === 'member' ? [['services', 'Services'], ['pay', 'Pay'], ['phone', 'Member'], ['done', 'Done']] : c.pay === 'join' ? [['services', 'Services'], ['pay', 'Pay'], ['details', 'Details'], ['card', 'Join'], ['done', 'Done']] : [['services', 'Services'], ['pay', 'Pay'], ['details', 'Details'], ['card', 'Payment'], ['done', 'Done']];
+    else if (c.path === 'join') o = [['join', 'Membership'], ['joinform', 'Details'], ['done', 'Done']];
+    if (c.path === 'booking' && c.step === 'card') o = o.slice(0, -1).concat([['card', 'Payment'], ['done', 'Done']]);
     const idx = o.map(x => x[0]).indexOf(c.step);
     return o.map((x, i) => `<li class="${i === idx ? 'on' : i < idx ? 'done' : ''}">${i + 1} · ${x[1]}</li>`).join('');
   }
   function renderClient() {
     const c = S.c;
-    const body = { start: cStart, phone: cPhone, confirm: cConfirm, services: cServices, pay: cPay, details: cDetails, done: cDone, join: cJoin }[c.step]();
+    const body = { start: cStart, phone: cPhone, confirm: cConfirm, services: cServices, pay: cPay, details: cDetails, done: cDone, join: cJoin, joinform: cJoinForm, card: cCard }[c.step]();
     return `<div class="client">
       <div class="ctop">${LOGO}<ol class="steps" aria-label="Check-in steps">${stepsFor(c)}</ol>
         <button class="btn" data-a="toPro" aria-label="Back to Pro view, staff PIN required" style="color:var(--muted)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="1"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Pro</button></div>
@@ -423,15 +458,15 @@ h1, h2, p { margin: 0; }
       <div style="display:flex;justify-content:flex-end"><button class="cta" style="padding:0 40px;height:72px" data-a="cPayNext">${cta}</button></div></div>`;
   }
   function cDetails() {
-    const c = S.c, booking = c.path === 'booking', ok = c.agree && c.signed && (booking || c.name) && !c.busy;
+    const c = S.c, booking = c.path === 'booking', ok = c.agree && c.signed && (booking || (c.name && (c.pay !== 'join' || /@/.test(c.email)))) && !c.busy;
     return `<div class="two" style="gap:48px">
       <div class="col"><h1 class="h1" style="font-size:60px">${booking ? 'One quick form' : 'A few details'}</h1>
-        ${booking ? '<p class="lede" style="font-size:19px">You only sign this before your first visit.</p>' : `<label class="field">Full name<input id="dName" type="text" autocomplete="name" placeholder="First and last name" value="${esc(c.name)}"></label><label class="field">Mobile<input id="dPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(619) 555-0100" value="${esc(c.phone)}"></label>`}
+        ${booking ? '<p class="lede" style="font-size:19px">You only sign this before your first visit.</p>' : `<label class="field">Full name<input id="dName" type="text" autocomplete="name" placeholder="First and last name" value="${esc(c.name)}"></label>${c.pay === 'join' ? `<label class="field">Email (for your membership receipts)<input id="dEmail" type="email" autocomplete="email" placeholder="you@example.com" value="${esc(c.email)}"></label>` : ''}<label class="field">Mobile<input id="dPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(619) 555-0100" value="${esc(c.phone)}"></label>`}
         <div class="note" style="font-size:15px;line-height:1.5">[YOUR WAIVER SUMMARY: cold and heat exposure, health conditions to tell staff about, and stopping a service any time.]</div>
         <label style="display:flex;align-items:center;gap:14px;font-size:17px;min-height:48px"><input type="checkbox" id="dAgree" ${c.agree ? 'checked' : ''} style="width:28px;height:28px;accent-color:#F2542D"> I've read the waiver and agree to it.</label></div>
       <div class="col" style="gap:12px"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">Signature</b><button class="link" style="height:auto" data-a="cSigClear">Clear</button></div>
         <div class="sigwrap"><canvas id="sig" aria-label="Signature pad. Sign with your finger."></canvas><span class="ph" ${c.signed ? 'hidden' : ''}>Sign here with your finger</span></div>
-        <button class="cta" style="height:72px" data-a="cDetailsNext" ${ok ? '' : 'disabled'}>${c.busy ? 'One moment…' : booking ? 'Sign and check in' : 'Sign and check in'}</button>
+        <button class="cta" style="height:72px" data-a="cDetailsNext" ${ok ? '' : 'disabled'}>${c.busy ? 'One moment…' : c.pay === 'join' && !booking ? 'Sign and continue to payment' : 'Sign and check in'}</button>
         <button class="link" style="font-size:16px" data-a="cDetailsBack">Back</button></div></div>`;
   }
   function cJoin() {
@@ -441,11 +476,38 @@ h1, h2, p { margin: 0; }
         <p class="lede" style="font-size:20px;max-width:34ch">Unlimited recovery services, as often as you like. ${money(LATER())}/mo after the founding period. Cancel any time.</p>
         <div style="display:flex;gap:18px;align-items:center;margin-top:8px">${QR(132)}<span style="font-size:17px;line-height:1.45;color:var(--soft)">Scan with your phone camera to join online,<br>or ask the front desk to sign you up.</span></div></div>
       <div class="col" style="gap:14px"><div class="card" style="padding:8px 24px">${inc.map(s => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:12px 0;border-bottom:1px solid var(--line)"><span style="font-size:17px;font-weight:600">${esc(s.name)}</span><span style="display:flex;gap:12px;align-items:baseline"><s class="muted" style="font-size:15px">${money(s.price_cents)}</s><b style="color:var(--ice)">Unlimited</b></span></div>`).join('')}<p class="muted" style="padding:12px 0;font-size:14px;line-height:1.45">${extra.length ? esc(Array.from(new Set(extra.map(s => ({ iv: 'IV drips', wl: 'weight loss', tw: 'TeleWellness' }[s.category] || s.name)))).join(', ')) + ' are booked and paid per visit.' : 'Members pay nothing extra.'}</p></div>
-        <button class="cta" data-a="cJoinDesk">I’d like to join at the desk</button><button class="link" style="font-size:16px" data-a="cReset">Back</button></div></div>`;
+        <button class="cta" data-a="cJoinForm">Join now on this iPad</button><button class="ghost" data-a="cJoinDesk">I’d rather join at the desk</button><button class="link" style="font-size:16px" data-a="cReset">Back</button></div></div>`;
+  }
+  function cJoinForm() {
+    const c = S.c;
+    return `<div class="two">
+      <div class="col mid"><span class="eyebrow">RKVR Unlimited · ${money(MONTHLY())}/mo</span><h1 class="h1">Your details</h1><p class="lede">We’ll make your RKVR account so you can book and check in from your phone. Then you’ll pay securely with Stripe.</p>${c.err ? `<div class="err" role="alert">${esc(c.err)}</div>` : ''}</div>
+      <div class="col mid" style="gap:14px">
+        <label class="field">Full name<input id="jName" type="text" autocomplete="name" value="${esc(c.name)}"></label>
+        <label class="field">Email<input id="jEmail" type="email" autocomplete="email" value="${esc(c.email)}"></label>
+        <label class="field">Mobile<input id="jPhone" type="tel" inputmode="tel" autocomplete="tel" value="${esc(c.phone)}"></label>
+        <button class="cta" data-a="cJoinPay" data-label="Continue to secure payment">Continue to secure payment</button><button class="link" style="font-size:16px" data-a="cJoinBack">Back</button></div></div>`;
+  }
+  function cCard() {
+    const c = S.c;
+    const its = c.path === 'walkin' ? asItems(c.sel) : items(c.found || {});
+    return `<div class="two" style="align-items:center">
+      <div class="col"><span class="eyebrow">Due today</span><span class="disp" style="font-size:120px;line-height:.9">${money(c.due)}</span>
+        <div style="border-top:1px solid var(--line)">${its.filter(it => !covers(c.path === 'walkin' ? c.pay : (c.found || {}).pay, it)).map(it => `<div style="display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--line);font-size:17px"><span>${esc(it.name)}</span><b>${money(it.price_cents)}</b></div>`).join('')}</div></div>
+      <div class="col" style="gap:14px"><div class="card" style="padding:28px;display:flex;flex-direction:column;gap:12px;text-align:center;align-items:center">
+          <svg width="80" height="80" viewBox="0 0 48 48" fill="none" stroke="#F2542D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="12" width="36" height="24" rx="3"/><path d="M6 19h36M12 29h8"/></svg>
+          <span class="disp" style="font-size:36px">Pay by card</span><span class="muted" style="font-size:17px">Enter your card on this iPad. Apple Pay and Google Pay work too. Secure checkout by Stripe.</span></div>
+        <button class="cta" style="height:72px" data-a="cPayNow" data-label="Pay ${money(c.due)} now">Pay ${money(c.due)} now</button>
+        <button class="ghost" style="height:60px" data-a="cPayDesk">Pay at the front desk instead</button></div></div>`;
   }
   function cDone() {
     const c = S.c;
     const back = `<button class="ghost" style="padding:0 48px;height:64px" data-a="cReset">Done. Turn back to the desk</button>`;
+    if (c.path === 'join' && c.joinedOnline) {
+      return `<div class="done">${TICK}<h1 class="disp" style="font-size:88px;line-height:.9">Welcome to RKVR.</h1>
+        <p style="color:var(--soft);font-size:23px;max-width:680px;line-height:1.45">You’re an RKVR Unlimited member. Get the RKVR app to book and check in from your phone: sign in with the email you just used.</p>
+        <div class="band" style="max-width:780px;gap:24px"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-size:17px">Get the RKVR app</b><span style="font-size:15px;color:var(--soft)">Scan with your phone camera, then sign in with the same email.</span></span><img class="qr" src="qr-app.svg" width="92" height="92" alt="QR code to get the RKVR app"></div>${back}</div>`;
+    }
     if (c.path === 'join') {
       return `<div class="done">${TICK}<h1 class="disp" style="font-size:88px;line-height:.9">Great choice.</h1>
         <p style="color:var(--soft);font-size:23px;max-width:680px;line-height:1.45">Turn the iPad back to the front desk and we’ll start your unlimited membership at ${money(MONTHLY())} a month.</p>${back}</div>`;
@@ -454,8 +516,12 @@ h1, h2, p { margin: 0; }
     const f = its[0] || { name: 'your visit', category: '' };
     const pay = c.path === 'walkin' ? c.pay : c.found.pay;
     const due = dueOf(pay, its);
-    const fine = pay === 'join' ? 'Welcome to RKVR. The front desk will start your membership.' : due ? 'Your ' + money(due) + ' is due at the front desk.' : 'Covered by your unlimited membership.';
-    const upsell = pay === 'alacarte';
+    const fine = c.joinedOnline ? 'Welcome to RKVR Unlimited. Today’s recovery services are included.' + (due ? ' ' + money(due) + ' for the rest is due at the front desk.' : '')
+      : pay === 'join' ? 'Welcome to RKVR. The front desk will start your membership.'
+      : c.paidOnline ? 'Paid ' + money(c.due || due) + ' ✓ Your receipt is on its way by email.'
+      : (c.found && c.found.paid) ? 'Your visit is already paid.'
+      : due ? 'Your ' + money(due) + ' is due at the front desk.' : 'Covered by your unlimited membership.';
+    const upsell = pay === 'alacarte' && !c.joinedOnline;
     return `<div class="done">${TICK}
       <h1 class="disp" style="font-size:88px;line-height:.9">${c.path === 'walkin' ? 'You’re in.' : 'You’re checked in.'}</h1>
       <p style="color:var(--soft);font-size:23px;max-width:680px;line-height:1.45">First up: <b style="color:var(--accentText)">${esc(f.name)}</b>${ROOM[f.category] ? ' in the ' + ROOM[f.category] : ''}. A team member will meet you there.</p>
@@ -463,6 +529,13 @@ h1, h2, p { margin: 0; }
       ${!upsell ? `<div class="band" style="max-width:780px;gap:24px"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-size:17px">Next time, check in from your phone.</b><span style="font-size:15px;color:var(--soft)">Scan to get the RKVR app: book, check in and see your membership.</span></span><img class="qr" src="qr-app.svg" width="92" height="92" alt="QR code to get the RKVR app"></div>` : ''}
       ${upsell ? `<div class="band" style="max-width:780px;gap:24px"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-size:17px">Today is ${money(listPrice(its))} à la carte.</b><span style="font-size:15px;color:var(--soft)">Members get unlimited recovery for ${money(MONTHLY())} a month. Founding rate ends ${CUTOFF()}. Scan to join.</span></span>${QR(92)}</div>` : ''}
       ${back}</div>`;
+  }
+
+  function afterBookingCheckIn(vid) {
+    const c = S.c;
+    if (!vid) { render(); return; }
+    const v = c.found, due = v.paid ? 0 : dueOf(v.pay, items(v));
+    if (due > 0 && typeof vid === 'string') goC('card', { visitId: vid, due }); else goC('done');
   }
 
   /* ---------------- PIN ---------------- */
@@ -507,7 +580,7 @@ h1, h2, p { margin: 0; }
     cv.onpointermove = e => { if (!down) return; const [x, y] = pt(e); ctx.lineTo(x, y); ctx.stroke(); len++; };
     cv.onpointerup = () => { down = false; if (len > 8 && !S.c.signed) { S.c.signed = true; const ph = document.querySelector('.sigwrap .ph'); if (ph) ph.hidden = true; updateDetailsBtn(); } };
   }
-  function updateDetailsBtn() { const c = S.c, b = document.querySelector('[data-a="cDetailsNext"]'); if (b) b.disabled = !(c.agree && c.signed && (c.path === 'booking' || c.name) && !c.busy); }
+  function updateDetailsBtn() { const c = S.c, b = document.querySelector('[data-a="cDetailsNext"]'); if (b) b.disabled = !(c.agree && c.signed && (c.path === 'booking' || (c.name && (c.pay !== 'join' || /@/.test(c.email)))) && !c.busy); }
 
   /* ---------------- actions ---------------- */
   const sel = () => S.visits.find(x => x.key === S.pro.sel);
@@ -560,6 +633,12 @@ h1, h2, p { margin: 0; }
     },
     offer: () => { S.mode = 'client'; S.c = Object.assign(freshClient(), { step: 'join', path: 'join' }); if (!S.pin) { S.mode = 'pro'; openPin('set', () => { S.mode = 'client'; render(); }); return; } render(); },
     soon: () => toast('Coming soon'),
+    payCard: async (id, el) => {
+      const v = sel(); if (!v) return;
+      let vid = v.visit_id;
+      if (!vid) { vid = await act(() => C.rpc('desk_check_in', { p_booking: v.booking_id, p_source: 'desk' })); if (typeof vid !== 'string') return; }
+      await goStripe('visit-checkout', { visit_id: vid }, { mode: 'pro', sel: v.key, toast: 'Payment received ✓' }, { mode: 'pro', sel: v.key }, el);
+    },
     wiPay: id => { S.pro.wiPay = id; render(); },
     wiToggle: id => { const a = S.pro.wiSel, i = a.indexOf(id); if (i >= 0) a.splice(i, 1); else if (a.length < MAX) a.push(id); render(); },
     addWalk: async () => {
@@ -567,17 +646,33 @@ h1, h2, p { margin: 0; }
       const ph = (P.wiPhone || '').replace(/\D/g, '').slice(-10);
       if (P.wiPay === 'member' && ph.length !== 10) { toast('Enter the member’s 10-digit mobile number'); return; }
       if (P.wiPay !== 'member' && !P.wiName.trim()) { toast('Add their name'); return; }
+      if (P.wiPay === 'join' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(P.wiEmail || '')) { toast('Add their email for the membership'); return; }
       const r = await act(() => C.rpc('desk_walk_in', { spa_slug: S.spa.slug, p_services: P.wiSel, p_pay: P.wiPay, p_phone: ph || null, p_name: P.wiName.trim() || null, p_source: 'desk', p_waiver: false }));
       if (!r) return;
       if (r.error === 'no_member') { toast('No active membership for that number. Try à la carte or Join.'); return; }
       toast(r.name + ' is checked in');
-      S.pro = Object.assign(S.pro, { panel: 'client', sel: 'v:' + r.visit_id, wiSel: [], wiName: '', wiPhone: '' }); render();
+      const join = P.wiPay === 'join', who = { name: P.wiName.trim(), email: P.wiEmail, phone: ph };
+      S.pro = Object.assign(S.pro, { panel: 'client', sel: 'v:' + r.visit_id, wiSel: [], wiName: '', wiPhone: '', wiEmail: '' }); render();
+      if (join) await goStripe('membership-checkout', { for: Object.assign(who, { spa_id: S.spa.id, visit_id: r.visit_id }) }, { mode: 'pro', sel: 'v:' + r.visit_id, toast: 'Membership payment received. Welcome to RKVR!' }, { mode: 'pro', sel: 'v:' + r.visit_id });
     },
     key: k => { const c = S.c; if (k === 'Clear') c.digits = ''; else if (k === 'Delete') c.digits = c.digits.slice(0, -1); else if (c.digits.length < 10) c.digits += k; c.err = ''; render(); },
     cBooking: () => goC('phone', { path: 'booking', digits: '' }),
     cWalk: () => goC('services', { path: 'walkin', sel: [] }),
     cJoin: () => goC('join', { path: 'join' }),
     cJoinDesk: () => goC('done', { path: 'join' }),
+    cJoinForm: () => goC('joinform', { path: 'join' }),
+    cJoinBack: () => goC('join'),
+    cJoinPay: async (id, el) => {
+      const c = S.c;
+      if (!c.name.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.email)) { c.err = 'Add your name and a valid email.'; render(); return; }
+      await goStripe('membership-checkout', { for: { name: c.name.trim(), email: c.email, phone: c.phone, spa_id: S.spa.id } },
+        { mode: 'client', c: { path: 'join', step: 'done', joinedOnline: true } }, { mode: 'client', c: { path: 'join', step: 'joinform', name: c.name, email: c.email, phone: c.phone } }, el);
+    },
+    cPayNow: async (id, el) => {
+      const c = S.c, snap = JSON.parse(JSON.stringify(c));
+      await goStripe('visit-checkout', { visit_id: c.visitId }, { mode: 'client', c: Object.assign({}, snap, { step: 'done', paidOnline: true, busy: false }) }, { mode: 'client', c: Object.assign({}, snap, { step: 'card', busy: false }) }, el);
+    },
+    cPayDesk: () => goC('done'),
     cBack: () => { const c = S.c; goC(c.path === 'walkin' ? 'pay' : 'start'); },
     cReset: () => { S.c = freshClient(); render(); },
     cFind: async () => {
@@ -593,16 +688,16 @@ h1, h2, p { margin: 0; }
         c.busy = false;
         if (!r) { render(); return; }
         if (r.error === 'no_member') { c.err = 'We couldn’t find a membership for that number. Pay à la carte or join instead.'; render(); return; }
-        goC('done');
+        if (r.amount_cents > 0) goC('card', { visitId: r.visit_id, due: r.amount_cents }); else goC('done');
       }
     },
     cConfirm: async () => {
       const v = S.c.found;
       if (!v.waiver) { goC('details', { agree: false, signed: false }); return; }
       S.c.busy = true; render();
-      const ok = await act(() => C.rpc('desk_check_in', { p_booking: v.booking_id, p_source: 'kiosk' }));
+      const vid = await act(() => C.rpc('desk_check_in', { p_booking: v.booking_id, p_source: 'kiosk' }));
       S.c.busy = false;
-      if (ok) goC('done'); else render();
+      afterBookingCheckIn(vid);
     },
     cToggle: id => { const a = S.c.sel, i = a.indexOf(id); if (i >= 0) a.splice(i, 1); else if (a.length < MAX) a.push(id); render(); },
     cToPay: () => goC('pay'),
@@ -614,25 +709,41 @@ h1, h2, p { margin: 0; }
     cDetailsNext: async () => {
       const c = S.c; if (c.busy) return;
       c.busy = true; updateDetailsBtn();
-      let ok;
-      if (c.path === 'booking') ok = await act(() => C.rpc('desk_check_in', { p_booking: c.found.booking_id, p_source: 'kiosk', p_waiver: true }));
-      else ok = await act(() => C.rpc('desk_walk_in', { spa_slug: S.spa.slug, p_services: c.sel, p_pay: c.pay, p_phone: c.phone.replace(/\D/g, '').slice(-10) || null, p_name: c.name, p_source: 'kiosk', p_waiver: true }));
+      if (c.path === 'booking') {
+        const vid = await act(() => C.rpc('desk_check_in', { p_booking: c.found.booking_id, p_source: 'kiosk', p_waiver: true }));
+        c.busy = false; afterBookingCheckIn(vid); return;
+      }
+      const r = await act(() => C.rpc('desk_walk_in', { spa_slug: S.spa.slug, p_services: c.sel, p_pay: c.pay, p_phone: c.phone.replace(/\D/g, '').slice(-10) || null, p_name: c.name, p_source: 'kiosk', p_waiver: true }));
       c.busy = false;
-      if (ok) goC('done'); else render();
+      if (!r || r === true) { render(); return; }
+      if (c.pay === 'join') {
+        const snap = JSON.parse(JSON.stringify(c));
+        c.busy = true; updateDetailsBtn();
+        const ok = await goStripe('membership-checkout', { for: { name: c.name.trim(), email: c.email, phone: c.phone, spa_id: S.spa.id, visit_id: r.visit_id } },
+          { mode: 'client', c: Object.assign({}, snap, { step: 'done', joinedOnline: true, visitId: r.visit_id }) }, { mode: 'client', c: Object.assign({}, snap, { step: 'done', visitId: r.visit_id }) });
+        if (!ok) goC('done');
+        return;
+      }
+      if (r.amount_cents > 0) goC('card', { visitId: r.visit_id, due: r.amount_cents }); else goC('done');
     }
   };
 
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
-    const fn = A[b.dataset.a]; if (fn) { e.preventDefault(); fn(b.dataset.id); }
+    const fn = A[b.dataset.a]; if (fn) { e.preventDefault(); fn(b.dataset.id, b); }
   });
   document.addEventListener('input', e => {
     const id = e.target.id;
     if (id === 'q') { S.pro.q = e.target.value; focusSearch = true; render(); }
     else if (id === 'wiName') S.pro.wiName = e.target.value;
     else if (id === 'wiPhone') S.pro.wiPhone = e.target.value;
+    else if (id === 'wiEmail') S.pro.wiEmail = e.target.value.trim();
     else if (id === 'dName') { S.c.name = e.target.value.trim(); updateDetailsBtn(); }
     else if (id === 'dPhone') S.c.phone = e.target.value;
+    else if (id === 'dEmail') { S.c.email = e.target.value.trim(); updateDetailsBtn(); }
+    else if (id === 'jName') S.c.name = e.target.value;
+    else if (id === 'jEmail') S.c.email = e.target.value.trim();
+    else if (id === 'jPhone') S.c.phone = e.target.value;
   });
   document.addEventListener('change', e => {
     if (e.target.id === 'dAgree') { S.c.agree = e.target.checked; updateDetailsBtn(); }

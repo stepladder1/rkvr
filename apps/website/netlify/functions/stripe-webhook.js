@@ -25,6 +25,24 @@ async function syncSubscription(sub) {
   return 'membership ' + status;
 }
 
+// A visit paid by card (Stripe Checkout, mode=payment)
+async function markPaid(session) {
+  const m = session.metadata || {};
+  if (session.payment_status !== 'paid') return 'payment not finished yet';
+  const now = new Date().toISOString();
+  if (m.rkvr_kind === 'booking' && m.rkvr_id) {
+    await db('bookings?id=eq.' + m.rkvr_id, { method: 'PATCH', body: { paid_at: now, balance_cents: 0, stripe_payment_intent_id: session.payment_intent || null } });
+    // Already checked in today? Mark that visit paid too.
+    await db('visits?booking_id=eq.' + m.rkvr_id + '&paid_at=is.null', { method: 'PATCH', body: { paid_at: now, paid_how: 'online' } });
+    return 'booking paid';
+  }
+  if (m.rkvr_kind === 'visit' && m.rkvr_id) {
+    await db('visits?id=eq.' + m.rkvr_id, { method: 'PATCH', body: { paid_at: now, paid_how: 'online' } });
+    return 'visit paid';
+  }
+  return 'not an RKVR payment';
+}
+
 exports.handler = async event => {
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Use POST' };
   const raw = event.isBase64Encoded ? Buffer.from(event.body || '', 'base64').toString('utf8') : (event.body || '');
@@ -40,7 +58,9 @@ exports.handler = async event => {
   try {
     let note = 'ignored';
     const o = evt.data && evt.data.object;
-    if (evt.type === 'checkout.session.completed' && o.mode === 'subscription' && o.subscription) {
+    if ((evt.type === 'checkout.session.completed' || evt.type === 'checkout.session.async_payment_succeeded') && o.mode === 'payment') {
+      note = await markPaid(o);
+    } else if (evt.type === 'checkout.session.completed' && o.mode === 'subscription' && o.subscription) {
       note = await syncSubscription(await stripe('GET', 'subscriptions/' + o.subscription, null, as));
     } else if (/^customer\.subscription\.(created|updated|deleted|paused|resumed)$/.test(evt.type)) {
       note = await syncSubscription(o);

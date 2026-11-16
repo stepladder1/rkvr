@@ -4,5 +4,7 @@
 // Never put a secret or service_role key here.
 window.RKVR_CONFIG = {
   supabaseUrl: 'https://inoyndkciffwqquhvsid.supabase.co',
-  supabaseKey: 'sb_publishable_HMFhcC_cEnGT2yeh1bfU6Q_YWZDLsoD'
+  supabaseKey: 'sb_publishable_HMFhcC_cEnGT2yeh1bfU6Q_YWZDLsoD',
+  // Stripe checkout runs on the website's server functions
+  functionsUrl: 'https://rkvr.netlify.app/.netlify/functions'
 };

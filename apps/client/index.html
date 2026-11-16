@@ -163,7 +163,7 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
   }
   async function loadMine() {
     const [bookings, visits, mem] = await Promise.all([
-      C.rest('bookings?select=id,spa_id,starts_at,repeat,repeat_until,pay_method,status,booking_items(service_id,position,minutes,price_cents)&status=in.(booked,checked_in,completed)&order=starts_at'),
+      C.rest('bookings?select=id,spa_id,starts_at,repeat,repeat_until,pay_method,status,paid_at,booking_items(service_id,position,minutes,price_cents)&status=in.(booked,checked_in,completed)&order=starts_at'),
       C.rest('visits?select=id,spa_id,day,booking_id,status,pay,service_ids,checked_in_at&order=checked_in_at.desc&limit=50'),
       C.rpc('my_membership_summary').catch(() => [])
     ]);
@@ -187,6 +187,13 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
     try { await loadMine(); } catch (e) { toast('Couldn’t load your visits. Pull down to retry.'); }
     if (C.linkType) toast('Welcome, ' + firstName() + '. You’re signed in.');
     render();
+    const paidM = /[?&]paid=([^&#]+)/.exec(location.search);
+    if (paidM) {
+      try { history.replaceState(null, '', location.pathname); } catch (_) {}
+      S.tab = 'visits'; render(); toast('Payment received. See you soon!');
+      for (let i = 0; i < 6; i++) { await new Promise(r => setTimeout(r, 1500)); try { await loadMine(); } catch (_) {} if ((S.bookings.find(x => x.id === paidM[1]) || {}).paid_at) break; }
+      render();
+    }
     if (/[?&]joined=1/.test(location.search)) {
       try { history.replaceState(null, '', location.pathname); } catch (_) {}
       S.tab = 'member'; render(); toast('Welcome to RKVR Unlimited. Starting your membership…');
@@ -255,10 +262,12 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
     return `<div class="card ${o.today && !v ? 'hot' : ''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><span class="eyebrow">${o.today ? 'Today' : esc(fmtDay(o.date))} · ${fmtT(o.mins)}</span><h2 class="h2" style="margin-top:6px">RKVR ${esc(sp ? sp.name : '')}</h2></div>${status}</div>
       <div>${rows}</div>
-      <div class="kv"><span class="muted">${due ? 'Due at your visit' : 'Covered by your membership'}</span><b>${money(due)}</b></div>
+      <div class="kv"><span class="muted">${b.paid_at ? 'Paid' : due ? 'Due at your visit' : 'Covered by your membership'}</span><b>${b.paid_at ? '<span style="color:var(--ice)">Paid ✓</span>' : money(due)}</b></div>
+      ${!b.paid_at && due && b.repeat === 'once' && !(v && v.status === 'done') ? `<button class="btn big" data-a="payBooking" data-id="${b.id}">Pay ${money(due)} now</button>` : ''}
       ${big && o.today && !v ? `<button class="btn pri big" data-a="checkIn" data-id="${b.id}">I’m here. Check me in</button>` : ''}
       ${big && v && v.status === 'checked_in' ? `<div class="note">You’re checked in. First up: <b>${esc(its[0] ? its[0].name : '')}</b>${its[0] && ROOM[its[0].category] ? ' in the ' + ROOM[its[0].category] : ''}. A team member will meet you there.</div>` : ''}
-      ${!v ? `<button class="link" data-a="cancel" data-id="${b.id}">${b.repeat !== 'once' ? 'Cancel this repeating visit' : 'Cancel visit'}</button>` : ''}
+      ${!v && !b.paid_at ? `<button class="link" data-a="cancel" data-id="${b.id}">${b.repeat !== 'once' ? 'Cancel this repeating visit' : 'Cancel visit'}</button>` : ''}
+      ${!v && b.paid_at ? '<p class="muted small">Prepaid. To cancel and get a refund, call or message the spa.</p>' : ''}
     </div>`;
   }
   function vHome() {
@@ -319,8 +328,8 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
       <div class="card">${its.map((s, i) => { const t = at; at += s.minutes; return `<div class="row"><span class="n">${i + 1}</span><span><b>${esc(s.name)}</b><br><span class="muted small">${fmtT(t)} · ${s.minutes} min</span></span><b class="small">${covered(s) ? 'Included' : money(s.price_cents)}</b></div>`; }).join('')}
         <div class="kv"><span class="muted">${due ? 'Due at your visit' : 'Covered by your membership'}</span><b>${money(due)}</b></div></div>
       ${!isMember() && its.some(s => s.member_included) ? `<p class="note">Members get these for ${money(MONTHLY())}/mo, unlimited. <button class="link" data-tab="member" style="padding:0">See membership</button></p>` : ''}
-      <p class="muted small">Nothing is charged now. ${due ? 'You pay at the front desk.' : ''} Cancel any time in Visits.</p>
-      <div class="sticky-cta"><button class="btn pri big" data-a="bkConfirm" ${b.busy ? 'disabled' : ''}>${b.busy ? 'Booking…' : 'Book it'}</button><button class="link" data-a="bkBack">Back</button></div>`;
+      <p class="muted small">${due ? 'Pay now by card (secure checkout by Stripe), or pay at the front desk.' : 'Nothing to pay.'} ${due ? 'Prepaid visits are cancelled by the spa.' : 'Cancel any time in Visits.'}</p>
+      <div class="sticky-cta">${due ? `<button class="btn pri big" data-a="bkConfirm" data-id="pay" ${b.busy ? 'disabled' : ''}>${b.busy === 'pay' ? 'Opening secure checkout…' : 'Pay ' + money(due) + ' now and book'}</button><button class="btn big" data-a="bkConfirm" ${b.busy ? 'disabled' : ''}>${b.busy === true ? 'Booking…' : 'Book, pay at the spa'}</button>` : `<button class="btn pri big" data-a="bkConfirm" ${b.busy ? 'disabled' : ''}>${b.busy ? 'Booking…' : 'Book it'}</button>`}<button class="link" data-a="bkBack">Back</button></div>`;
   }
   function bkDone() {
     const b = S.bk.done;
@@ -427,9 +436,9 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
     slot: t => { S.bk.slot = +t; render(); },
     bkHome: () => { S.bk = { step: 1, spa: S.bk.spa, sel: [], day: 0, slot: null, done: null }; S.tab = 'home'; render(); window.scrollTo({ top: 0 }); },
     bkAgain: () => { S.bk = { step: 1, spa: S.bk.spa, sel: [], day: 0, slot: null, done: null }; render(); window.scrollTo({ top: 0 }); },
-    bkConfirm: async () => {
+    bkConfirm: async mode => {
       const b = S.bk, sp = bkSpa(), day = bkDays()[b.day], its = b.sel.map(svcById), mem = isMember();
-      b.busy = true; render();
+      b.busy = mode === 'pay' ? 'pay' : true; render();
       let at = b.slot; const items = its.map((s, i) => { const it = { service_id: s.id, position: i + 1, starts_at: zonedToUtc(day, at, sp.time_zone), minutes: s.minutes, price_cents: s.price_cents, uses_member_service: mem && s.member_included }; at += s.minutes; return it; });
       const due = its.reduce((a, s) => a + (mem && s.member_included ? 0 : s.price_cents), 0);
       let created = null;
@@ -439,6 +448,10 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
         await C.rest('booking_items', { method: 'POST', prefer: 'return=minimal', body: items.map(it => Object.assign({ booking_id: created.id }, it)) });
         delete S.busy[sp.slug + '|' + day];
         await loadMine();
+        if (mode === 'pay') {
+          try { const r = await C.callFn('visit-checkout', { booking_id: created.id, return_url: location.origin + location.pathname }); location.href = r.url; return; }
+          catch (e) { toast('Booked. Payment didn’t open: ' + e.message + ' You can pay from Visits or at the spa.'); }
+        }
         S.bk.done = { title: its.map(s => s.name).join(' + '), day, mins: b.slot, spa: sp.name };
       } catch (e) {
         if (created) { try { await C.rpc('cancel_booking', { booking: created.id }); } catch (_) {} }
@@ -455,6 +468,11 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
       el.disabled = true; el.textContent = 'Opening secure checkout…';
       try { const r = await C.callFn('membership-checkout', { return_url: location.origin + location.pathname }); location.href = r.url; }
       catch (e) { el.disabled = false; el.textContent = 'Join for ' + money(MONTHLY()) + '/mo'; toast(e.message); if (e.code === 'already_member') { await loadMine(); render(); } }
+    },
+    payBooking: async (id, el) => {
+      el.disabled = true; el.textContent = 'Opening secure checkout…';
+      try { const r = await C.callFn('visit-checkout', { booking_id: id, return_url: location.origin + location.pathname }); location.href = r.url; }
+      catch (e) { el.disabled = false; el.textContent = 'Pay now'; toast(e.message); if (e.code === 'paid') { await loadMine(); render(); } }
     },
     portal: async (id, el) => {
       el.disabled = true;

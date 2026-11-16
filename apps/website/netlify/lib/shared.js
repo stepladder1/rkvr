@@ -9,7 +9,7 @@ const crypto = require('crypto');
 
 const SUPABASE_URL = 'https://inoyndkciffwqquhvsid.supabase.co';
 const PUBLISHABLE = 'sb_publishable_HMFhcC_cEnGT2yeh1bfU6Q_YWZDLsoD';
-const ORIGINS = ['https://rkvr.netlify.app', 'https://rkvrclient.netlify.app', 'https://rkvr-wellness.com', 'https://www.rkvr-wellness.com'];
+const ORIGINS = ['https://rkvr.netlify.app', 'https://rkvrclient.netlify.app', 'https://rkvrcheckin.netlify.app', 'https://rkvrpro.netlify.app', 'https://rkvr-wellness.com', 'https://www.rkvr-wellness.com'];
 
 function cors(event) {
   const o = (event.headers && (event.headers.origin || event.headers.Origin)) || '';
@@ -76,7 +76,7 @@ async function caller(event) {
   const res = await fetch(SUPABASE_URL + '/auth/v1/user', { headers: { apikey: PUBLISHABLE, Authorization: 'Bearer ' + token } });
   if (!res.ok) { const e = new Error('Your sign-in has expired. Please sign in again.'); e.status = 401; throw e; }
   const u = await res.json();
-  const rows = await db('profiles?select=id,email,full_name,phone,home_spa_id,stripe_customer_id&id=eq.' + u.id);
+  const rows = await db('profiles?select=id,role,email,full_name,phone,home_spa_id,stripe_customer_id&id=eq.' + u.id);
   if (!rows || !rows[0]) { const e = new Error('We couldn’t find your RKVR account.'); e.status = 404; throw e; }
   return rows[0];
 }
@@ -91,8 +91,47 @@ function verifyStripe(rawBody, header, secret) {
   return parts.v1.some(sig => sig.length === expected.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected)));
 }
 
+// Is this person HQ staff, or the operator of this spa?
+async function isStaffFor(p, spaId) {
+  if (!p) return false;
+  if (p.role === 'hq_admin') return true;
+  if (p.role !== 'operator') return false;
+  const rows = await db('spas?select=id&id=eq.' + spaId + '&operator_id=eq.' + p.id);
+  return !!(rows && rows[0]);
+}
+
+// Finds a client by email, or makes their RKVR account (they can sign in later with an email link)
+async function findOrCreateClient({ email, name, phone, spaId }) {
+  email = String(email || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { const e = new Error('Enter a valid email address.'); e.status = 400; throw e; }
+  const sel = 'profiles?select=id,role,email,full_name,phone,home_spa_id,stripe_customer_id&email=ilike.' + encodeURIComponent(email);
+  let rows = await db(sel);
+  if (rows && rows[0]) return rows[0];
+  const key = need('SUPABASE_SECRET_KEY');
+  const headers = { apikey: key, 'Content-Type': 'application/json' };
+  if (key.startsWith('eyJ')) headers.Authorization = 'Bearer ' + key;
+  const spa = spaId ? await db('spas?select=slug&id=eq.' + spaId) : null;
+  const res = await fetch(SUPABASE_URL + '/auth/v1/admin/users', { method: 'POST', headers,
+    body: JSON.stringify({ email, email_confirm: true, user_metadata: { full_name: name || '', phone: phone || '', home_spa: spa && spa[0] ? spa[0].slug : '' } }) });
+  if (!res.ok) { const t = await res.text(); const e = new Error('Couldn’t create the account: ' + t.slice(0, 200)); e.status = 500; throw e; }
+  rows = await db(sel);
+  if (!rows || !rows[0]) { const e = new Error('The account was created but its profile is missing.'); e.status = 500; throw e; }
+  return rows[0];
+}
+
+// Stripe customer for a client, made once and saved on their profile
+async function customerFor(p) {
+  if (p.stripe_customer_id) return p.stripe_customer_id;
+  const c = await stripe('POST', 'customers', { email: p.email, name: p.full_name || undefined, phone: p.phone || undefined, metadata: { rkvr_client_id: p.id } });
+  await db('profiles?id=eq.' + p.id, { method: 'PATCH', body: { stripe_customer_id: c.id } });
+  p.stripe_customer_id = c.id;
+  return c.id;
+}
+
+function withParam(url, k, v) { const [base, hash] = url.split('#'); return base + (base.includes('?') ? '&' : '?') + k + '=' + encodeURIComponent(v) + (hash ? '#' + hash : ''); }
+
 function allowedReturn(url) {
   try { const u = new URL(url); return ORIGINS.includes(u.origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(u.origin); } catch (_) { return false; }
 }
 
-module.exports = { reply, stripe, db, caller, verifyStripe, need, allowedReturn, ORIGINS, RKVR_ACCOUNT };
+module.exports = { reply, stripe, db, caller, verifyStripe, need, allowedReturn, ORIGINS, RKVR_ACCOUNT, isStaffFor, findOrCreateClient, customerFor, withParam };

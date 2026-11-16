@@ -216,6 +216,8 @@ main { flex: 1; padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 96px)
     let saved = null; try { saved = localStorage.getItem(SPA_KEY); } catch (_) {}
     S.spa = S.spas.find(s => s.slug === saved) || S.spas[0];
     S.gate = null; render();
+    const q = new URLSearchParams(location.search);
+    if (q.has('paid') || q.has('joined')) { try { history.replaceState(null, '', location.pathname); } catch (_) {} toast(q.has('joined') ? 'Membership payment received. Welcome to RKVR!' : 'Payment received ✓'); }
     try { await loadSpa(); } catch (e) { toast('Couldn’t load everything: ' + e.message); }
     render();
     clearInterval(pollT); pollT = setInterval(tick, POLL);
@@ -260,17 +262,19 @@ main { flex: 1; padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 96px)
       <div class="paybox"><span><b class="small">${v.paid ? 'Paid' : due ? 'Collect at checkout' : 'Covered by membership'}</b></span><span class="disp" style="font-size:26px">${v.paid ? '$0' : money(due)}</span></div>
       ${v.note ? `<div class="note">${esc(v.note)}</div>` : ''}
       ${needsWaiver(v) ? `<div class="warn"><span><b class="small">Waiver not signed</b><br><span class="small" style="color:var(--soft)">They can sign on the desk iPad or in the RKVR app.</span></span><button class="btn" data-a="waiver">Mark signed</button></div>` : ''}
+      ${due && !v.paid && /booked|checked_in|in_room/.test(v.status) && !needsWaiver(v) ? `<button class="btn big" data-a="payCard" style="border-color:var(--ice);color:var(--ice)">Take card payment · ${money(due)}</button>` : ''}
       ${can ? `<button class="btn pri big" data-a="advance">${labels[v.status]}</button>` : ''}
       ${v.status === 'booked' && !v.walk_in ? `<button class="btn big" data-a="noShow">Mark no-show</button>` : ''}
       <button class="btn big" data-a="close">Close</button>`;
   }
   function sheetWalkin() {
     const W = S.wi, its = W.sel.map(svcById).filter(Boolean), due = dueOf(W.pay, its), n = its.length;
-    const cta = !n ? 'Pick a service' : W.pay === 'alacarte' ? 'Check in · ' + money(due) + ' due' : W.pay === 'join' ? 'Check in new member' : 'Check in member';
+    const cta = !n ? 'Pick a service' : W.pay === 'alacarte' ? 'Check in · ' + money(due) + ' due' : W.pay === 'join' ? 'Check in and take membership payment' : 'Check in member';
     return `<div style="display:flex;justify-content:space-between;align-items:baseline"><div><span class="eyebrow">New walk-in</span><h2 class="h1" style="font-size:34px">Pick up to ${MAX}</h2></div><button class="link" data-a="close">Cancel</button></div>
       <div class="seg" role="group" aria-label="How they pay">${[['alacarte', 'À la carte'], ['member', 'Member'], ['join', 'Join']].map(p => `<button class="${W.pay === p[0] ? 'on' : ''}" aria-pressed="${W.pay === p[0]}" data-a="wiPay" data-id="${p[0]}">${p[1]}</button>`).join('')}</div>
       ${W.pay === 'member' ? '' : `<label class="field">Name<input id="wiName" value="${esc(W.name)}" autocomplete="off" placeholder="First and last"></label>`}
       <label class="field">${W.pay === 'member' ? 'Member’s mobile' : 'Mobile (optional)'}<input id="wiPhone" type="tel" value="${esc(W.phone)}" autocomplete="off" placeholder="(619) 555-0142"></label>
+      ${W.pay === 'join' ? `<label class="field">Email (their membership account)<input id="wiEmail" type="email" value="${esc(W.email || '')}" autocomplete="off" placeholder="name@example.com"></label>` : ''}
       <div>${S.svcs.map(s => { const i = W.sel.indexOf(s.id), on = i >= 0; return `<button class="pick" data-a="wiToggle" data-id="${s.id}" aria-pressed="${on}" ${!on && n >= MAX ? 'disabled' : ''}><span class="cb ${on ? 'on' : ''}">${on ? i + 1 : ''}</span><span><b style="font-weight:600;font-size:15px">${esc(s.name)}</b><br><span class="muted small">${s.minutes} min</span></span><b class="small">${covers(W.pay, s) ? 'Included' : money(s.price_cents)}</b></button>`; }).join('')}</div>
       <button class="btn pri big" data-a="addWalk" ${n ? '' : 'disabled'}>${cta}</button>`;
   }
@@ -326,6 +330,13 @@ main { flex: 1; padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 96px)
       <button class="btn big" data-a="signOut">Sign out</button>`;
   }
 
+  // Stripe's secure page opens on this phone for the client to enter their card; it comes back here after
+  async function toStripe(fn, args, el) {
+    if (el) { el.disabled = true; el.textContent = 'Opening secure checkout…'; }
+    try { const r = await C.callFn(fn, Object.assign({ return_url: location.origin + location.pathname }, args)); location.href = r.url; }
+    catch (e) { if (el) { el.disabled = false; el.textContent = 'Try again'; } toast(e.code === 'paid' ? 'That visit is already paid.' : e.message); }
+  }
+
   /* ---------------- render + actions ---------------- */
   function render() { $('#root').innerHTML = S.gate ? renderGate() : renderApp(); }
   const cur = () => S.visits.find(x => x.key === (S.sheet && S.sheet.id));
@@ -343,10 +354,12 @@ main { flex: 1; padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 96px)
       const W = S.wi, ph = W.phone.replace(/\D/g, '').slice(-10);
       if (W.pay === 'member' && ph.length !== 10) { toast('Enter the member’s 10-digit mobile'); return; }
       if (W.pay !== 'member' && !W.name.trim()) { toast('Add their name'); return; }
+      if (W.pay === 'join' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(W.email || '')) { toast('Add their email for the membership'); return; }
       const r = await act(() => C.rpc('desk_walk_in', { spa_slug: S.spa.slug, p_services: W.sel, p_pay: W.pay, p_phone: ph || null, p_name: W.name.trim() || null, p_source: 'desk', p_waiver: false }));
       if (!r) return;
       if (r.error === 'no_member') { toast('No active membership for that number'); return; }
       toast(r.name + ' is checked in'); S.sheet = { type: 'visit', id: 'v:' + r.visit_id }; render();
+      if (W.pay === 'join') await toStripe('membership-checkout', { for: { name: W.name.trim(), email: W.email, phone: ph, spa_id: S.spa.id, visit_id: r.visit_id } });
     },
     waiver: async () => { const v = cur(); if (v) { await act(() => C.rpc('desk_waiver', { p_booking: v.booking_id }), 'Waiver marked signed'); render(); } },
     advance: async () => {
@@ -358,6 +371,12 @@ main { flex: 1; padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 96px)
       render();
     },
     noShow: async () => { const v = cur(); if (!v) return; await act(async () => { const id = await C.rpc('desk_check_in', { p_booking: v.booking_id, p_source: 'desk' }); await C.rpc('desk_move', { p_visit: id, p_status: 'no_show' }); }, 'Marked no-show'); S.sheet = null; render(); },
+    payCard: async (id, el) => {
+      const v = cur(); if (!v) return;
+      let vid = v.visit_id;
+      if (!vid) { vid = await act(() => C.rpc('desk_check_in', { p_booking: v.booking_id, p_source: 'desk' })); if (typeof vid !== 'string') return; }
+      await toStripe('visit-checkout', { visit_id: vid }, el);
+    },
     wday: i => { S.weekDay = +i; render(); }
   };
   document.addEventListener('click', e => {
@@ -371,6 +390,7 @@ main { flex: 1; padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 96px)
     if (e.target.id === 'q') { S.q = e.target.value; const pos = e.target.selectionStart; render(); const q = $('#q'); q.focus(); q.setSelectionRange(pos, pos); }
     if (e.target.id === 'wiName') S.wi.name = e.target.value;
     if (e.target.id === 'wiPhone') S.wi.phone = e.target.value;
+    if (e.target.id === 'wiEmail') S.wi.email = e.target.value.trim();
   });
   document.addEventListener('change', async e => {
     if (e.target.id === 'spaSel') {

@@ -1,6 +1,9 @@
-// Starts RKVR Unlimited sign-up: returns a Stripe Checkout link for the signed-in person.
+// Starts RKVR Unlimited sign-up: returns a Stripe Checkout link.
+//  • A signed-in client joins for themselves (website, client app).
+//  • Spa staff (front-desk iPad, RKVR Pro) can sign someone up: body.for = { name, email, phone, spa_id, visit_id }.
+//    Their RKVR account is made if they don't have one yet.
 // Founding rate if they join by the plan's cutoff date (locked in for as long as they stay).
-const { reply, stripe, db, caller, allowedReturn } = require('../lib/shared');
+const { reply, stripe, db, caller, allowedReturn, isStaffFor, findOrCreateClient, customerFor, withParam } = require('../lib/shared');
 
 exports.handler = async event => {
   if (event.httpMethod === 'OPTIONS') return reply(event, 204, {});
@@ -10,8 +13,17 @@ exports.handler = async event => {
     const body = JSON.parse(event.body || '{}');
     const back = allowedReturn(body.return_url) ? body.return_url : 'https://rkvr.netlify.app/';
 
-    const live = await db('memberships?select=id,status&client_id=eq.' + me.id + '&status=in.(pending,active,past_due,paused)');
-    if (live && live.some(m => m.status !== 'pending')) return reply(event, 409, { error: 'You’re already a member.', code: 'already_member' });
+    let who = me;
+    if (body.for) {
+      const f = body.for;
+      if (!f.spa_id || !(await isStaffFor(me, f.spa_id))) return reply(event, 403, { error: 'Only staff at this spa can sign someone up.' });
+      who = await findOrCreateClient({ email: f.email, name: f.name, phone: f.phone, spaId: f.spa_id });
+      if (!who.home_spa_id) { await db('profiles?id=eq.' + who.id, { method: 'PATCH', body: { home_spa_id: f.spa_id } }); who.home_spa_id = f.spa_id; }
+      if (f.visit_id) await db('visits?id=eq.' + f.visit_id + '&spa_id=eq.' + f.spa_id + '&client_id=is.null', { method: 'PATCH', body: { client_id: who.id } });
+    }
+
+    const live = await db('memberships?select=id,status&client_id=eq.' + who.id + '&status=in.(pending,active,past_due,paused)');
+    if (live && live.some(m => m.status !== 'pending')) return reply(event, 409, { error: (body.for ? 'They’re' : 'You’re') + ' already a member.', code: 'already_member' });
 
     const plans = await db('membership_plans?select=*&id=eq.rkvr');
     const plan = plans && plans[0];
@@ -20,30 +32,23 @@ exports.handler = async event => {
     const founding = !!(plan.founding_price_cents && plan.founding_cutoff && today <= plan.founding_cutoff);
     const rate = founding ? plan.founding_price_cents : plan.price_cents;
 
-    let customer = me.stripe_customer_id;
-    if (!customer) {
-      const c = await stripe('POST', 'customers', { email: me.email, name: me.full_name || undefined, phone: me.phone || undefined, metadata: { rkvr_client_id: me.id } });
-      customer = c.id;
-      await db('profiles?id=eq.' + me.id, { method: 'PATCH', body: { stripe_customer_id: customer } });
-    }
-
+    const customer = await customerFor(who);
     // Uses the Stripe prices saved on the plan if there are any; otherwise describes the price here.
     const savedPrice = founding ? plan.stripe_founding_price_id : plan.stripe_price_id;
     const lineItem = savedPrice ? { price: savedPrice, quantity: 1 } : {
       quantity: 1,
       price_data: { currency: 'usd', unit_amount: rate, recurring: { interval: 'month' }, product_data: { name: plan.name + (founding ? ' · founding rate' : '') } }
     };
-    const meta = { rkvr_client_id: me.id, rkvr_plan: 'rkvr', rkvr_rate_cents: String(rate), rkvr_founding: founding ? '1' : '0', rkvr_home_spa: me.home_spa_id || '' };
-    const [base, hash] = back.split('#'), sep = base.includes('?') ? '&' : '?';
+    const meta = { rkvr_client_id: who.id, rkvr_plan: 'rkvr', rkvr_rate_cents: String(rate), rkvr_founding: founding ? '1' : '0', rkvr_home_spa: who.home_spa_id || '', rkvr_signed_up_by: body.for ? me.id : '' };
     const session = await stripe('POST', 'checkout/sessions', {
       mode: 'subscription',
       customer,
-      client_reference_id: me.id,
+      client_reference_id: who.id,
       line_items: { 0: lineItem },
       subscription_data: { metadata: meta },
       metadata: meta,
       allow_promotion_codes: 'true',
-      success_url: base + sep + 'joined=1' + (hash ? '#' + hash : ''),
+      success_url: withParam(back, 'joined', '1'),
       cancel_url: back
     });
     return reply(event, 200, { url: session.url });

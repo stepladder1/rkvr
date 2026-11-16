@@ -7,5 +7,7 @@ window.RKVR_CONFIG = {
   supabaseKey: 'sb_publishable_HMFhcC_cEnGT2yeh1bfU6Q_YWZDLsoD',
   // Where the Check-In sends people to join online. The QR code in qr-join.svg points to
   // siteUrl + '/#membership'; regenerate it if the website address changes.
-  siteUrl: 'https://rkvr.netlify.app'
+  siteUrl: 'https://rkvr.netlify.app',
+  // Stripe checkout runs on the website's server functions
+  functionsUrl: 'https://rkvr.netlify.app/.netlify/functions'
 };

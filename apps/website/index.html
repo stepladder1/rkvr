@@ -418,6 +418,12 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     return { id: p.id, name: p.full_name || (p.email || '').split('@')[0], email: p.email || '', phone: p.phone || '', sms: !!p.sms_opt_in,
       home: (LOCS.find(l => l.uuid === p.home_spa_id) || {}).id || '', since: new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) };
   }
+  const liveDue = keys => S.member ? memberExtra(keys) : keys.map(svcByKey).filter(Boolean).reduce((a, x) => a + x.price, 0);
+  async function payBooking(id, btn) {
+    if (btn) { btn.disabled = true; btn.textContent = 'Opening secure checkout…'; }
+    try { const r = await C.callFn('visit-checkout', { booking_id: id, return_url: location.origin + location.pathname + '#account' }); location.href = r.url; }
+    catch (e) { if (btn) { btn.disabled = false; btn.textContent = 'Pay now'; } toast(e.message); }
+  }
   async function loadMember() {
     try {
       const rows = await C.rpc('my_membership_summary');
@@ -426,11 +432,11 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     } catch (_) { S.member = null; }
   }
   async function loadMyBookings() {
-    const rows = await C.rest('bookings?select=id,spa_id,starts_at,repeat,pay_method,status,booking_items(service_id,position)&status=neq.canceled&order=starts_at');
+    const rows = await C.rest('bookings?select=id,spa_id,starts_at,repeat,pay_method,status,paid_at,booking_items(service_id,position)&status=neq.canceled&order=starts_at');
     S.bookings = (rows || []).map(r => {
       const l = LOCS.find(x => x.uuid === r.spa_id) || LOCS[0], z = utcToZoned(r.starts_at, l.tz);
       return { id: r.id, svcs: (r.booking_items || []).slice().sort((a, b) => a.position - b.position).map(i => SVC_KEY[i.service_id]).filter(Boolean),
-        date: z.date, time: fmtT(z.mins), repeat: r.repeat, loc: l.id, pay: r.pay_method };
+        date: z.date, time: fmtT(z.mins), repeat: r.repeat, loc: l.id, pay: r.pay_method, paid: !!r.paid_at };
     }).filter(b => b.svcs.length);
   }
   async function loadBusy(slug, d) {
@@ -455,7 +461,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label; }
     }
   }
-  async function confirmLive() {
+  async function confirmLive(payNow) {
     const b = ui.bk, l = locById(b.loc), d = bkDays()[b.day], dateStr = ymd(d);
     if (!S.user) {
       const f = $('#quick-join'); if (!f.reportValidity()) return;
@@ -475,6 +481,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       await C.rest('booking_items', { method: 'POST', prefer: 'return=minimal', body: items.map(it => Object.assign({ booking_id: created.id }, it)) });
       await loadMyBookings();
       Object.keys(busy).forEach(k => delete busy[k]);
+      if (payNow) { await payBooking(created.id, $('#bk-confirm-pay')); return; }
       ui.bk.done = S.bookings.find(x => x.id === created.id) || { id: created.id, svcs: b.sel.slice(), date: dateStr, time: b.slot, repeat: b.repeat, loc: b.loc, pay: 'card' };
       render(); window.scrollTo({ top: 0 });
     } catch (e) {
@@ -489,6 +496,12 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     if (C.linkError) toast(C.linkError);
     if (C.signedIn) {
       try { S.user = profileToUser(await C.loadProfile()); if (S.user) { await loadMyBookings(); await loadMember(); } } catch (e) { console.warn('[RKVR] account not loaded', e); }
+      const paidM = /[?&]paid=([^&#]+)/.exec(location.search);
+      if (S.user && paidM) {
+        try { history.replaceState(null, '', location.pathname + location.hash); } catch (_) {}
+        ui.view = 'account'; ui.acct = 'visits'; toast('Payment received. See you soon!');
+        for (let i = 0; i < 5; i++) { await new Promise(r => setTimeout(r, 1500)); await loadMyBookings(); if ((S.bookings.find(b => b.id === paidM[1]) || {}).paid) break; }
+      }
       if (S.user && /[?&]joined=1/.test(location.search)) {
         try { history.replaceState(null, '', location.pathname + location.hash); } catch (_) {}
         S.cart = S.cart.filter(x => x !== CART_MEMBER); save(); ui.view = 'account'; ui.acct = 'membership';
@@ -693,7 +706,8 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
               <p class="note" style="grid-column:1/-1">${LIVE ? 'We’ll email you a sign-in link. Open it on this device and your visit will be ready to confirm. Already have an account? Use the same email.' : 'This creates your RKVR account. Already a member? <button type="button" class="linkish" data-sample-member>Sign in</button>'}</p>
             </form>`}
         ${LIVE ? '' : '<div class="notice ice" style="margin-top:18px">Payment connects through Stripe at launch. In this preview, nothing is charged.</div>'}
-        <div style="margin-top:18px"><button class="btn btn-primary" id="bk-confirm">${LIVE ? (S.user ? 'Confirm booking' : 'Email me a link to confirm') : bkPay() === 'prepaid' ? 'Confirm · use prepaid' : bkPay() === 'member' ? (S.member ? 'Confirm · uses ' + b.sel.length + ' of my services' : 'Join for $' + PLAN.founding + '/month and book') : 'Confirm and pay $' + DEPOSIT + ' deposit'}</button></div>
+        ${LIVE && S.user && b.repeat === 'once' && liveDue(b.sel) > 0 ? `<div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-primary" id="bk-confirm-pay">Pay ${money(liveDue(b.sel))} now and book</button><button class="btn" id="bk-confirm">Book, pay at my visit</button></div>` : ''}
+        ${LIVE && S.user && b.repeat === 'once' && liveDue(b.sel) > 0 ? '' : `<div style="margin-top:18px"><button class="btn btn-primary" id="bk-confirm">${LIVE ? (S.user ? 'Confirm booking' : 'Email me a link to confirm') : bkPay() === 'prepaid' ? 'Confirm · use prepaid' : bkPay() === 'member' ? (S.member ? 'Confirm · uses ' + b.sel.length + ' of my services' : 'Join for $' + PLAN.founding + '/month and book') : 'Confirm and pay $' + DEPOSIT + ' deposit'}</button></div>`}
         <p class="note" style="margin-top:10px">${LIVE ? 'Free to move or cancel up to 24 hours before your visit.' : bkPay() === 'member' ? 'Free to move or cancel up to 24 hours before. After that, the services count as used.' : 'Free to move or cancel up to 24 hours before. After that the deposit is kept.'}</p>`;
     }
     return `<section class="band"><div class="wrap">${stepper}<div class="book"><div style="min-width:0">${body}</div>${b.step > 0 ? bkSummary() : ''}</div></div></section>`;
@@ -702,7 +716,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
   function bkPay() { if (LIVE) return S.member ? 'member' : 'card'; const b = ui.bk; if (b.pay && !(b.pay === 'prepaid' && !prepaidCovers(b.sel))) return b.pay; if (prepaidCovers(b.sel)) return 'prepaid'; if (S.member) return 'member'; return 'card'; }
   function payChoice(d) {
     if (LIVE) { const tot = S.member ? memberExtra(ui.bk.sel) : ui.bk.sel.reduce((a, k) => a + svcByKey(k).price, 0);
-      return `<h3 style="margin-top:22px">How to pay</h3><div class="kv"><span>${S.member ? (tot ? 'Covered by membership, plus at your visit' : 'Covered by your membership') : 'Pay at your visit'}</span><b>${money(tot)}</b></div><p class="note">${S.member ? 'Recovery services are included in RKVR Unlimited.' : 'Nothing is charged when you book. Members get unlimited recovery for $' + PLAN.founding + '/month.'}</p>`; }
+      return `<h3 style="margin-top:22px">How to pay</h3><div class="kv"><span>${S.member ? (tot ? 'Covered by membership, plus' : 'Covered by your membership') : 'Total'}</span><b>${money(tot)}</b></div><p class="note">${tot ? (ui.bk.repeat === 'once' ? 'Pay now by card (secure checkout by Stripe), or pay at your visit.' : 'Repeating visits are paid at each visit.') + ' ' : ''}${S.member ? 'Recovery services are included in RKVR Unlimited.' : 'Members get unlimited recovery for $' + PLAN.founding + '/month.'}</p>`; }
     const b = ui.bk, extra = memberExtra(b.sel), ok = true, pay = bkPay();
     const total = b.sel.reduce((a, k) => a + svcByKey(k).price, 0);
     return `<h3 style="margin-top:22px">How to pay</h3><div style="display:grid;gap:8px;margin-top:8px">
@@ -893,7 +907,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     const l = locById(o.b.loc), st = parseT(o.b.time);
     return `<div class="visit" style="${past ? 'opacity:.55' : ''}"><div class="datebox"><small>${DOW[o.d.getDay()].toUpperCase()}</small><b>${o.d.getDate()}</b><small>${MON[o.d.getMonth()].toUpperCase()}</small></div>
       <div style="min-width:0"><b>${esc(visitTitle(o.b))}</b><br><span class="muted small">${o.b.time}–${fmtT(st + visitMins(o.b))} · ${l.name}, ${l.city}</span>
-      ${o.b.repeat !== 'once' || !past ? `<div class="visit-acts">${o.b.repeat !== 'once' ? `<span class="tag">${o.b.repeat === 'weekly' ? 'Weekly' : 'Monthly'}</span>` : ''}${past ? '' : `<button class="btn btn-sm" data-cancel="${o.b.id}">${o.b.repeat === 'once' ? 'Cancel' : 'Stop repeating'}</button>`}</div>` : ''}</div></div>`;
+      ${o.b.repeat !== 'once' || !past ? `<div class="visit-acts">${o.b.repeat !== 'once' ? `<span class="tag">${o.b.repeat === 'weekly' ? 'Weekly' : 'Monthly'}</span>` : ''}${past ? '' : o.b.paid ? '<span class="tag">Paid</span>' : `${LIVE && o.b.repeat === 'once' && liveDue(o.b.svcs) > 0 ? `<button class="btn btn-sm btn-primary" data-pay-booking="${o.b.id}">Pay ${money(liveDue(o.b.svcs))} now</button>` : ''}<button class="btn btn-sm" data-cancel="${o.b.id}">${o.b.repeat === 'once' ? 'Cancel' : 'Stop repeating'}</button>`}</div>` : ''}${o.b.paid && !past ? '<p class="muted small" style="margin-top:4px">Prepaid. To cancel and get a refund, call or message the spa.</p>' : ''}</div></div>`;
   }
   function aVisits() {
     const up = upcoming(8);
@@ -967,9 +981,19 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     if (LIVE) {
       if (t.id === 'link-again') { ui.linkSent = null; render(); return; }
       if (t.id === 'sign-out') { C.signOut().then(() => { S.user = null; S.bookings = []; save(); go('home'); toast('Signed out'); }); return; }
+      if (d.payBooking) { payBooking(d.payBooking, t); return; }
       if (d.cancel) { C.rpc('cancel_booking', { booking: d.cancel }).then(loadMyBookings).then(() => { Object.keys(busy).forEach(k => delete busy[k]); render(); toast('Cancelled.'); }, err => toast('Couldn’t cancel: ' + err.message)); return; }
       if (t.id === 'checkout' && S.user) {
-        if (!S.cart.includes(CART_MEMBER)) { toast('Online checkout for services and products opens soon. Your cart is saved on this device.'); return; }
+        if (!S.cart.includes(CART_MEMBER)) {
+          const svcKeys = S.cart.filter(x => x.startsWith('svc:')).map(x => x.slice(4)).filter(k => svcByKey(k));
+          if (svcKeys.length) {
+            const loc = svcByKey(svcKeys[0]).loc.id, sel = svcKeys.filter(k => svcByKey(k).loc.id === loc).slice(0, 3);
+            S.cart = S.cart.filter(x => !sel.includes(x.replace(/^svc:/, ''))); save();
+            ui.drawer = null; ui.bk = { step: 2, loc, sel, day: 0, slot: null, repeat: 'once', done: null }; go('book');
+            toast('Pick a time, then pay when you book.'); return;
+          }
+          toast('Shop checkout opens soon. Your cart is saved on this device.'); return;
+        }
         if (S.member) { S.cart = S.cart.filter(x => x !== CART_MEMBER); save(); render(); toast('You’re already a member.'); return; }
         t.disabled = true; t.textContent = 'Opening secure checkout…';
         C.callFn('membership-checkout', { return_url: location.origin + location.pathname + '#account' })
@@ -1000,6 +1024,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     if (d.bkSlot) { ui.bk.slot = d.bkSlot; render(); return; }
     if (d.bkRepeat) { ui.bk.repeat = d.bkRepeat; render(); return; }
     if (t.id === 'bk-confirm') { confirmBooking(); return; }
+    if (t.id === 'bk-confirm-pay') { confirmLive(true); return; }
     if (t.id === 'bk-again') { ui.bk = { step: 0, loc: null, sel: [], day: 0, slot: null, repeat: 'once', done: null, pay: null }; render(); return; }
     if (d.ics) { downloadIcs(d.ics === 'all' ? S.bookings : S.bookings.filter(b => b.id === d.ics), d.ics === 'all' ? 'rkvr-visits.ics' : 'rkvr-visit.ics'); return; }
     if (d.sub !== undefined) { ui.subNote = true; render(); return; }
