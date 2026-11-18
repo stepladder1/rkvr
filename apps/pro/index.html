@@ -209,8 +209,11 @@ main { flex: 1; padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 96px)
     let p = null;
     try { p = await C.loadProfile(); } catch (e) { S.gate = 'login'; S.gateMsg = 'Can’t reach RKVR right now. Check your connection.'; S.gateBad = true; render(); return; }
     if (!p) { S.gate = 'login'; render(); return; }
-    if (p.role !== 'operator' && p.role !== 'hq_admin') { S.gate = 'noaccess'; render(); return; }
-    const spas = await C.rest('spas?select=id,slug,name,time_zone,status&order=name' + (p.role === 'hq_admin' ? '' : '&operator_id=eq.' + p.id));
+    if (!['operator', 'hq_admin', 'super_admin'].includes(p.role)) { S.gate = 'noaccess'; render(); return; }
+    // Super Admins see every spa; operators and HQ Staff see the ones they run or are assigned
+    let spas;
+    if (p.role === 'super_admin') spas = await C.rest('spas?select=id,slug,name,time_zone,status&order=name');
+    else { const ids = ((await C.rpc('my_spa_ids')) || []).map(x => typeof x === 'string' ? x : x.my_spa_ids || Object.values(x)[0]); spas = ids.length ? await C.rest('spas?select=id,slug,name,time_zone,status&order=name&id=in.(' + ids.join(',') + ')') : []; }
     S.spas = (spas || []).sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1));
     if (!S.spas.length) { S.gate = 'nospa'; render(); return; }
     let saved = null; try { saved = localStorage.getItem(SPA_KEY); } catch (_) {}
@@ -324,7 +327,7 @@ main { flex: 1; padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 96px)
   function vMore() {
     const u = C.profile || {};
     return `<h1 class="h1">More</h1>
-      <div class="card" style="gap:0"><div class="kv"><span class="muted">Signed in as</span><b>${esc(u.full_name || u.email || '')}</b></div><div class="kv"><span class="muted">Role</span><b>${u.role === 'hq_admin' ? 'RKVR HQ' : 'Spa operator'}</b></div><div class="kv"><span class="muted">Spa</span><b>${esc(S.spa.name)}</b></div></div>
+      <div class="card" style="gap:0"><div class="kv"><span class="muted">Signed in as</span><b>${esc(u.full_name || u.email || '')}</b></div><div class="kv"><span class="muted">Role</span><b>${u.role === 'super_admin' ? 'RKVR Super Admin' : u.role === 'hq_admin' ? 'RKVR HQ Staff' : 'Spa operator'}</b></div><div class="kv"><span class="muted">Spa</span><b>${esc(S.spa.name)}</b></div></div>
       <a class="btn big" href="https://rkvrcheckin.netlify.app" target="_blank" rel="noopener">Open the front-desk Check-In</a>
       <button class="btn big" data-a="reload">Refresh everything</button>
       <div class="note">Coming next to RKVR Pro: payouts, rent, supply orders and messages to clients.</div>

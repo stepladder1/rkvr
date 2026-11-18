@@ -7,7 +7,7 @@ exports.handler = async event => {
   if (event.httpMethod !== 'POST') return reply(event, 405, { error: 'Use POST' });
   try {
     const me = await caller(event);
-    if (me.role !== 'hq_admin') return reply(event, 403, { error: 'Only RKVR HQ can do this.' });
+    if (me.role !== 'super_admin') return reply(event, 403, { error: 'Only RKVR Super Admins can do this.' });
     const acct = RKVR_ACCOUNT();
     if (!acct) return reply(event, 400, { error: 'STRIPE_ACCOUNT_ID isn’t set in Netlify yet.' });
     const back = 'https://rkvr-dashboard.netlify.app/?stripe=done';

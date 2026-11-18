@@ -14,7 +14,7 @@ exports.handler = async event => {
     const s = await stripe('GET', 'checkout/sessions/' + session_id);
     const m = s.metadata || {};
     const mine = m.rkvr_client_id && m.rkvr_client_id === me.id;
-    const staff = (m.rkvr_spa || m.rkvr_home_spa) ? await isStaffFor(me, m.rkvr_spa || m.rkvr_home_spa) : me.role === 'hq_admin';
+    const staff = (m.rkvr_spa || m.rkvr_home_spa) ? await isStaffFor(me, m.rkvr_spa || m.rkvr_home_spa) : me.role === 'super_admin';
     if (!mine && !staff && !(m.rkvr_signed_up_by && m.rkvr_signed_up_by === me.id)) return reply(event, 403, { error: 'Not your checkout.' });
     let note = 'nothing to do';
     if (s.mode === 'subscription' && s.subscription) note = await syncSubscription(await stripe('GET', 'subscriptions/' + s.subscription));

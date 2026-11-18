@@ -132,9 +132,9 @@
   const user = {
     async me() {
       const p = profile || await loadProfile();
-      return { id: p.id, name: p.full_name || p.email, avatarUrl: '', canEdit: p.role === 'hq_admin' };
+      return { id: p.id, name: p.full_name || p.email, avatarUrl: '', canEdit: p.role === 'super_admin' };
     },
-    async canEdit() { return !!(profile && profile.role === 'hq_admin'); },
+    async canEdit() { return !!(profile && profile.role === 'super_admin'); },
     async profiles(ids) {
       const out = {};
       if (!ids.length) return out;
@@ -182,6 +182,7 @@
 
   window.RKVR_CLOUD = {
     db, user, rest,
+    rpc: (fn, args) => rest('rpc/' + fn, { method: 'POST', body: args || {} }),
     // Emails a one-time sign-in link; creates the account if the email is new
     async callFn(name, body) {
       const t = await token();

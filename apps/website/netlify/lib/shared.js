@@ -99,10 +99,11 @@ function verifyStripe(rawBody, header, secret) {
   return parts.v1.some(sig => sig.length === expected.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected)));
 }
 
-// Is this person HQ staff, or the operator of this spa?
+// Is this person a Super Admin, HQ Staff assigned to this spa, or its operator?
 async function isStaffFor(p, spaId) {
   if (!p) return false;
-  if (p.role === 'hq_admin') return true;
+  if (p.role === 'super_admin') return true;
+  if (p.role === 'hq_admin') { const r = await db('hq_staff_spas?select=spa_id&profile_id=eq.' + p.id + '&spa_id=eq.' + spaId); return !!(r && r[0]); }
   if (p.role !== 'operator') return false;
   const rows = await db('spas?select=id&id=eq.' + spaId + '&operator_id=eq.' + p.id);
   return !!(rows && rows[0]);

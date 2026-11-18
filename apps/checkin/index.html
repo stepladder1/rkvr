@@ -303,8 +303,11 @@ h1, h2, p { margin: 0; }
     let p = null;
     try { p = await C.loadProfile(); } catch (e) { S.gate = 'login'; S.gateMsg = 'Can’t reach RKVR right now. Check the Wi-Fi and try again.'; S.gateBad = true; render(); return; }
     if (!p) { S.gate = 'login'; render(); return; }
-    if (p.role !== 'operator' && p.role !== 'hq_admin') { S.gate = 'noaccess'; render(); return; }
-    const spas = await C.rest(p.role === 'hq_admin' ? 'spas?select=id,slug,name,time_zone,status&order=name' : 'spas?select=id,slug,name,time_zone,status&operator_id=eq.' + p.id + '&order=name');
+    if (!['operator', 'hq_admin', 'super_admin'].includes(p.role)) { S.gate = 'noaccess'; render(); return; }
+    // Super Admins see every spa; operators and HQ Staff see the ones they run or are assigned
+    let spas;
+    if (p.role === 'super_admin') spas = await C.rest('spas?select=id,slug,name,time_zone,status&order=name');
+    else { const ids = ((await C.rpc('my_spa_ids')) || []).map(x => typeof x === 'string' ? x : x.my_spa_ids || Object.values(x)[0]); spas = ids.length ? await C.rest('spas?select=id,slug,name,time_zone,status&order=name&id=in.(' + ids.join(',') + ')') : []; }
     S.spas = (spas || []).sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1));
     if (!S.spas.length) { S.gate = 'nospa'; render(); return; }
     let saved = null; try { saved = localStorage.getItem(SPA_KEY); } catch (_) {}

@@ -62,6 +62,9 @@ p { margin: 0; }
 .select { background: var(--panel); border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 10px; min-height: 36px; }
 .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
 .pill-sample { background: var(--warn-bg); color: var(--warn); }
+.spa-checks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.spa-checks .chk { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; }
+.input-sm { min-height: 34px; padding: 4px 8px; font-size: 13.5px; }
 .pill-sample.pill-live { background: var(--good-bg, rgba(46,160,67,.15)); color: var(--good, #2ea043); }
 .who { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
 .who img { width: 26px; height: 26px; border-radius: 50%; }
@@ -636,6 +639,11 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   };
   const CR = () => flagOn('memberCredits');
   const canChange = () => state.mode === 'saved' || state.mode === 'local';
+  const myRole = () => (window.RKVR_CLOUD && window.RKVR_CLOUD.profile && window.RKVR_CLOUD.profile.role) || null;
+  const isSuper = () => !window.RKVR_CLOUD || myRole() === 'super_admin';
+  const isStaff = () => myRole() === 'hq_admin';
+  // Day-to-day actions at a location (pause bookings, answer requests): Super Admins anywhere, HQ Staff at their locations
+  const canAct = () => canChange() || (isStaff() && isLive());
 
   let toastTimer = null;
   function toast(msg) {
@@ -707,7 +715,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   }
   async function loadLive() {
     const C = window.RKVR_CLOUD;
-    if (!C || !C.profile || C.profile.role !== 'hq_admin' || !state.hqLive) return;
+    if (!C || !C.profile || !['super_admin', 'hq_admin'].includes(C.profile.role) || !state.hqLive) return;
     const now = new Date(), y = now.getFullYear();
     const monthStart = ymd(new Date(Date.UTC(y, now.getMonth(), 1)));
     const since = ymd(new Date(Math.min(Date.UTC(y, 0, 1), Date.now() - 63 * 864e5)));
@@ -736,6 +744,10 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       const prepaid = bookings.filter(b => b.paid_at && !visited.has(b.id)).map(b => ({ b, cents: (b.booking_items || []).reduce((a, i) => a + ((isMem(b.client_id) && svcById[i.service_id] && svcById[i.service_id].member_included) ? 0 : i.price_cents), 0) }));
 
       // markets and spas
+      if (C.profile.role === 'hq_admin') {   // HQ Staff: only their assigned locations
+        const mine = new Set(((await C.rpc('my_spa_ids')) || []).map(x => typeof x === 'string' ? x : Object.values(x)[0]));
+        for (let i = spas.length - 1; i >= 0; i--) if (!mine.has(spas[i].id)) spas.splice(i, 1);
+      }
       const openSpas = spas.filter(x => x.status === 'open' || x.status === 'paused');
       LOCS.length = 0; Array.from(new Set(openSpas.map(x => x.market))).forEach(m => LOCS.push(m));
       SOON_LOCS.length = 0; Array.from(new Set(spas.filter(x => /coming_soon|buildout|signed/.test(x.status)).map(x => x.market).filter(m => !LOCS.includes(m)))).forEach(m => SOON_LOCS.push(m));
@@ -846,8 +858,8 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   /* ---------------- rendering ---------------- */
   const TABS = [
     { id: 'overview', name: 'Overview' },
-    { id: 'suites', name: 'Spas' },
-    { id: 'members', name: 'Clients and members' },
+    { id: 'suites', name: 'Locations' },
+    { id: 'members', name: 'Members' },
     { id: 'payments', name: 'Rent and payouts' },
     { id: 'shop', name: 'Shop and supply' },
     { id: 'requests', name: 'Service requests' },
@@ -864,7 +876,8 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   function renderTabs() {
     const m = metrics();
     const counts = { requests: m.staleReq.length, payments: m.overdue.length };
-    $('#tabs').innerHTML = TABS.map(t => `<button class="tab" role="tab" id="tab-${t.id}" aria-selected="${state.tab === t.id}" data-tab="${t.id}">${tabName(t)}${counts[t.id] ? `<span class="count">${counts[t.id]}</span>` : ''}</button>`).join('');
+    if (state.tab === 'team' && !isSuper()) state.tab = 'overview';
+    $('#tabs').innerHTML = TABS.filter(t => t.id !== 'team' || isSuper()).map(t => `<button class="tab" role="tab" id="tab-${t.id}" aria-selected="${state.tab === t.id}" data-tab="${t.id}">${tabName(t)}${counts[t.id] ? `<span class="count">${counts[t.id]}</span>` : ''}</button>`).join('');
   }
 
   function renderLocSelect() {
@@ -965,7 +978,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
         </section>
       </div>
       <div class="grid cols-2" style="margin-top:16px">
-        <section class="panel"><div class="panel-head"><h2>Spas at a glance</h2><button class="btn" data-goto="suites">All spas</button></div>${suitesTable(true)}</section>
+        <section class="panel"><div class="panel-head"><h2>Locations at a glance</h2><button class="btn" data-goto="suites">All locations</button></div>${suitesTable(true)}</section>
         <section class="panel"><div class="panel-head"><h2>Live activity</h2><span class="note">Pros and clients</span></div>
           <div class="feed">${feed.map(f => `<div class="feed-row"><time>${f.t} ago</time><div><span class="tag-mini" style="color:var(--accent-text)">${f.kind}</span>${esc(f.text)}</div></div>`).join('') || '<div class="empty">No activity at this location yet today.</div>'}</div>
         </section>
@@ -984,7 +997,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
         <td class="num">${fmt(s.coll)}</td>
         ${compact || !CR() ? '' : `<td class="num">${s.members}</td><td class="num">${s.credits}</td>`}
         <td>${statusChip(s.status)}</td>
-        ${compact ? '' : `<td><div style="display:flex;align-items:center;gap:8px"><button class="switch" role="switch" aria-checked="${!paused}" aria-label="Bookings for RKVR ${esc(s.studio)}" data-pause="${s.id}" ${canChange() ? '' : 'disabled'}></button><span class="cell-sub">${paused ? 'Paused' : 'Open'}</span></div></td>`}
+        ${compact ? '' : `<td><div style="display:flex;align-items:center;gap:8px"><button class="switch" role="switch" aria-checked="${!paused}" aria-label="Bookings for RKVR ${esc(s.studio)}" data-pause="${s.id}" ${canAct() ? '' : 'disabled'}></button><span class="cell-sub">${paused ? 'Paused' : 'Open'}</span></div></td>`}
       </tr>`;
     }).join('');
     return `<div class="tbl-wrap"><table><thead><tr><th>Spa</th><th>Operator</th><th class="num">Bookings / wk</th>${compact ? '' : '<th class="num">Utilization</th>'}<th class="num">Collected</th>${compact || !CR() ? '' : '<th class="num">Members</th><th class="num">Services used</th>'}<th>Rent</th>${compact ? '' : '<th>Bookings</th>'}</tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -1005,7 +1018,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
         ${kpi('Bookings per spa', avgBook.toFixed(0), 'Weekly average')}
         ${S.length ? kpi('Top spa', esc(S.slice().sort((a, b) => b.coll - a.coll)[0].studio), fmt(Math.max(...S.map(s => s.coll))) + ' this month') : ''}
       </div>
-      <section class="panel" style="margin-bottom:16px"><div class="panel-head"><h2>All spas</h2><span class="note">${canChange() ? 'Switch off Bookings to pause a spa' : 'View only'}</span></div>${suitesTable(false)}</section>
+      <section class="panel" style="margin-bottom:16px"><div class="panel-head"><h2>All locations</h2><span class="note">${canAct() ? 'Switch off Bookings to pause online booking at a location' : 'View only'}</span></div>${suitesTable(false)}</section>
       <section class="panel"><div class="panel-head"><h2>Rollout across Phenix</h2><span class="note">Next markets: ${SOON_LOCS.join(', ')}</span></div>
         <div class="funnel">${stages.map((x, i) => `<div class="fn-row"><span>${x[0]}</span><div class="fn-bar"><i style="width:${Math.max(2, x[1] / P.locations * 100)}%"></i></div><b>${num(x[1])}</b></div>`).join('')}</div>
         <p class="cell-sub" style="margin-top:10px">An RKVR spa uses suites a Phenix location already has empty, so each spa is new revenue for that location.${isLive() ? ' Phenix totals are planning figures; the rest comes from the spas list.' : ' Sample numbers.'}</p></section>`;
@@ -1100,7 +1113,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     const m = metrics(), st = state.settings;
     const maxC = Math.max(...m.S.map(s => s.credits));
     const risk = AT_RISK.filter(r => inLoc(suiteById(r.suite)));
-    return head('Clients and members', 'Every client at each spa: membership, à la carte spend, and who is most likely to cancel.') + `
+    return head('Members', 'Every client at each spa: membership, à la carte spend, and who is most likely to cancel.') + `
       <div class="kpis">
         ${kpi('Active members', num(m.members), 'RKVR Membership · ' + fmt(st.planPrice) + ' / month')}
         ${kpi('Monthly recurring', fmtK(m.mrr), 'From memberships')}
@@ -1213,7 +1226,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   function renderRequests() {
     const list = REQUESTS.filter(r => inLoc(suiteById(r.suite)));
     const open = list.filter(r => reqStatus(r) !== 'Done');
-    const ro = canChange() ? '' : 'disabled';
+    const ro = canAct() ? '' : 'disabled';
     const rows = list.map(r => {
       const s = suiteById(r.suite), stt = reqStatus(r), ups = reqUpdates(r), last = ups[ups.length - 1];
       const ageTxt = stt === 'Done' ? 'Closed' : r.age >= 24 ? Math.round(r.age / 24) + ' days' : r.age + ' hrs';
@@ -1228,7 +1241,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       const panel = `<tr class="req-open"><td colspan="6"><div style="display:grid;gap:12px">
         <div class="steps" aria-label="Status">${steps}</div>
         <div class="thread">${thread}</div>
-        ${canChange() ? `<div class="req-compose">
+        ${canAct() ? `<div class="req-compose">
           <div class="full"><span class="label">Quick replies</span><div class="chips" style="margin-top:6px">${REQ_QUICK.map((q, i) => `<button type="button" data-req-quick="${r.id}" data-i="${i}">${q.label}</button>`).join('')}</div></div>
           <div><label class="label" for="rq-status-${r.id}">Status</label><select id="rq-status-${r.id}" class="input" data-req-field="status" data-req="${r.id}">${REQ_STATUSES.map(x => `<option ${x === d.status ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
           <div><label class="label" for="rq-eta-${r.id}">When (optional)</label><input id="rq-eta-${r.id}" class="input" placeholder="e.g. Thu Oct 22, 9–11 AM" data-req-field="eta" data-req="${r.id}" value="${esc(d.eta)}"></div>
@@ -1291,67 +1304,83 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   }
 
   /* ---------------- team ---------------- */
-  const ROLE_NAME = { hq_admin: 'RKVR HQ staff', operator: 'Spa operator' };
+  const ROLE_NAME = { super_admin: 'Super Admin', hq_admin: 'HQ Staff', operator: 'Spa operator' };
   async function loadTeam() {
     const C = window.RKVR_CLOUD;
     if (!C || !C.profile) return;
     try {
-      const [people, spas, invites] = await Promise.all([
-        C.rest('profiles?select=id,full_name,email,role&role=in.(hq_admin,operator)&order=email'),
+      const [people, spas, invites, staff] = await Promise.all([
+        C.rest('profiles?select=id,full_name,email,role&role=in.(super_admin,hq_admin,operator)&order=email'),
         C.rest('spas?select=id,name,slug,operator_id,status&order=name'),
-        C.rest('team_invites?select=email,role,spa_id,created_at&accepted_at=is.null&order=created_at.desc')
+        C.rest('team_invites?select=email,role,spa_id,spa_ids,created_at&accepted_at=is.null&order=created_at.desc'),
+        C.rest('hq_staff_spas?select=profile_id,spa_id')
       ]);
-      state.team = { people: people || [], spas: spas || [], invites: invites || [], error: null };
+      state.team = { people: people || [], spas: spas || [], invites: invites || [], staff: staff || [], error: null };
     } catch (e) {
-      state.team = { people: [], spas: [], invites: [], error: e.status === 404 || /team_invites/.test(e.message) ? 'setup' : e.message };
+      state.team = { people: [], spas: [], invites: [], staff: [], error: e.status === 404 || /team_invites|hq_staff_spas|spa_ids/.test(e.message) ? 'setup' : e.message };
     }
     if (state.tab === 'team') render();
   }
   function renderTeam() {
     const C = window.RKVR_CLOUD;
-    const top = head('Team', 'Who can sign in to RKVR HQ and RKVR Pro.');
-    if (!C || !C.profile) return top + `<section class="panel"><div class="empty">Team management works on the live dashboard, signed in as RKVR HQ staff.</div></section>`;
+    const top = head('Team', 'Who can sign in to RKVR HQ, RKVR Pro and the front-desk Check-In, and which locations they cover.');
+    if (!C || !C.profile) return top + `<section class="panel"><div class="empty">Team management works on the live dashboard, signed in as a Super Admin.</div></section>`;
+    if (!isSuper()) return top + `<section class="panel"><div class="empty">Only Super Admins can manage the team.</div></section>`;
     const t = state.team;
     if (!t) { loadTeam(); return top + `<section class="panel"><div class="empty">Loading the team…</div></section>`; }
-    if (t.error === 'setup') return top + `<div class="banner banner-warn"><span><b>One setup step left.</b> Run the team update (20261116000005_team.sql) in the Supabase SQL Editor, then reload this page.</span></div>`;
+    if (t.error === 'setup') return top + `<div class="banner banner-warn"><span><b>One setup step left.</b> Run the roles update (20261118000010_roles.sql) in the Supabase SQL Editor, then reload this page.</span></div>`;
     const spaName = id => { const x = t.spas.find(p => p.id === id); return x ? x.name : '—'; };
     const meId = C.profile.id;
+    const spaChecks = (name, chosen) => `<div class="spa-checks">${t.spas.map(x => `<label class="chk"><input type="checkbox" name="${name}" value="${esc(x.id)}" ${chosen.includes(x.id) ? 'checked' : ''}> ${esc(x.name)}${x.status !== 'open' ? ' <span class="cell-sub">(' + esc(x.status.replace('_', ' ')) + ')</span>' : ''}</label>`).join('')}</div>`;
     const rows = t.people.map(p => {
-      const spas = t.spas.filter(x => x.operator_id === p.id).map(x => x.name).join(', ');
-      return `<tr><td class="cell-main">${esc(p.full_name || p.email)}${p.id === meId ? ' <span class="cell-sub">(you)</span>' : ''}<div class="cell-sub">${esc(p.full_name ? p.email : '')}</div></td>
-        <td>${ROLE_NAME[p.role] || esc(p.role)}</td><td>${esc(spas || (p.role === 'operator' ? 'No spa yet' : 'All spas'))}</td><td>${statusChip('Active')}</td>
-        <td class="num">${p.id === meId ? '' : `<button class="btn btn-sm" type="button" data-team-remove="${esc(p.id)}" data-email="${esc(p.email || '')}">Remove</button>`}</td></tr>`;
+      const mine = p.id === meId;
+      const covers = p.role === 'super_admin' ? 'All locations' : p.role === 'operator' ? (t.spas.filter(x => x.operator_id === p.id).map(x => x.name).join(', ') || 'No location yet') : (t.staff.filter(x => x.profile_id === p.id).map(x => spaName(x.spa_id)).join(', ') || 'No locations yet');
+      const roleCell = mine || p.role === 'operator' ? ROLE_NAME[p.role] || esc(p.role)
+        : `<select class="input input-sm" data-team-role="${esc(p.id)}" aria-label="Role for ${esc(p.full_name || p.email)}"><option value="super_admin" ${p.role === 'super_admin' ? 'selected' : ''}>Super Admin</option><option value="hq_admin" ${p.role === 'hq_admin' ? 'selected' : ''}>HQ Staff</option></select>`;
+      const editing = state.teamEdit === p.id;
+      return `<tr><td class="cell-main">${esc(p.full_name || p.email)}${mine ? ' <span class="cell-sub">(you)</span>' : ''}<div class="cell-sub">${esc(p.full_name ? p.email : '')}</div></td>
+        <td>${roleCell}</td>
+        <td>${editing ? `<form data-team-locs="${esc(p.id)}">${spaChecks('loc', t.staff.filter(x => x.profile_id === p.id).map(x => x.spa_id))}<div style="display:flex;gap:6px;margin-top:6px"><button class="btn btn-sm btn-primary" type="submit">Save locations</button><button class="btn btn-sm" type="button" data-team-edit="">Cancel</button></div></form>`
+          : esc(covers) + (p.role === 'hq_admin' ? ` <button class="linkish" type="button" data-team-edit="${esc(p.id)}">Change</button>` : '')}</td>
+        <td>${statusChip('Active')}</td>
+        <td class="num">${mine ? '' : `<button class="btn btn-sm" type="button" data-team-remove="${esc(p.id)}" data-email="${esc(p.email || '')}">Remove</button>`}</td></tr>`;
     }).concat(t.invites.map(i => `<tr><td class="cell-main">${esc(i.email)}<div class="cell-sub">Invited ${relTime(Date.parse(i.created_at))}</div></td>
-        <td>${ROLE_NAME[i.role] || esc(i.role)}</td><td>${i.role === 'operator' ? esc(spaName(i.spa_id)) : 'All spas'}</td><td><span class="st st-warn">Invite sent</span></td>
+        <td>${ROLE_NAME[i.role] || esc(i.role)}</td><td>${i.role === 'operator' ? esc(spaName(i.spa_id)) : i.role === 'super_admin' ? 'All locations' : esc((i.spa_ids || []).map(spaName).join(', ') || 'No locations yet')}</td><td><span class="st st-warn">Invite sent</span></td>
         <td class="num"><button class="btn btn-sm" type="button" data-team-resend="${esc(i.email)}">Resend link</button> <button class="btn btn-sm" type="button" data-team-cancel="${esc(i.email)}">Cancel</button></td></tr>`)).join('');
     const spaOpts = t.spas.map(x => `<option value="${esc(x.id)}">${esc(x.name)}${x.status && x.status !== 'open' ? ' (coming soon)' : ''}${x.operator_id ? ' · has an operator' : ''}</option>`).join('');
-    const isOp = (state.teamRole || 'hq_admin') === 'operator';
+    const role = state.teamRole || 'hq_admin';
     return top + `
       <div class="grid cols-2">
         <section class="panel"><div class="panel-head"><h2>Add someone</h2></div>
           <form id="team-form">
             <div class="form-row"><label for="tm-email">Email</label><input class="input" id="tm-email" type="email" autocomplete="off" required></div>
-            <div class="form-row"><label for="tm-role">Role</label><select class="input" id="tm-role"><option value="hq_admin" ${isOp ? '' : 'selected'}>RKVR HQ staff: full dashboard</option><option value="operator" ${isOp ? 'selected' : ''}>Spa operator: RKVR Pro for one spa</option></select></div>
-            <div class="form-row" ${isOp ? '' : 'hidden'} id="tm-spa-row"><label for="tm-spa">Spa</label><select class="input" id="tm-spa">${spaOpts}</select><span class="hint">Each spa has one operator. Choosing a spa that already has one replaces them.</span></div>
+            <div class="form-row"><label for="tm-role">Role</label><select class="input" id="tm-role">
+              <option value="hq_admin" ${role === 'hq_admin' ? 'selected' : ''}>HQ Staff: their locations only</option>
+              <option value="operator" ${role === 'operator' ? 'selected' : ''}>Spa operator: RKVR Pro for one spa</option>
+              <option value="super_admin" ${role === 'super_admin' ? 'selected' : ''}>Super Admin: every location, all controls</option></select></div>
+            <div class="form-row" ${role === 'operator' ? '' : 'hidden'} id="tm-spa-row"><label for="tm-spa">Spa</label><select class="input" id="tm-spa">${spaOpts}</select><span class="hint">Each spa has one operator. Choosing a spa that already has one replaces them.</span></div>
+            <div class="form-row" ${role === 'hq_admin' ? '' : 'hidden'} id="tm-locs-row"><span class="label">Locations they cover</span>${spaChecks('tm-loc', [])}<span class="hint">They’ll only see these locations in HQ. You can change this later.</span></div>
             <div class="form-row"><button class="btn btn-primary" type="submit">Send invite</button><span class="hint">They get an email with a sign-in link that works for 24 hours. Their access is set as soon as they use it. If they already have an account, access starts right away.</span></div>
           </form>
         </section>
-        <section class="panel"><div class="panel-head"><h2>Good to know</h2></div>
-          <p class="hint" style="font-size:13px;line-height:1.55">Links can be opened more than once until the person taps Continue. If a link has expired, tap <b>Resend link</b>. Nobody needs a password: they can always use “Email me a sign-in link” on the sign-in page.</p>
-          <p class="hint" style="font-size:13px;line-height:1.55">Removing someone takes away their HQ or Pro access straight away. Their account stays, as a regular client account.</p>
+        <section class="panel"><div class="panel-head"><h2>The roles</h2></div>
+          <p class="hint" style="font-size:13px;line-height:1.55"><b>Super Admin</b>: every location, Controls, Stripe, live data and the Team page.</p>
+          <p class="hint" style="font-size:13px;line-height:1.55"><b>HQ Staff</b>: only their locations: members, visits, revenue, rent, repair requests and pausing bookings. No global settings.</p>
+          <p class="hint" style="font-size:13px;line-height:1.55"><b>Spa operator</b>: runs one spa in RKVR Pro and the front-desk Check-In.</p>
+          <p class="hint" style="font-size:13px;line-height:1.55">Removing someone takes away their access straight away. Their account stays, as a regular client account.</p>
         </section>
       </div>
       <section class="panel" style="margin-top:16px"><div class="panel-head"><h2>People with access</h2><span class="note">${t.people.length} active · ${t.invites.length} invited</span></div>
         ${t.error ? `<div class="banner banner-warn"><span>${esc(t.error)}</span></div>` : ''}
-        <div class="tbl-wrap"><table><thead><tr><th>Person</th><th>Role</th><th>Spa</th><th>Status</th><th class="num"></th></tr></thead><tbody>${rows || '<tr><td colspan="5" class="cell-sub">Nobody yet.</td></tr>'}</tbody></table></div>
+        <div class="tbl-wrap"><table><thead><tr><th>Person</th><th>Role</th><th>Locations</th><th>Status</th><th class="num"></th></tr></thead><tbody>${rows || '<tr><td colspan="5" class="cell-sub">Nobody yet.</td></tr>'}</tbody></table></div>
       </section>`;
   }
   const PRO_URL = 'https://rkvrpro.netlify.app/';
   const teamRedirect = role => role === 'operator' ? PRO_URL : location.origin + location.pathname;
-  async function teamInvite(email, role, spaId) {
+  async function teamInvite(email, role, spaId, spaIds) {
     const C = window.RKVR_CLOUD;
     await C.rest('team_invites', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal',
-      body: { email, role, spa_id: role === 'operator' ? spaId : null, invited_by: C.profile.id, accepted_at: null, created_at: new Date().toISOString() } });
+      body: { email, role, spa_id: role === 'operator' ? spaId : null, spa_ids: role === 'hq_admin' ? spaIds : [], invited_by: C.profile.id, accepted_at: null, created_at: new Date().toISOString() } });
     await C.sendLink(email, teamRedirect(role));
   }
 
@@ -1359,7 +1388,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     const st = state.settings, m = metrics();
     const modeBanner = {
       saved: `<div class="banner banner-ice"><span><b>Changes save for the whole RKVR corporate team.</b> They reach the live apps once the apps run on the RKVR backend; until then the preview on the right shows what owners and clients would see.</span></div>`,
-      readonly: `<div class="banner banner-warn"><span><b>View only.</b> You can see every setting, but only RKVR admins with edit access can change them.</span></div>`,
+      readonly: `<div class="banner banner-warn"><span><b>View only.</b> You can see every setting, but only Super Admins can change them.</span></div>`,
       local: `<div class="banner banner-warn"><span><b>Changes here aren’t saved.</b> This view can’t reach the shared settings, so switches reset when you reload.</span></div>`,
       loading: `<div class="banner banner-ice"><span>Loading saved settings…</span></div>`
     }[state.mode];
@@ -1367,7 +1396,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     const logIds = Array.from(new Set(state.log.map(l => l.by).filter(Boolean)));
     const logRows = state.log.length ? state.log.map(l => `<div class="log-row"><span>${esc(l.text)}</span><time class="cell-sub">${relTime(l.at)}</time><span class="by" data-by="${l.by ? esc(l.by) : ''}">${l.by ? '' : 'By an RKVR admin'}</span></div>`).join('') : '<div class="empty">No changes yet. Every switch and setting change is recorded here with who made it.</div>';
     const sp = state.stripe || {};
-    const stripePanel = window.RKVR_CLOUD ? `<section class="panel" style="margin-bottom:16px"><div class="panel-head"><h2>Payments (Stripe)</h2><span class="note">RKVR’s connected account</span></div>
+    const stripePanel = window.RKVR_CLOUD && isSuper() ? `<section class="panel" style="margin-bottom:16px"><div class="panel-head"><h2>Payments (Stripe)</h2><span class="note">RKVR’s connected account</span></div>
       ${sp.loading ? '<p class="cell-sub">Checking with Stripe…</p>' : sp.error ? `<div class="banner banner-warn"><span>${esc(sp.error)}</span></div>`
         : sp.charges != null ? `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">${statusChip(sp.charges ? 'Live' : 'Paused')}<span>Card payments ${sp.charges ? 'on' : 'paused'}</span> · <span>Payouts ${sp.payouts ? 'on' : 'paused'}</span>${sp.name ? ' · <span>' + esc(sp.name) + '</span>' : ''}</div>
           <p class="cell-sub">Card payments capability: <b>${esc(sp.card || 'not requested')}</b> · Transfers: <b>${esc(sp.transfers || 'not requested')}</b>${sp.reason ? ' · Stripe’s reason: <b>' + esc(sp.reason.replace(/[._]/g, ' ')) + '</b>' : ''}${sp.pending && sp.pending.length ? ' · Being verified: ' + esc(sp.pending.map(x => x.replace(/^.*\./, '').replace(/_/g, ' ')).join(', ')) : ''}${sp.other ? ' · ' + sp.other + ' other payment types not active (not needed)' : ''}</p>
@@ -1767,7 +1796,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     const entry = { at: new Date().toISOString(), text, by: state.me || null };
     state.log = [entry].concat(state.log).slice(0, 40);
     render();
-    await writeDoc('config/log', { entries: state.log });
+    if (isSuper()) await writeDoc('config/log', { entries: state.log });
   }
 
   async function toggleFlag(k) {
@@ -1784,7 +1813,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   }
 
   async function togglePause(id) {
-    if (!canChange()) return;
+    if (!canAct()) { toast('Only Super Admins, or HQ Staff for this location, can pause bookings.'); return; }
     const s = suiteById(id);
     const paused = Object.assign({}, state.paused);
     if (paused[id]) delete paused[id]; else paused[id] = true;
@@ -1794,6 +1823,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       try { await window.RKVR_CLOUD.rest('spas?id=eq.' + id, { method: 'PATCH', body: { bookings_paused: !!paused[id] } }); }
       catch (e) { toast('Couldn’t change bookings: ' + e.message); await loadLive(); return; }
     }
+    if (!isSuper()) { addLog((paused[id] ? 'Paused' : 'Resumed') + ' bookings at ' + s.studio); return; }
     const ok = await writeDoc('config/suites', { paused });
     if (ok) { const msg = (paused[id] ? 'Paused bookings at ' : 'Reopened bookings at ') + s.studio; toast(msg); addLog(msg); }
   }
@@ -1854,7 +1884,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   /* ---------------- service request updates ---------------- */
   function reqDraft(id) { return Object.assign({}, state.reqDraft[id] || {}); }
   async function sendReqUpdate(id) {
-    if (!canChange()) return;
+    if (!canAct()) return;
     const r = REQUESTS.find(x => x.id === id), s = suiteById(r.suite);
     const ups = reqUpdates(r), cur = reqStatus(r);
     const d = Object.assign({ status: cur === 'Open' && !ups.length ? 'Scheduled' : cur, eta: '', text: '', text2: false }, state.reqDraft[id] || {});
@@ -2029,7 +2059,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       if (C.linkType && C.linkType.startsWith('error:')) { showLogin(C.linkType.slice(6), true); return; }
       if (!p) { showLogin(); return; }
       if (C.linkType === 'recovery' || C.linkType === 'invite' || C.linkType === 'signup') { showSetPassword(); return; }
-      if (p.role !== 'hq_admin') { showNoAccess(p); return; }
+      if (p.role !== 'super_admin' && p.role !== 'hq_admin') { showNoAccess(p); return; }
       ungate();
       user = C.user; db = C.db;
       setInterval(() => { if (!document.hidden && state.hqLive) loadLive(); }, 60000);
@@ -2040,7 +2070,8 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
         stripeStatus();
       }
       const w = $('#who');
-      w.innerHTML = `<span>${esc(p.full_name || p.email)} · Admin</span><button class="btn btn-sm" type="button" data-signout="1">Sign out</button>`;
+      if (p.role === 'hq_admin') { state.hqLive = true; loadLive(); }   // HQ Staff always see live data for their locations
+      w.innerHTML = `<span>${esc(p.full_name || p.email)} · ${p.role === 'super_admin' ? 'Super Admin' : 'HQ Staff'}</span><button class="btn btn-sm" type="button" data-signout="1">Sign out</button>`;
       renderLocSelect();
     } else {
       try {
@@ -2114,6 +2145,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       return;
     }
     if (t.id === 'pw-skip') { location.reload(); return; }
+    if (t.dataset.teamEdit !== undefined) { state.teamEdit = t.dataset.teamEdit || null; render(); return; }
     if (t.dataset.teamResend) {
       const em = t.dataset.teamResend; t.disabled = true;
       const inv = (state.team && state.team.invites || []).find(i => i.email === em);
@@ -2145,6 +2177,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       window.RKVR_CLOUD.callFn('stripe-onboarding', {}).then(r => { location.href = r.url; }, err => { t.disabled = false; t.textContent = 'Try again'; toast(err.message); });
       return;
     }
+    if (t.id === 'data-pill' && !isSuper()) { toast('Only Super Admins can switch between live and sample data.'); return; }
     if (t.id === 'data-pill') { setLiveData(!isLive() && !state.hqLive); return; }
     if (t.dataset.remind) { const s = suiteById(t.dataset.remind); state.reminded[s.id] = true; render(); toast('Reminder queued for ' + s.studio + ' (sample)'); return; }
     if (t.id === 'save-settings') { saveSettings(); return; }
@@ -2189,7 +2222,13 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     }
   });
   document.addEventListener('change', e => {
-    if (e.target.id === 'tm-role') { state.teamRole = e.target.value; const r = $('#tm-spa-row'); if (r) r.hidden = e.target.value !== 'operator'; return; }
+    if (e.target.id === 'tm-role') { state.teamRole = e.target.value; const r = $('#tm-spa-row'), l = $('#tm-locs-row'); if (r) r.hidden = e.target.value !== 'operator'; if (l) l.hidden = e.target.value !== 'hq_admin'; return; }
+    if (e.target.dataset && e.target.dataset.teamRole) {
+      const id = e.target.dataset.teamRole, role = e.target.value;
+      window.RKVR_CLOUD.rest('profiles?id=eq.' + id, { method: 'PATCH', body: { role } })
+        .then(() => { toast(role === 'super_admin' ? 'Now a Super Admin' : 'Now HQ Staff. Pick their locations.'); if (role === 'hq_admin') state.teamEdit = id; addLog('Changed a team member to ' + ROLE_NAME[role]); return loadTeam(); }, err => { toast(err.message); loadTeam(); });
+      return;
+    }
     const rd = e.target.dataset || {};
     if (rd.req && rd.reqField && (rd.reqField === 'status' || rd.reqField === 'text2')) {
       const dr = reqDraft(rd.req); dr[rd.reqField] = rd.reqField === 'text2' ? e.target.checked : e.target.value;
@@ -2232,12 +2271,25 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       try { await window.RKVR_CLOUD.signIn(em, $('#li-pass').value); location.reload(); }
       catch (err) { showLogin(err.status === 400 ? 'That email and password don’t match.' : err.message, true); }
     }
+    if (e.target.dataset && e.target.dataset.teamLocs) {
+      e.preventDefault();
+      const id = e.target.dataset.teamLocs, C = window.RKVR_CLOUD;
+      const want = Array.from(e.target.querySelectorAll('input[name="loc"]:checked')).map(x => x.value);
+      try {
+        await C.rest('hq_staff_spas?profile_id=eq.' + id, { method: 'DELETE' });
+        if (want.length) await C.rest('hq_staff_spas', { method: 'POST', prefer: 'return=minimal', body: want.map(spa_id => ({ profile_id: id, spa_id })) });
+        state.teamEdit = null; toast('Locations saved'); addLog('Changed an HQ Staff member’s locations'); await loadTeam();
+      } catch (err) { toast(err.message); }
+      return;
+    }
     if (e.target.id === 'team-form') {
       e.preventDefault();
       const email = ($('#tm-email').value || '').trim().toLowerCase(), role = $('#tm-role').value, spa = $('#tm-spa') && $('#tm-spa').value;
+      const spaIds = Array.from(document.querySelectorAll('input[name="tm-loc"]:checked')).map(x => x.value);
       if (role === 'operator' && !spa) { toast('Pick a spa for this operator.'); return; }
+      if (role === 'hq_admin' && !spaIds.length) { toast('Tick at least one location for HQ Staff.'); return; }
       const b = e.target.querySelector('button[type=submit]'); b.disabled = true; b.textContent = 'Sending…';
-      try { await teamInvite(email, role, spa); toast('Invite sent to ' + email); state.teamRole = role; await loadTeam(); }
+      try { await teamInvite(email, role, spa, spaIds); toast('Invite sent to ' + email); state.teamRole = role; await loadTeam(); }
       catch (err) { toast(/rate|seconds/i.test(err.message) ? 'Too many emails just now. Wait a minute and try again.' : err.message); b.disabled = false; b.textContent = 'Send invite'; }
       return;
     }
