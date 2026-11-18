@@ -721,7 +721,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
         C.rest('service_requests?select=*&order=created_at.desc&limit=300'),
         C.rest('request_messages?select=*&order=created_at&limit=2000'),
         C.rest('spa_waitlist?select=spa_id').catch(() => []),
-        C.rest('bookings?select=id,spa_id,starts_at,client_id,status,created_at&status=in.(booked,checked_in,completed)&starts_at=gte.' + since + '&limit=20000'),
+        C.rest('bookings?select=id,spa_id,starts_at,client_id,status,created_at,paid_at,booking_items(service_id,price_cents)&status=in.(booked,checked_in,completed)&or=(starts_at.gte.' + since + ',paid_at.gte.' + since + ')&limit=20000'),
         C.rest('services?select=id,spa_id,name,category,member_included,price_cents')
       ]);
       const bIds = Array.from(new Set(visits.filter(v => v.booking_id).map(v => v.booking_id)));
@@ -730,6 +730,10 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       const itemsOf = v => v.booking_id ? items.filter(i => i.booking_id === v.booking_id).map(i => svcById[i.service_id]).filter(Boolean) : (v.service_ids || []).map(id => svcById[id]).filter(Boolean);
       const nameOf = {}; clients.forEach(c => { nameOf[c.id] = c.full_name || c.email; });
       const live = m => /active|past_due/.test(m.status);
+      // Visits paid online ahead of time that haven't been checked in yet (once checked in, the visit row carries the payment)
+      const visited = new Set(visits.map(v => v.booking_id).filter(Boolean));
+      const isMem = id => mems.some(m => m.client_id === id && live(m));
+      const prepaid = bookings.filter(b => b.paid_at && !visited.has(b.id)).map(b => ({ b, cents: (b.booking_items || []).reduce((a, i) => a + ((isMem(b.client_id) && svcById[i.service_id] && svcById[i.service_id].member_included) ? 0 : i.price_cents), 0) }));
 
       // markets and spas
       const openSpas = spas.filter(x => x.status === 'open' || x.status === 'paused');
@@ -751,7 +755,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
         SUITES.push({
           id: sp.id, slug: sp.slug, loc: LOCS.indexOf(sp.market), no: sp.phenix_suites || '—', suites: sp.suite_count || 1, studio: sp.name,
           pro: sp.operator ? (sp.operator.full_name || sp.operator.email) : 'No operator yet', spec: cats.map(c => CAT_WORD[c] || c).join(' · '),
-          team: 1, book: Math.round(recent / 4), coll: Math.round(mv.filter(v => v.paid_at).reduce((a, v) => a + v.amount_cents, 0) / 100),
+          team: 1, book: Math.round(recent / 4), coll: Math.round((mv.filter(v => v.paid_at).reduce((a, v) => a + v.amount_cents, 0) + prepaid.filter(x => x.b.spa_id === sp.id && x.b.paid_at >= monthStart).reduce((a, x) => a + x.cents, 0)) / 100),
           cycle: sp.rent_cycle === 'weekly' ? 'Weekly' : 'Monthly', rent: inv ? Math.round(inv.total_cents / 100) : 0,
           status: inv ? ({ paid: 'Paid', overdue: 'Overdue', open: 'Unpaid', draft: 'Draft', void: 'Void' }[inv.status] || 'Unpaid') : 'No invoice',
           method: inv && inv.paid_method ? inv.paid_method.toUpperCase().replace('CARD', 'Card') : '', invoice: inv || null,
@@ -766,7 +770,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       for (let i = 0; i < 8; i++) { const a = wkStart(i), b = new Date(a.getTime() + 7 * 864e5); ranges.push([a, b]); WEEKS.push(a.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })); }
       const inR = (ts, r) => { const t = Date.parse(ts); return t >= r[0].getTime() && t < r[1].getTime(); };
       const stream = k => ALL_STREAMS.find(x => x.key === k);
-      stream('services').v = ranges.map(r => visits.filter(v => v.paid_at && inR(v.paid_at, r)).reduce((a, v) => a + v.amount_cents, 0) / 100000);
+      stream('services').v = ranges.map(r => (visits.filter(v => v.paid_at && inR(v.paid_at, r)).reduce((a, v) => a + v.amount_cents, 0) + prepaid.filter(x => inR(x.b.paid_at, r)).reduce((a, x) => a + x.cents, 0)) / 100000);
       stream('members').v = ranges.map(r => mems.filter(m => (m.started_at || m.created_at) && Date.parse(m.started_at || m.created_at) < r[1].getTime() && (!m.canceled_at || Date.parse(m.canceled_at) > r[0].getTime()) && m.status !== 'pending')
         .reduce((a, m) => a + m.rate_cents, 0) / 4.33 / 100000);
       stream('shop').v = ranges.map(() => 0);
@@ -800,6 +804,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
         feed.push({ ts: v.checked_in_at, kind: v.paid_at && v.pay === 'alacarte' ? 'Payment' : v.pay === 'member' ? 'Members' : 'Booking',
           text: `${who} ${v.status === 'done' ? 'visited' : 'checked in at'} RKVR ${sp.studio}${what ? ' · ' + what : ''}${v.paid_at && v.amount_cents ? ' · paid ' + fmt(v.amount_cents / 100) : ''}`, suite: sp.id });
       });
+      prepaid.forEach(x => { const sp = SUITES.find(y => y.id === x.b.spa_id); if (sp) feed.push({ ts: x.b.paid_at, kind: 'Payment', text: `${nameOf[x.b.client_id] || 'A client'} paid ${fmt(x.cents / 100)} online for a visit at RKVR ${sp.studio} on ${shortDate(x.b.starts_at)}`, suite: sp.id }); });
       mems.filter(m => m.started_at).forEach(m => { const sp = SUITES.find(x => x.id === m.home_spa_id) || SUITES[0]; if (sp) feed.push({ ts: m.started_at, kind: 'Members', text: `${nameOf[m.client_id] || 'Someone'} joined RKVR Unlimited · ${fmt(m.rate_cents / 100)}/mo`, suite: sp.id }); });
       reqs.slice(0, 10).forEach(r => { if (SUITES.find(x => x.id === r.spa_id)) feed.push({ ts: r.created_at, kind: 'Request', text: `RKVR ${SUITES.find(x => x.id === r.spa_id).studio} filed ${r.number || 'a request'} · ${r.title}`, suite: r.spa_id }); });
       FEED.length = 0;
@@ -813,13 +818,17 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
         const lv = cv[0];
         const alc = v => v.pay === 'alacarte' && v.paid_at;
         const mtdV = cv.filter(v => v.day >= monthStart && alc(v)), ytdV = cv.filter(v => v.day >= yStart && alc(v));
+        const pp = prepaid.filter(x => x.b.client_id === c.id), ppM = pp.filter(x => x.b.paid_at >= monthStart), ppY = pp.filter(x => x.b.paid_at >= yStart);
+        const cb = bookings.filter(b => b.client_id === c.id && b.status === 'booked' && Date.parse(b.starts_at) >= Date.now() - 864e5).sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
         const spaId = c.home_spa_id || (lv && lv.spa_id) || (SUITES[0] && SUITES[0].id);
         return { id: c.id, name: c.full_name || c.email, email: c.email, spa: spaId,
           plan: cur ? (cur.is_founding ? 'founding' : 'member') : was ? 'former' : 'alacarte',
-          active: !!cur || (!!lv && Date.parse(lv.day) >= Date.now() - 60 * 864e5),   // members are always active days: lv ? Math.round((Date.now() - Date.parse(lv.day)) / 864e5) : 999,
+          active: !!cur || cb.length > 0 || (!!lv && Date.parse(lv.day) >= Date.now() - 60 * 864e5),   // members and anyone booked are active days: lv ? Math.round((Date.now() - Date.parse(lv.day)) / 864e5) : 999,
           used: cv.filter(v => v.day >= monthStart && (v.pay === 'member' || v.pay === 'join')).reduce((a, v) => a + itemsOf(v).filter(x => x.member_included).length, 0),
-          mtd: mtdV.reduce((a, v) => a + v.amount_cents, 0) / 100, mtdN: mtdV.length, ytd: ytdV.reduce((a, v) => a + v.amount_cents, 0) / 100,
-          last: lv ? (itemsOf(lv).map(x => x.name).join(' + ') || 'Visit') : 'No visits yet', lastDate: lv ? shortDate(lv.day) : '—',
+          mtd: (mtdV.reduce((a, v) => a + v.amount_cents, 0) + ppM.reduce((a, x) => a + x.cents, 0)) / 100, mtdN: mtdV.length + ppM.length,
+          ytd: (ytdV.reduce((a, v) => a + v.amount_cents, 0) + ppY.reduce((a, x) => a + x.cents, 0)) / 100,
+          last: lv ? (itemsOf(lv).map(x => x.name).join(' + ') || 'Visit') : cb.length ? 'Next visit booked' + (cb[0].paid_at ? ' · prepaid' : '') : 'No visits yet',
+          lastDate: lv ? shortDate(lv.day) : cb.length ? shortDate(cb[0].starts_at) : '—',
           since: new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) };
       });
       LIVE.clients = clients.length; LIVE.waitlist = waits.length;
@@ -1083,7 +1092,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
         ${CR() ? `<div class="chips" role="group" aria-label="Plan">${chip('plan', 'all', 'All plans')}${chip('plan', 'members', 'Members')}${chip('plan', 'alacarte', 'À la carte')}${chip('plan', 'former', 'Former members')}</div>` : ''}</div>
       <div class="tbl-wrap"><table><thead><tr><th>Client</th><th>Home spa</th><th>Status</th><th>Plan</th><th>This month</th><th class="num">À la carte YTD</th><th>Last visit</th></tr></thead><tbody id="cl-body">${b.html || '<tr><td colspan="7" class="cell-sub">No clients match.</td></tr>'}</tbody></table></div>
       <div class="rec-foot"><span id="cl-count">Showing ${Math.min(b.n, (f.lim || 25))} of ${num(b.n)}</span>${b.more ? '<button class="linkish" data-cl-more="1">Show 25 more</button>' : ''}</div>
-      <p class="cell-sub" style="margin-top:6px">Active means a current member, or a visit in the last 60 days. “This month” shows member services used, or à la carte spend for non-members.${sampleNote(' Sample data.')}</p></section>`;
+      <p class="cell-sub" style="margin-top:6px">Active means a current member, a visit in the last 60 days, or a visit booked. “This month” shows member services used, or à la carte spend for non-members.${sampleNote(' Sample data.')}</p></section>`;
   }
 
   function renderMembers() {
