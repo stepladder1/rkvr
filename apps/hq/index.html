@@ -381,7 +381,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       <div class="top-tools">
         <label class="label" for="loc" style="letter-spacing:.08em">Location</label>
         <select id="loc" class="select"></select>
-        <span class="pill pill-sample" id="data-pill" title="Network activity is sample data until the apps run on the RKVR backend">Sample data</span>
+        <button type="button" class="pill pill-sample" id="data-pill" title="Showing sample data. Click to switch to live data from the RKVR database." style="border:0;cursor:pointer">Sample data</button>
         <span class="who" id="who"></span>
       </div>
     </div>
@@ -690,9 +690,18 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   const ago = ts => { const m = Math.max(1, Math.round((Date.now() - Date.parse(ts)) / 60000)); return m < 60 ? m + ' min' : m < 1440 ? Math.round(m / 60) + ' hr' : Math.round(m / 1440) + ' d'; };
   async function chunked(ids, mk) { const out = []; for (let i = 0; i < ids.length; i += 100) out.push(...((await mk(ids.slice(i, i + 100))) || [])); return out; }
 
+  async function setLiveData(on) {
+    if (!window.RKVR_CLOUD) { toast('Live data needs the online dashboard.'); return; }
+    if (!canChange()) { toast('Only HQ admins can switch this.'); return; }
+    state.hqLive = on; render();
+    const ok = await writeDoc('config/hq', { liveData: on });
+    if (!ok) return;
+    addLog(on ? 'Switched HQ to live data' : 'Switched HQ to sample data');
+    if (on) { toast('Switched to live data'); loadLive(); } else location.reload();
+  }
   async function loadLive() {
     const C = window.RKVR_CLOUD;
-    if (!C || !C.profile || C.profile.role !== 'hq_admin') return;
+    if (!C || !C.profile || C.profile.role !== 'hq_admin' || !state.hqLive) return;
     const now = new Date(), y = now.getFullYear();
     const monthStart = ymd(new Date(Date.UTC(y, now.getMonth(), 1)));
     const since = ymd(new Date(Math.min(Date.UTC(y, 0, 1), Date.now() - 63 * 864e5)));
@@ -853,7 +862,12 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
 
   function head(title, sub) {
     const pill = document.getElementById('data-pill');
-    if (pill && isLive()) { pill.textContent = 'Live data'; pill.title = 'Spas, clients, members, visits, rent and requests come from the RKVR database. Shop, supply and marketing are still sample.'; pill.classList.add('pill-live'); }
+    if (pill) {
+      pill.textContent = isLive() ? 'Live data' : state.hqLive && window.RKVR_CLOUD ? 'Loading live data…' : 'Sample data';
+      pill.title = isLive() ? 'Live: spas, clients, members, visits, rent and requests from the RKVR database. Click to show sample data instead (for everyone at HQ).'
+        : 'Showing sample data. Click to switch HQ to live data from the RKVR database (for everyone at HQ).';
+      pill.classList.toggle('pill-live', isLive());
+    }
     return `<div class="page-head"><div><h1>${title}</h1><p>${sub}</p></div><div class="stamp">${esc(scopeName())} · ${isLive() ? esc(LIVE.monthLabel) : 'October 2026'}, month to date</div></div>`;
   }
 
@@ -1995,7 +2009,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       if (p.role !== 'hq_admin') { showNoAccess(p); return; }
       ungate();
       user = C.user; db = C.db;
-      loadLive(); setInterval(() => { if (!document.hidden) loadLive(); }, 60000);
+      setInterval(() => { if (!document.hidden && state.hqLive) loadLive(); }, 60000);
       const w = $('#who');
       w.innerHTML = `<span>${esc(p.full_name || p.email)} · Admin</span><button class="btn btn-sm" type="button" data-signout="1">Sign out</button>`;
       renderLocSelect();
@@ -2024,6 +2038,13 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     }, () => { /* keep the last known state */ });
     listen('config/features', d => { state.flags = Object.assign({}, DEFAULT_FLAGS, d); });
     listen('config/settings', d => { state.settings = Object.assign({}, DEFAULT_SETTINGS, d); });
+    // HQ's live/sample switch (HQ-only doc). Off until someone turns it on.
+    listen('config/hq', d => {
+      const want = d.liveData === true;
+      if (want === state.hqLive) return;
+      state.hqLive = want;
+      if (want) loadLive(); else if (LIVE.on) location.reload();
+    });
     listen('config/suites', d => { state.paused = Object.assign({}, d.paused || {}); });
     listen('config/log', d => { state.log = Array.isArray(d.entries) ? d.entries.slice(0, 40) : []; });
     listen('config/marketing', d => { state.mkRules = Object.assign({}, DEFAULT_MK_RULES, d); });
@@ -2089,6 +2110,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       return;
     }
     if (t.dataset.pause) { togglePause(t.dataset.pause); return; }
+    if (t.id === 'data-pill') { setLiveData(!isLive() && !state.hqLive); return; }
     if (t.dataset.remind) { const s = suiteById(t.dataset.remind); state.reminded[s.id] = true; render(); toast('Reminder queued for ' + s.studio + ' (sample)'); return; }
     if (t.id === 'save-settings') { saveSettings(); return; }
     if (t.dataset.mkLoc !== undefined) { const l = Object.assign({}, state.mk.locs); l[t.dataset.mkLoc] = !l[t.dataset.mkLoc]; state.mk = Object.assign({}, state.mk, { locs: l }); render(); return; }
