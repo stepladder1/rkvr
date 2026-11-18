@@ -9,7 +9,7 @@ const crypto = require('crypto');
 
 const SUPABASE_URL = 'https://inoyndkciffwqquhvsid.supabase.co';
 const PUBLISHABLE = 'sb_publishable_HMFhcC_cEnGT2yeh1bfU6Q_YWZDLsoD';
-const ORIGINS = ['https://rkvr.netlify.app', 'https://rkvrclient.netlify.app', 'https://rkvrcheckin.netlify.app', 'https://rkvrpro.netlify.app', 'https://rkvr-wellness.com', 'https://www.rkvr-wellness.com'];
+const ORIGINS = ['https://rkvr.netlify.app', 'https://rkvrclient.netlify.app', 'https://rkvrcheckin.netlify.app', 'https://rkvrpro.netlify.app', 'https://rkvr-dashboard.netlify.app', 'https://rkvr-wellness.com', 'https://www.rkvr-wellness.com'];
 
 function cors(event) {
   const o = (event.headers && (event.headers.origin || event.headers.Origin)) || '';

@@ -183,6 +183,14 @@
   window.RKVR_CLOUD = {
     db, user, rest,
     // Emails a one-time sign-in link; creates the account if the email is new
+    async callFn(name, body) {
+      const t = await token();
+      const base = ((window.RKVR_CONFIG || {}).functionsUrl || 'https://rkvr.netlify.app/.netlify/functions').replace(/\/$/, '');
+      const res = await fetch(base + '/' + name, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify(body || {}) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { const e = new Error(data.error || 'Something went wrong.'); e.status = res.status; throw e; }
+      return data;
+    },
     async sendLink(email, redirectTo) {
       await authCall('otp?redirect_to=' + encodeURIComponent(redirectTo || (location.origin + location.pathname)), { email, create_user: true });
     },

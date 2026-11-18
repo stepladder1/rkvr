@@ -690,6 +690,12 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   const ago = ts => { const m = Math.max(1, Math.round((Date.now() - Date.parse(ts)) / 60000)); return m < 60 ? m + ' min' : m < 1440 ? Math.round(m / 60) + ' hr' : Math.round(m / 1440) + ' d'; };
   async function chunked(ids, mk) { const out = []; for (let i = 0; i < ids.length; i += 100) out.push(...((await mk(ids.slice(i, i + 100))) || [])); return out; }
 
+  async function stripeStatus() {
+    state.stripe = { loading: true }; render();
+    try { state.stripe = await window.RKVR_CLOUD.callFn('stripe-onboarding', { status: true }); }
+    catch (e) { state.stripe = { error: e.message }; }
+    render();
+  }
   async function setLiveData(on) {
     if (!window.RKVR_CLOUD) { toast('Live data needs the online dashboard.'); return; }
     if (!canChange()) { toast('Only HQ admins can switch this.'); return; }
@@ -1351,7 +1357,13 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     const settingsRows = SETTING_DEFS.filter(d => d.k !== 'credits').map(d => `<div class="setting"><label for="set-${d.k}">${d.name}<span class="flag-desc">${d.desc}</span></label><div class="field"><span>${d.pre}</span><input id="set-${d.k}" type="number" inputmode="decimal" step="${d.step}" min="${d.min}" value="${st[d.k]}" data-setting="${d.k}" ${canChange() ? '' : 'disabled'}></div></div>`).join('');
     const logIds = Array.from(new Set(state.log.map(l => l.by).filter(Boolean)));
     const logRows = state.log.length ? state.log.map(l => `<div class="log-row"><span>${esc(l.text)}</span><time class="cell-sub">${relTime(l.at)}</time><span class="by" data-by="${l.by ? esc(l.by) : ''}">${l.by ? '' : 'By an RKVR admin'}</span></div>`).join('') : '<div class="empty">No changes yet. Every switch and setting change is recorded here with who made it.</div>';
-    return head('Controls', 'Turn features on or off across both apps and set the membership economics.') + modeBanner + `
+    const sp = state.stripe || {};
+    const stripePanel = window.RKVR_CLOUD ? `<section class="panel" style="margin-bottom:16px"><div class="panel-head"><h2>Payments (Stripe)</h2><span class="note">RKVR’s connected account</span></div>
+      ${sp.loading ? '<p class="cell-sub">Checking with Stripe…</p>' : sp.error ? `<div class="banner banner-warn"><span>${esc(sp.error)}</span></div>`
+        : sp.charges != null ? `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">${statusChip(sp.charges ? 'Live' : 'Paused')}<span>Card payments ${sp.charges ? 'on' : 'paused'}</span> · <span>Payouts ${sp.payouts ? 'on' : 'paused'}</span>${sp.name ? ' · <span>' + esc(sp.name) + '</span>' : ''}</div>
+          ${sp.due && sp.due.length ? `<p class="cell-sub">Stripe still needs ${sp.due.length} ${sp.due.length === 1 ? 'item' : 'items'}: ${esc(sp.due.slice(0, 6).map(x => x.replace(/^.*\./, '').replace(/_/g, ' ')).join(', '))}${sp.due.length > 6 ? '…' : ''}.</p>` : sp.charges ? '<p class="cell-sub">All set. Members and visits can be paid online.</p>' : ''}` : '<p class="cell-sub">Check whether RKVR can take card payments, and finish its Stripe sign-up.</p>'}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn btn-primary" type="button" id="stripe-onboard">${sp.charges ? 'Update RKVR’s Stripe details' : 'Finish RKVR’s Stripe sign-up'}</button><button class="btn" type="button" id="stripe-status">Check status</button></div></section>` : '';
+    return head('Controls', 'Turn features on or off across both apps and set the membership economics.') + modeBanner + stripePanel + `
       <div class="grid cols-2">
         <section class="panel"><div class="panel-head"><h2>Feature switches</h2><span class="note">${Object.values(state.flags).filter(Boolean).length} of ${Object.keys(state.flags).length} on</span></div>
           ${FLAG_GROUPS.map(g => `<div class="flag-group"><h3>${g.title}</h3><p>${g.blurb}${g.parent && !flagOn(g.parent) ? ' Off while the Shop is off.' : ''}</p>${g.items.map(i => flagRow(i, g)).join('')}</div>`).join('')}
@@ -2010,6 +2022,12 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       ungate();
       user = C.user; db = C.db;
       setInterval(() => { if (!document.hidden && state.hqLive) loadLive(); }, 60000);
+      if (/[?&]stripe=/.test(location.search)) {
+        const retry = /stripe=retry/.test(location.search);
+        try { history.replaceState(null, '', location.pathname); } catch (_) {}
+        state.tab = 'controls'; toast(retry ? 'That Stripe link expired. Click Finish RKVR’s Stripe sign-up again.' : 'Back from Stripe. Checking RKVR’s account…');
+        stripeStatus();
+      }
       const w = $('#who');
       w.innerHTML = `<span>${esc(p.full_name || p.email)} · Admin</span><button class="btn btn-sm" type="button" data-signout="1">Sign out</button>`;
       renderLocSelect();
@@ -2110,6 +2128,12 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       return;
     }
     if (t.dataset.pause) { togglePause(t.dataset.pause); return; }
+    if (t.id === 'stripe-status') { stripeStatus(); return; }
+    if (t.id === 'stripe-onboard') {
+      t.disabled = true; t.textContent = 'Opening Stripe…';
+      window.RKVR_CLOUD.callFn('stripe-onboarding', {}).then(r => { location.href = r.url; }, err => { t.disabled = false; t.textContent = 'Try again'; toast(err.message); });
+      return;
+    }
     if (t.id === 'data-pill') { setLiveData(!isLive() && !state.hqLive); return; }
     if (t.dataset.remind) { const s = suiteById(t.dataset.remind); state.reminded[s.id] = true; render(); toast('Reminder queued for ' + s.studio + ' (sample)'); return; }
     if (t.id === 'save-settings') { saveSettings(); return; }
