@@ -19,11 +19,15 @@
 
   async function auth(path, body, method) {
     const t = method === 'GET' || method === 'PUT' ? await token() : null;
-    const res = await fetch(URL_ + '/auth/v1/' + path, {
+    let res;
+    try { res = await fetch(URL_ + '/auth/v1/' + path, {
       method: method || 'POST',
       headers: Object.assign({ apikey: KEY, 'Content-Type': 'application/json' }, t ? { Authorization: 'Bearer ' + t } : {}),
       body: body ? JSON.stringify(body) : undefined
-    });
+    }); } catch (e) {
+      // The browser couldn't reach RKVR at all (no signal, a blocker, or a dropped connection)
+      const err = new Error('Couldn’t reach RKVR. Check your connection and try again.'); err.status = 0; throw err;
+    }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const err = new Error(data.error_description || data.msg || data.message || 'Something went wrong');
