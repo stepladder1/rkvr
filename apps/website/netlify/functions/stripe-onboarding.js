@@ -15,7 +15,15 @@ exports.handler = async event => {
     if (body.status) {
       const a = await stripe('GET', 'accounts/' + acct, null, null);
       const due = (a.requirements && (a.requirements.currently_due || []).concat(a.requirements.past_due || [])) || [];
-      return reply(event, 200, { charges: !!a.charges_enabled, payouts: !!a.payouts_enabled, details: !!a.details_submitted, due: Array.from(new Set(due)), name: (a.business_profile && a.business_profile.name) || a.settings && a.settings.dashboard && a.settings.dashboard.display_name || null });
+      const r = a.requirements || {}, caps = a.capabilities || {};
+      return reply(event, 200, {
+        charges: !!a.charges_enabled, payouts: !!a.payouts_enabled, details: !!a.details_submitted, due: Array.from(new Set(due)),
+        name: (a.business_profile && a.business_profile.name) || (a.settings && a.settings.dashboard && a.settings.dashboard.display_name) || null,
+        reason: r.disabled_reason || null, pending: r.pending_verification || [],
+        errors: (r.errors || []).map(e => e.requirement + ': ' + e.reason),
+        card: caps.card_payments || null, transfers: caps.transfers || null,
+        other: Object.keys(caps).filter(k => !['card_payments', 'transfers'].includes(k) && caps[k] !== 'active').length
+      });
     }
     const link = await stripe('POST', 'account_links', { account: acct, type: 'account_onboarding', collect: 'currently_due', refresh_url: 'https://rkvr-dashboard.netlify.app/?stripe=retry', return_url: back }, null);
     return reply(event, 200, { url: link.url });
