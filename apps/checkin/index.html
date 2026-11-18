@@ -261,6 +261,23 @@ h1, h2, p { margin: 0; }
     else if (!ok) toast('Nothing was charged.');
   }
 
+  // Search every client of this spa, not just today's list
+  let findT;
+  function findClients() {
+    clearTimeout(findT);
+    const q = S.pro.q.trim().toLowerCase();
+    if (q.length < 2) { S.found = null; return; }
+    findT = setTimeout(async () => {
+      const safe = q.replace(/[,()*%]/g, ' ').trim();
+      try {
+        const rows = await C.rest('profiles?select=id,full_name,email,phone,memberships(status)&role=eq.client&or=(full_name.ilike.*' + encodeURIComponent(safe) + '*,email.ilike.*' + encodeURIComponent(safe) + '*)&order=full_name&limit=8');
+        const today = new Set(S.visits.map(v => (v.name || '').toLowerCase()));
+        S.found = { q, rows: (rows || []).filter(p => !today.has((p.full_name || '').toLowerCase())).map(p => Object.assign(p, { member: (p.memberships || []).some(m => /active|past_due/.test(m.status)) })) };
+      } catch (_) { S.found = { q, rows: [] }; }
+      if (S.pro.q.trim().toLowerCase() === q) { focusSearch = true; render(); }
+    }, 300);
+  }
+
   /* ---------------- gate ---------------- */
   function renderGate() {
     const left = `<div style="display:flex;flex-direction:column;gap:20px">${LOGO}<span class="eyebrow">Front desk</span><h1 class="disp" style="font-size:96px;line-height:.9">RKVR<br>Check-In.</h1><p class="lede" style="max-width:28ch">For RKVR spa staff. Sign in once on this iPad and it stays signed in.</p></div>`;
@@ -272,9 +289,9 @@ h1, h2, p { margin: 0; }
     else if (S.gate === 'nospa') right = `<div class="gbox"><h2 class="disp" style="font-size:40px">No spa yet</h2><p class="muted" style="font-size:16px;line-height:1.5">You’re signed in, but no RKVR spa is assigned to you yet. Ask RKVR HQ to pick your spa on the Team page.</p><button class="ghost" data-a="signOut">Sign out</button></div>`;
     else right = `<form id="gForm" class="gbox"><h2 class="disp" style="font-size:40px">Staff sign-in</h2>${msg}
         <label class="field">Email<input id="gEmail" type="email" autocomplete="username" required></label>
-        <label class="field">Password<input id="gPass" type="password" autocomplete="current-password"></label>
-        <button class="cta" type="submit" style="height:64px">Sign in</button>
-        <button class="ghost" type="button" data-a="gLink" style="height:52px;font-size:16px">Email me a sign-in link</button></form>`;
+        ${S.usePw ? '<label class="field">Password<input id="gPass" type="password" autocomplete="current-password" required></label>' : ''}
+        <button class="cta" type="submit" style="height:64px">${S.usePw ? 'Sign in' : 'Email me a sign-in link'}</button>
+        <button class="link" type="button" data-a="gPw" style="font-size:16px">${S.usePw ? 'Use an email link instead' : 'Sign in with a password instead'}</button></form>`;
     return `<div class="gate">${left}${right}</div>`;
   }
   async function boot() {
@@ -331,7 +348,8 @@ h1, h2, p { margin: 0; }
               <span class="t">${v.walk_in ? '<span style="font-size:13px;color:var(--accentText)">WALK-IN</span><br>' : ''}${tfmt(v.starts_at)}</span>
               <span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="nm">${esc(v.name)} <span class="muted" style="font-weight:500;font-size:13px">· ${payShort(v.pay)}</span></span><span class="sub">${esc(items(v).map(i => i.name).join(' + '))}</span></span>
               <span style="display:flex;align-items:center;gap:8px">${v.source === 'kiosk' && v.status === 'checked_in' ? '<span class="muted" style="font-size:12px">self check-in</span>' : ''}${chipFor(v)}</span></button>`).join('')
-              : `<p class="muted" style="padding:18px;line-height:1.5">${all.length ? 'No one matches that search.' : 'No bookings yet today. Walk-ins and website bookings show up here.'}</p>`}</div>
+              : `<p class="muted" style="padding:18px;line-height:1.5">${q ? 'No one on today’s list matches.' : all.length ? '' : 'No bookings yet today. Walk-ins and website bookings show up here.'}</p>`}
+              ${q.length >= 2 && S.found && S.found.q === q ? (S.found.rows.length ? `<div class="list-h" style="border-top:1px solid var(--line)"><h2 class="disp" style="font-size:20px">Other clients</h2><span class="muted" style="font-size:13px">Tap to start a walk-in</span></div>${S.found.rows.map(p => `<button class="row" data-a="walkFor" data-id="${esc(p.id)}"><span class="t" style="font-size:13px;color:var(--muted)">CLIENT</span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="nm">${esc(p.full_name || p.email)}</span><span class="sub">${esc([fmtPhone(String(p.phone || '').replace(/\D/g, '').slice(-10)), p.email].filter(Boolean).join(' · '))}</span></span><span class="chip" style="border-color:var(--line2)">${p.member ? 'Member' : 'À la carte'}</span></button>`).join('')}` : `<p class="muted" style="padding:0 18px 18px">No other clients match “${esc(S.pro.q)}”.</p>`) : ''}</div>
           </section>
           ${walk ? walkPanel() : clientPanel()}
         </div>
@@ -595,9 +613,16 @@ h1, h2, p { margin: 0; }
       catch (e) { S.gateMsg = /not found|signups/i.test(e.message) ? 'That email isn’t set up for RKVR. Ask RKVR HQ to add you.' : e.message; S.gateBad = true; }
       render();
     },
+    gPw: () => { const em = ($('#gEmail').value || '').trim(); S.usePw = !S.usePw; S.gateMsg = ''; render(); if (em) $('#gEmail').value = em; },
     signOut: async () => { await C.signOut(); try { localStorage.removeItem(PIN_KEY); } catch (_) {} location.reload(); },
     pick: id => { S.pro.sel = id; S.pro.panel = 'client'; render(); },
     walkin: () => { S.pro.panel = 'walkin'; render(); },
+    walkFor: id => {
+      const p = S.found && S.found.rows.find(x => x.id === id); if (!p) return;
+      const ph = String(p.phone || '').replace(/\D/g, '').slice(-10);
+      Object.assign(S.pro, { panel: 'walkin', wiPay: p.member ? 'member' : 'alacarte', wiName: p.full_name || '', wiPhone: ph ? fmtPhone(ph) : '', wiEmail: p.email || '', wiSel: [] });
+      render(); toast(p.member ? 'Member found. Pick their services.' : 'Pick their services.');
+    },
     closeWalk: () => { S.pro.panel = 'client'; render(); },
     toClient: () => {
       const go = () => { S.mode = 'client'; S.c = freshClient(); render(); };
@@ -734,7 +759,7 @@ h1, h2, p { margin: 0; }
   });
   document.addEventListener('input', e => {
     const id = e.target.id;
-    if (id === 'q') { S.pro.q = e.target.value; focusSearch = true; render(); }
+    if (id === 'q') { S.pro.q = e.target.value; focusSearch = true; render(); findClients(); }
     else if (id === 'wiName') S.pro.wiName = e.target.value;
     else if (id === 'wiPhone') S.pro.wiPhone = e.target.value;
     else if (id === 'wiEmail') S.pro.wiEmail = e.target.value.trim();
@@ -756,7 +781,7 @@ h1, h2, p { margin: 0; }
   document.addEventListener('submit', async e => {
     if (e.target.id !== 'gForm') return;
     e.preventDefault();
-    const em = $('#gEmail').value.trim(), pw = $('#gPass').value;
+    const em = $('#gEmail').value.trim(), pw = S.usePw && $('#gPass') ? $('#gPass').value : '';
     if (!pw) { A.gLink(); return; }
     try { await C.signIn(em, pw); boot(); }
     catch (err) { S.gateMsg = err.status === 400 ? 'That email and password don’t match. Or use “Email me a sign-in link”.' : err.message; S.gateBad = true; render(); }

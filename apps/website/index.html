@@ -247,10 +247,10 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     <div>
       <p class="display" style="font-size:34px">Book the experts.<br>All under one roof.</p>
       <p class="note" style="margin-top:12px">Now open: 1640 Camino Del Rio N, Ste 206, San Diego, CA 92108, inside Phenix Salon Suites. Austin and Dallas coming soon. RKVR is a brand of Phenix Salon Suites and SalonHQ.</p>
-      <p class="note" style="margin-top:6px">Online payment and membership checkout open soon. Nothing is charged when you book.</p>
+      <p class="note" style="margin-top:6px" id="pay-note">Online payment and membership checkout open soon. Nothing is charged when you book.</p>
     </div>
     <div><h4>Visit</h4><button data-go="locations">Find a location</button><button data-go="services">Services</button><button data-go="book">Book</button></div>
-    <div><h4>Shop and care</h4><button data-go="shop">Shop</button><button data-go="care">TeleWellness</button><button data-go="account">My RKVR</button></div>
+    <div><h4>Shop and care</h4><button data-go="shop" class="flag-shop">Shop</button><button data-go="care" class="flag-care">TeleWellness</button><button data-go="account">My RKVR</button></div>
     <div><h4>RKVR</h4><button data-go="owners">Own an RKVR spa</button><button data-go="join">Join RKVR</button><button data-go="membership">Membership</button></div>
   </div>
 </footer>
@@ -424,6 +424,13 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     try { const r = await C.callFn('visit-checkout', { booking_id: id, return_url: location.origin + location.pathname + '#account' }); location.href = r.url; }
     catch (e) { if (btn) { btn.disabled = false; btn.textContent = 'Pay now'; } toast(e.message); }
   }
+  async function joinWaitlist(slug, email) {
+    try { await C.rpc('join_waitlist', { spa_slug: slug, email }); S.notify = (S.notify || []).concat([slug]); save(); render(); toast('We’ll email ' + email + ' when ' + locById(slug).name + ' opens'); }
+    catch (e) { toast('Couldn’t save that: ' + e.message); }
+  }
+  async function loadFlags() {
+    try { const rows = await C.rest('feature_flags?select=key,enabled'); (rows || []).forEach(r => { FLAGS[r.key] = r.enabled; }); } catch (_) {}
+  }
   async function loadMember() {
     try {
       const rows = await C.rpc('my_membership_summary');
@@ -491,7 +498,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     }
   }
   async function bootLive() {
-    try { await loadCatalog(); } catch (e) { console.warn('[RKVR] menu not loaded', e); }
+    try { await Promise.all([loadCatalog(), loadFlags()]); } catch (e) { console.warn('[RKVR] menu not loaded', e); }
     try { await C.verifyLink(); } catch (_) {}
     if (C.linkError) toast(C.linkError);
     if (C.signedIn) {
@@ -525,23 +532,30 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
   }
 
   /* ---------------- shell ---------------- */
-  const NAV = [['locations', 'Locations'], ['services', 'Services'], ['book', 'Book'], ['shop', 'Shop'], ['care', 'TeleWellness'], ['membership', 'Membership'], ['owners', 'Own an RKVR']];
+  const FLAGS = {};   // HQ → Controls (feature_flags); anything missing counts as on
+  const on = k => FLAGS[k] !== false;
+  const NAV_ALL = [['locations', 'Locations'], ['services', 'Services'], ['book', 'Book'], ['shop', 'Shop'], ['care', 'TeleWellness'], ['membership', 'Membership'], ['owners', 'Own an RKVR']];
+  const NAV_FLAG = { book: 'booking', shop: 'shop', care: 'care' };
   const VIEWS = ['home', 'locations', 'services', 'book', 'shop', 'care', 'account', 'join', 'owners', 'membership'];
   function renderShell() {
-    $('#nav').innerHTML = NAV.map(([id, n]) => `<button data-go="${id}" ${ui.view === id ? 'aria-current="page"' : ''}>${n}</button>`).join('');
+    const pn = $('#pay-note'); if (pn && LIVE) pn.textContent = 'Pay online by card when you book, or at your visit. Secure payments by Stripe.';
+    document.querySelectorAll('.flag-shop').forEach(b => { b.hidden = !on('shop'); });
+    document.querySelectorAll('.flag-care').forEach(b => { b.hidden = !on('care'); });
+    $('#nav').innerHTML = NAV_ALL.filter(([id]) => !NAV_FLAG[id] || on(NAV_FLAG[id])).map(([id, n]) => `<button data-go="${id}" ${ui.view === id ? 'aria-current="page"' : ''}>${n}</button>`).join('');
     const n = S.cart.length;
     $('#topcta').innerHTML = `<button class="btn btn-sm cart-btn" data-drawer="cart" aria-label="Cart, ${n} ${n === 1 ? 'item' : 'items'}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2.6l2.4 12.2a1.5 1.5 0 0 0 1.5 1.2h8.7a1.5 1.5 0 0 0 1.5-1.2L21 7H6"/></svg>${n ? `<span class="count">${n}</span>` : ''}</button>` +
       (S.user ? `<button class="btn btn-sm" data-go="account">My RKVR</button>` : `<button class="btn btn-sm" data-go="join">Sign in</button>`) +
       `<button class="btn btn-sm btn-primary" data-go="book">Book</button>`;
   }
   function go(v, opts) {
-    if (!VIEWS.includes(v)) v = 'home';
+    if (!VIEWS.includes(v) || (NAV_FLAG[v] && !on(NAV_FLAG[v]))) v = 'home';
     ui.view = v; if (opts) Object.assign(ui, opts);
     try { history.replaceState(null, '', '#' + v); } catch (_) {}
     render(); window.scrollTo({ top: 0 });
   }
   function render() {
     renderShell();
+    if (NAV_FLAG[ui.view] && !on(NAV_FLAG[ui.view])) ui.view = 'home';
     const fn = { home: vHome, locations: vLocations, services: vServices, book: vBook, shop: vShop, care: vCare, account: vAccount, join: vJoin, owners: vOwners, membership: vMembership }[ui.view];
     $('#main').innerHTML = `<div class="view-in">${fn()}</div>`;
     $('#overlay').innerHTML = ui.drawer === 'cart' ? drawerCart() : '';
@@ -549,7 +563,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
 
   /* ---------------- views ---------------- */
   function vHome() {
-    const svcCount = OPEN.reduce((a, l) => a + l.suites.reduce((b, s) => b + s.svcs.length, 0), 0);
+    const svcCount = new Set(OPEN.flatMap(l => l.suites.flatMap(s => s.svcs.map(v => v[0])))).size;   // distinct services, not provider listings
     return `
     <section class="hero"><div class="wrap">
       <div class="hero-main">
@@ -579,7 +593,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       </div>
     </div></section>
     <section class="band alt"><div class="wrap">
-      <div class="section-head"><div><p class="eyebrow">Services</p><h2 class="display">What you can book</h2><p>Pay à la carte ($${DEPOSIT} deposit to hold your time), or join for unlimited recovery at $${PLAN.founding} a month.</p></div><button class="btn" data-go="services">All services</button></div>
+      <div class="section-head"><div><p class="eyebrow">Services</p><h2 class="display">What you can book</h2><p>${LIVE ? 'Pay à la carte (online when you book, or at your visit)' : 'Pay à la carte ($' + DEPOSIT + ' deposit to hold your time)'}, or join for unlimited recovery at $${PLAN.founding} a month.</p></div><button class="btn" data-go="services">All services</button></div>
       <div class="grid g4">${['cryo', 'red', 'comp', 'iv'].map(c => catCard(c)).join('')}</div>
     </div></section>
     <section class="band"><div class="wrap">
@@ -645,7 +659,9 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
         </article>`; }).join('')}</div>
       <h3 class="display" style="font-size:36px;margin-top:40px">Coming soon</h3>
       <div class="grid g3" style="margin-top:14px">${soon.map(({ l, d }) => `<div class="card" id="loc-${l.id}"><p class="eyebrow">${l.area}</p><h3 class="display" style="font-size:32px">${l.name}</h3>${d != null ? `<span class="muted small">${fmtD(d)} away</span>` : ''}<span class="tag" style="align-self:flex-start">Coming soon</span>
-        ${(S.notify || []).includes(l.id) ? '<p class="small" style="color:var(--good);font-weight:700;margin-top:auto">We’ll let you know when it opens.</p>' : `<button class="btn btn-sm" style="align-self:flex-start;margin-top:auto" data-notify="${l.id}">Notify me</button>`}</div>`).join('')}</div>
+        ${(S.notify || []).includes(l.id) ? '<p class="small" style="color:var(--good);font-weight:700;margin-top:auto">We’ll email you when it opens.</p>'
+          : LIVE && !S.user ? `<form class="notify-form" data-spa="${l.id}" style="margin-top:auto;display:flex;gap:6px;flex-wrap:wrap"><label class="sr">Email for ${esc(l.name)} opening news</label><input type="email" required placeholder="you@example.com" autocomplete="email" style="flex:1;min-width:160px;min-height:40px;padding:0 10px;border:1px solid var(--line);background:var(--bg);color:var(--fg)"><button class="btn btn-sm" type="submit">Notify me</button></form>`
+          : `<button class="btn btn-sm" style="align-self:flex-start;margin-top:auto" data-notify="${l.id}">Notify me</button>`}</div>`).join('')}</div>
     </div></section>`;
   }
 
@@ -781,7 +797,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px">${items.length ? items.map((p, i) => `<div class="line-item">${thumb(p)}<span><b>${esc(p.name)}</b><br><span class="muted small">${esc(p.sub)}</span></span><span style="text-align:right"><b>${money(p.price)}${p.per || ''}</b><br><button class="linkish small" data-remove="${i}">Remove</button></span></div>`).join('')
         : `<p class="muted">Your cart is empty.</p><div style="display:grid;gap:8px">${S.member ? '' : `<button class="btn" data-add="${CART_MEMBER}">Add membership · $${PLAN.founding}/month</button>`}<button class="btn" data-go="services">Browse services</button><button class="btn" data-go="shop">Shop products</button></div>`}
         ${items.length && !hasMember && !S.member ? `<div class="notice" style="margin-top:4px"><b>Members get unlimited recovery for $${PLAN.founding} a month.</b> <button class="linkish" data-add="${CART_MEMBER}">Add membership</button></div>` : ''}</div>
-      ${items.length ? `<div class="total"><span>Due today</span><b>${money(total)}</b></div><p class="note">${hasMember ? 'Membership renews monthly at $' + PLAN.founding + ' (founding rate). ' : ''}${items.some(p => p.kind === 'svc') ? 'Services are prepaid; book them any time in My RKVR. ' : ''}${goods ? (goods >= 50 ? 'Free shipping on products. ' : 'Add ' + money(50 - goods) + ' in products for free shipping. ') : ''}Nothing is charged in this preview.</p><button class="btn btn-primary" id="checkout">${S.user ? (LIVE ? 'Online checkout opens soon' : 'Check out · ' + money(total)) : 'Sign in to check out'}</button>` : ''}
+      ${items.length ? `<div class="total"><span>Due today</span><b>${money(total)}</b></div><p class="note">${hasMember ? 'Membership renews monthly at $' + PLAN.founding + ' (founding rate). ' : ''}${items.some(p => p.kind === 'svc') ? (LIVE ? 'Services: pick a time, then pay when you book. ' : 'Services are prepaid; book them any time in My RKVR. ') : ''}${goods ? (goods >= 50 ? 'Free shipping on products. ' : 'Add ' + money(50 - goods) + ' in products for free shipping. ') : ''}${LIVE ? (goods && !hasMember && !items.some(p => p.kind === 'svc') ? 'Shop checkout opens soon.' : '') : 'Nothing is charged in this preview.'}</p><button class="btn btn-primary" id="checkout" ${LIVE && S.user && goods && !hasMember && !items.some(p => p.kind === 'svc') ? 'disabled' : ''}>${S.user ? (LIVE ? (hasMember ? 'Check out · membership' : items.some(p => p.kind === 'svc') ? 'Pick a time and pay' : 'Shop checkout opens soon') : 'Check out · ' + money(total)) : 'Sign in to check out'}</button>` : ''}
     </aside>`;
   }
 
@@ -789,7 +805,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     return `<section class="band"><div class="wrap">
       <div class="section-head"><div><p class="eyebrow">TeleWellness</p><h2 class="display">See a provider from home</h2><p>Licensed RKVR providers review your goals and history, and prescribe when it’s right for you.</p></div></div>
       <div class="grid g3">
-        ${[['Async visit', 'Answer a few questions. A provider replies within 24 hours.', 'Free intake'], ['Video visit', 'Talk to a provider face to face, often the same day.', '$45'], ['In-spa consult', 'Meet your provider at your nearest RKVR.', 'From $95']].map(x => `<div class="card"><h3>${x[0]}</h3><p class="muted">${x[1]}</p><p style="margin-top:auto"><b>${x[2]}</b></p><button class="btn btn-sm btn-primary" style="align-self:flex-start" data-care="${x[0]}">${x[0] === 'In-spa consult' ? 'Book a consult' : 'Start'}</button></div>`).join('')}
+        ${[['Async visit', 'Answer a few questions. A provider replies within 24 hours.', 'Free intake'], ['Video visit', 'Talk to a provider face to face, often the same day.', '$45'], ['In-spa consult', 'Meet your provider at your nearest RKVR.', 'From $95']].map(x => `<div class="card"><h3>${x[0]}</h3><p class="muted">${x[1]}</p><p style="margin-top:auto"><b>${x[2]}</b></p>${LIVE && x[0] === 'Async visit' ? '<span class="tag" style="align-self:flex-start">Coming soon</span>' : `<button class="btn btn-sm btn-primary" style="align-self:flex-start" data-care="${x[0]}">${x[0] === 'In-spa consult' ? 'Book a consult' : x[0] === 'Video visit' && LIVE ? 'Book a video visit' : 'Start'}</button>`}</div>`).join('')}
       </div>
       <div class="notice ice" style="margin-top:20px">Weight loss programs require a provider visit first. Your provider decides whether a prescription is right for you.</div>
     </div></section>`;
@@ -859,7 +875,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
       <div class="plan"><p class="eyebrow">À la carte</p><h3 class="display" style="font-size:40px">Pay per service</h3>
         <div><span class="price">$0<small>/month</small></span></div>
         <p class="small">No membership. Pay for each service you choose, at its menu price.</p>
-        <ul class="small"><li>Cryotherapy from $45, red light from $49, compression from $39, IV drips from $159</li><li>A $${DEPOSIT} deposit holds your time; the rest is paid at your visit</li><li>Bundle up to 3 services and make visits repeat</li><li>Switch to membership any time</li></ul>
+        <ul class="small"><li>Cryotherapy from $45, red light from $49, compression from $39, IV drips from $159</li><li>${LIVE ? 'Pay online when you book, or at your visit' : 'A $' + DEPOSIT + ' deposit holds your time; the rest is paid at your visit'}</li><li>Bundle up to 3 services and make visits repeat</li><li>Switch to membership any time</li></ul>
         <div style="margin-top:auto;padding-top:8px"><button class="btn" data-go="services">Choose services</button> <button class="btn" data-plan="alacarte">${S.user ? 'Book a visit' : 'Create a free account'}</button></div></div>
     </div>`;
   }
@@ -1028,7 +1044,10 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     if (t.id === 'bk-again') { ui.bk = { step: 0, loc: null, sel: [], day: 0, slot: null, repeat: 'once', done: null, pay: null }; render(); return; }
     if (d.ics) { downloadIcs(d.ics === 'all' ? S.bookings : S.bookings.filter(b => b.id === d.ics), d.ics === 'all' ? 'rkvr-visits.ics' : 'rkvr-visit.ics'); return; }
     if (d.sub !== undefined) { ui.subNote = true; render(); return; }
-    if (d.notify) { S.notify = (S.notify || []).concat([d.notify]); save(); render(); toast('We’ll let you know when ' + locById(d.notify).name + ' opens'); return; }
+    if (d.notify) {
+      if (LIVE && S.user) { joinWaitlist(d.notify, S.user.email); return; }
+      S.notify = (S.notify || []).concat([d.notify]); save(); render(); toast('We’ll let you know when ' + locById(d.notify).name + ' opens'); return;
+    }
     if (d.shopCat) { ui.shopCat = d.shopCat; render(); return; }
     if (d.add) { if (d.add === CART_MEMBER && (S.member || S.cart.includes(CART_MEMBER))) { ui.drawer = 'cart'; render(); return; }
       S.cart = S.cart.concat([d.add]); save(); if (d.add === CART_MEMBER || ui.drawer === 'cart') { ui.drawer = 'cart'; render(); } else renderShell(); toast(d.add === CART_MEMBER ? 'Membership added to cart' : 'Added to cart'); return; }
@@ -1054,12 +1073,25 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     if (d.bkPay) { ui.bk.pay = d.bkPay; render(); return; }
     if (t.id === 'cancel-member') { S.member = null; S.bookings = S.bookings.map(b => b.pay === 'member' ? Object.assign({}, b, { pay: 'card' }) : b); save(); render(); toast('Membership cancelled. Future visits are à la carte.'); return; }
     if (d.reorder !== undefined) { S.cart = S.cart.concat(['glp1']); save(); ui.drawer = 'cart'; render(); return; }
+    if (d.care && LIVE) {
+      const want = d.care === 'Video visit' ? 'tw' : 'wl', l = OPEN[0];
+      const s = l && l.suites.find(x => x.svcs.some(v => v[3] === want));
+      if (!s) { toast('Not available to book online yet. Call the spa to book.'); return; }
+      const i = s.svcs.findIndex(v => v[3] === want);
+      ui.bk = { step: 2, loc: l.id, sel: [svcKey(s.id, i)], day: 0, slot: null, repeat: 'once', done: null }; go('book'); return;
+    }
     if (d.care) { toast(S.user ? 'Visit started. A provider will reply within 24 hours (sample).' : 'Sign in or join to start a visit'); if (!S.user) go('join'); return; }
     if (t.id === 'sign-out') { S.user = null; save(); go('home'); toast('Signed out'); return; }
     if (t.id === 'reset-demo') { S = blank(); save(); go('home'); toast('Preview data cleared'); return; }
   });
   document.addEventListener('change', e => { if (LIVE && e.target.id === 'set-sms' && S.user) { const on = e.target.checked; C.updateProfile({ sms_opt_in: on }).then(() => { S.user.sms = on; toast(on ? 'Text updates on' : 'Text updates off'); }, () => toast('Couldn’t save that. Try again.')); return; }
     if (e.target.id === 'set-sms' && S.user) { S.user.sms = e.target.checked; save(); toast(e.target.checked ? 'Text updates on' : 'Text updates off'); } });
+  document.addEventListener('submit', e => {
+    const f = e.target.closest && e.target.closest('.notify-form');
+    if (!f) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const em = f.querySelector('input').value.trim(); if (em) joinWaitlist(f.dataset.spa, em);
+  }, true);
   document.addEventListener('submit', e => {
     e.preventDefault();
     const f = e.target;

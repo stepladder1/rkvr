@@ -198,9 +198,9 @@ main { flex: 1; padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 96px)
     else body = `<span class="eyebrow">For RKVR spa operators</span><h1 class="h1" style="font-size:56px">Run your spa.</h1><p class="muted" style="font-size:17px">Today’s arrivals, the week ahead and your clients, on your phone.</p>${msg}
       <form id="gForm" style="display:flex;flex-direction:column;gap:12px">
         <label class="field">Email<input id="gEmail" type="email" autocomplete="username" required></label>
-        <label class="field">Password <span class="muted" style="font-weight:500">(optional)</span><input id="gPass" type="password" autocomplete="current-password"></label>
-        <button class="btn pri big" type="submit">Sign in</button>
-        <p class="muted small">No password? Leave it blank and we’ll email you a sign-in link.</p></form>`;
+        ${S.usePw ? '<label class="field">Password<input id="gPass" type="password" autocomplete="current-password" required></label>' : ''}
+        <button class="btn pri big" type="submit">${S.usePw ? 'Sign in' : 'Email me a sign-in link'}</button>
+        <button class="link" type="button" data-a="gPw">${S.usePw ? 'Use an email link instead' : 'Sign in with a password instead'}</button></form>`;
     return `<div class="gate">${LOGO}<div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px">${body}</div></div>`;
   }
   async function boot() {
@@ -342,6 +342,7 @@ main { flex: 1; padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 96px)
   const cur = () => S.visits.find(x => x.key === (S.sheet && S.sheet.id));
   const A = {
     gContinue: async () => { try { await C.verifyLink(); } catch (e) { S.gate = 'login'; S.gateMsg = e.message; S.gateBad = true; render(); return; } boot(); },
+    gPw: () => { const em = ($('#gEmail').value || '').trim(); S.usePw = !S.usePw; S.gateMsg = ''; render(); if (em) $('#gEmail').value = em; },
     signOut: async () => { await C.signOut(); location.reload(); },
     reload: async () => { await loadSpa(); render(); toast('Up to date'); },
     open: id => { S.sheet = { type: 'visit', id }; render(); },
@@ -401,7 +402,7 @@ main { flex: 1; padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 96px)
   document.addEventListener('submit', async e => {
     if (e.target.id !== 'gForm') return;
     e.preventDefault();
-    const em = $('#gEmail').value.trim(), pw = $('#gPass').value, btn = e.target.querySelector('button[type=submit]');
+    const em = $('#gEmail').value.trim(), pw = S.usePw && $('#gPass') ? $('#gPass').value : '', btn = e.target.querySelector('button[type=submit]');
     btn.disabled = true;
     if (!pw) {
       try { await C.sendLink(em); S.gateMsg = 'Check your email on this phone. The link works for 24 hours.'; S.gateBad = false; }

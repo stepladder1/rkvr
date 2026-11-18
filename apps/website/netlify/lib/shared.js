@@ -50,7 +50,15 @@ async function stripe(method, path, params, account) {
     body: method === 'GET' ? undefined : form(params || {})
   });
   const data = await res.json();
-  if (!res.ok) { const e = new Error((data.error && data.error.message) || 'Stripe error'); e.status = 502; throw e; }
+  if (!res.ok) {
+    const msg = (data.error && data.error.message) || 'Stripe error';
+    console.error('[stripe]', path, msg);
+    // RKVR's Stripe account not finished or not allowed to charge yet: say so plainly
+    if (/capabilit|business name|account (is|has) not|cannot create|not.*enabled|onboard|activate|requirements/i.test(msg)) {
+      const e = new Error('Online payments aren’t switched on yet. Please pay at the spa, or try again later.'); e.status = 503; e.code = 'payments_off'; throw e;
+    }
+    const e = new Error('Payment couldn’t start: ' + msg); e.status = 502; throw e;
+  }
   return data;
 }
 

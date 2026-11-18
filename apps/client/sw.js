@@ -1,5 +1,5 @@
 // Lets the app open with no signal. Only this app's own files are saved; account data is never cached.
-const VERSION = 'rkvr-client-v11';
+const VERSION = 'rkvr-client-v12';
 const FILES = ['./', './index.html', './config.js', './rkvr-client.js', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png', './favicon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

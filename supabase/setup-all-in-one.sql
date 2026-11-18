@@ -3,7 +3,7 @@
 -- real data yet), then creates the tables, access rules and starting data.
 
 drop trigger if exists on_auth_user_created on auth.users;
-drop table if exists public.visits, public.team_invites, public.hq_items, public.hq_docs, public.audit_log, public.settings, public.feature_flags, public.campaigns,
+drop table if exists public.spa_waitlist, public.visits, public.team_invites, public.hq_items, public.hq_docs, public.audit_log, public.settings, public.feature_flags, public.campaigns,
   public.request_messages, public.service_requests, public.invoice_lines, public.invoices,
   public.order_items, public.prepaid_services, public.orders, public.products, public.booking_items,
   public.bookings, public.memberships, public.membership_plans, public.services, public.providers,
@@ -12,7 +12,7 @@ drop function if exists public.is_hq(), public.my_spa_ids(), public.is_my_spa(uu
   public.member_services_used(uuid, date), public.handle_new_user(), public.guard_profile_update(),
   public.cancel_booking(uuid), public.my_membership_summary(), public.spa_busy(text, date), public.apply_team_invite(uuid, text), public.team_invite_added(),
   public.digits10(text), public.desk_spa(text), public.desk_today(text), public.desk_check_in(uuid, text, boolean),
-  public.desk_walk_in(text, uuid[], text, text, text, text, boolean), public.desk_move(uuid, text, text), public.desk_waiver(uuid), public.client_check_in(uuid, boolean) cascade;
+  public.desk_walk_in(text, uuid[], text, text, text, text, boolean), public.desk_move(uuid, text, text), public.desk_waiver(uuid), public.client_check_in(uuid, boolean), public.join_waitlist(text, text) cascade;
 
 -- RKVR core schema
 -- One RKVR spa per Phenix Salon Suites location. Each spa is run by one operator
@@ -1233,3 +1233,38 @@ begin
   return out;
 end;
 $$;
+
+-- "Notify me" for coming-soon spas: saves the email so HQ can tell people when a spa opens.
+
+create table if not exists public.spa_waitlist (
+  id         uuid primary key default gen_random_uuid(),
+  spa_id     uuid not null references public.spas (id) on delete cascade,
+  email      text not null check (email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+  client_id  uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now(),
+  notified_at timestamptz
+);
+create unique index if not exists spa_waitlist_once on public.spa_waitlist (spa_id, lower(email));
+
+alter table public.spa_waitlist enable row level security;
+drop policy if exists "waitlist staff read" on public.spa_waitlist;
+create policy "waitlist staff read" on public.spa_waitlist for select using (public.is_hq() or public.is_my_spa(spa_id));
+drop policy if exists "waitlist hq manage" on public.spa_waitlist;
+create policy "waitlist hq manage" on public.spa_waitlist for all using (public.is_hq()) with check (public.is_hq());
+grant select, insert, update, delete on public.spa_waitlist to authenticated;
+grant all on public.spa_waitlist to service_role;
+
+-- Anyone (signed in or not) can add an email; nobody but staff can read the list
+create or replace function public.join_waitlist(spa_slug text, email text) returns void
+language plpgsql security definer set search_path = public as $$
+#variable_conflict use_column
+declare sid uuid; e text := lower(trim(join_waitlist.email));
+begin
+  select id into sid from public.spas where slug = spa_slug and status <> 'closed';
+  if sid is null then raise exception 'Unknown spa'; end if;
+  if e !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' or length(e) > 254 then raise exception 'Enter a valid email address'; end if;
+  insert into public.spa_waitlist (spa_id, email, client_id) values (sid, e, auth.uid())
+  on conflict (spa_id, lower(email)) do nothing;
+end;
+$$;
+grant execute on function public.join_waitlist(text, text) to anon, authenticated;

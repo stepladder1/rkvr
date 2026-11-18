@@ -1783,10 +1783,10 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       ${msg ? `<div class="gate-msg ${isError ? 'bad' : ''}" role="${isError ? 'alert' : 'status'}">${esc(msg)}</div>` : ''}
       <form id="login-form" class="gate-form">
         <label class="label" for="li-email">Email</label><input class="input" id="li-email" type="email" autocomplete="username" required>
-        <label class="label" for="li-pass">Password</label><input class="input" id="li-pass" type="password" autocomplete="current-password" required>
-        <button class="btn btn-primary" type="submit">Sign in</button>
-        <button class="btn" type="button" id="li-link">Email me a sign-in link</button>
-        <button class="linkish" type="button" id="li-forgot">Forgot password?</button>
+        ${state.usePw ? `<label class="label" for="li-pass">Password</label><input class="input" id="li-pass" type="password" autocomplete="current-password" required>` : ''}
+        <button class="btn btn-primary" type="submit">${state.usePw ? 'Sign in' : 'Email me a sign-in link'}</button>
+        <button class="linkish" type="button" id="li-pw">${state.usePw ? 'Use an email link instead' : 'Sign in with a password instead'}</button>
+        ${state.usePw ? '<button class="linkish" type="button" id="li-forgot">Forgot password?</button>' : '<p class="cell-sub">We email you a link that signs you in. It works for 24 hours.</p>'}
       </form>`);
     const em = $('#li-email'); if (em) em.focus();
   }
@@ -1882,6 +1882,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     if (t.dataset.tab) { state.tab = t.dataset.tab; try { history.replaceState(null, '', '#' + state.tab); } catch (_) {} render(); window.scrollTo({ top: 0 }); return; }
     if (t.dataset.goto) { state.tab = t.dataset.goto; try { history.replaceState(null, '', '#' + state.tab); } catch (_) {} render(); window.scrollTo({ top: 0 }); return; }
     if (t.dataset.flag) { toggleFlag(t.dataset.flag); return; }
+    if (t.id === 'li-pw') { const em = ($('#li-email').value || '').trim(); state.usePw = !state.usePw; showLogin(); if (em) $('#li-email').value = em; return; }
     if (t.id === 'li-link') {
       const em = ($('#li-email').value || '').trim();
       if (!em) { showLogin('Enter your email first, then tap Email me a sign-in link.', true); return; }
@@ -1994,8 +1995,16 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   document.addEventListener('submit', async e => {
     if (e.target.id === 'login-form') {
       e.preventDefault();
-      const b = e.target.querySelector('button[type=submit]'); b.disabled = true; b.textContent = 'Signing in…';
-      try { await window.RKVR_CLOUD.signIn($('#li-email').value.trim(), $('#li-pass').value); location.reload(); }
+      const b = e.target.querySelector('button[type=submit]'); b.disabled = true;
+      const em = $('#li-email').value.trim();
+      if (!state.usePw) {
+        b.textContent = 'Sending…';
+        try { await window.RKVR_CLOUD.sendLink(em); showLogin('Check your email. The sign-in link works for 24 hours.'); }
+        catch (err) { showLogin(/rate|seconds/i.test(err.message) ? 'Too many emails just now. Wait a minute and try again.' : err.message, true); }
+        return;
+      }
+      b.textContent = 'Signing in…';
+      try { await window.RKVR_CLOUD.signIn(em, $('#li-pass').value); location.reload(); }
       catch (err) { showLogin(err.status === 400 ? 'That email and password don’t match.' : err.message, true); }
     }
     if (e.target.id === 'team-form') {

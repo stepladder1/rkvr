@@ -177,14 +177,15 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
   async function boot() {
     if (!C) { S.gate = 'welcome'; S.gateMsg = 'This copy isn’t connected to RKVR.'; S.gateBad = true; render(); return; }
     try { await C.verifyLink(); } catch (_) {}
-    try { await loadCatalog(); } catch (e) { S.gate = 'welcome'; S.gateMsg = 'Can’t reach RKVR right now. Check your connection and try again.'; S.gateBad = true; render(); return; }
+    // Menu and account load side by side so the first screen shows quickly
+    const [cat, prof] = await Promise.allSettled([loadCatalog(), C.signedIn ? C.loadProfile() : Promise.resolve(null)]);
+    if (cat.status === 'rejected') { S.gate = 'welcome'; S.gateMsg = 'Can’t reach RKVR right now. Check your connection and try again.'; S.gateBad = true; render(); return; }
     if (C.linkError) { S.gateMsg = C.linkError; S.gateBad = true; }
-    if (C.signedIn) {
-      try { S.user = await C.loadProfile(); } catch (_) { S.user = null; }
-    }
+    S.user = prof.status === 'fulfilled' ? prof.value : null;
     if (!S.user) { S.gate = 'welcome'; render(); return; }
-    S.gate = null;
+    S.gate = null; S.loadingMine = true; render();
     try { await loadMine(); } catch (e) { toast('Couldn’t load your visits. Pull down to retry.'); }
+    S.loadingMine = false;
     if (C.linkType) toast('Welcome, ' + firstName() + '. You’re signed in.');
     render();
     const paidM = /[?&]paid=([^&#]+)/.exec(location.search);
@@ -273,7 +274,7 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
   function vHome() {
     const up = upcoming(), next = up[0], sp = homeSpa();
     return `<div><span class="eyebrow">${esc(sp ? 'RKVR ' + sp.name : 'RKVR')}</span><h1 class="h1" style="margin-top:8px">Hi, ${esc(firstName())}.</h1></div>
-      ${next ? visitCard(next, true) : `<div class="card"><h2 class="h2">No visits booked</h2><p class="muted">Pick up to ${MAX} services and line them up in one visit.</p><button class="btn pri big" data-tab="book">Book a visit</button></div>`}
+      ${S.loadingMine ? '<div class="card"><p class="muted">Loading your visits…</p></div>' : next ? visitCard(next, true) : `<div class="card"><h2 class="h2">No visits booked</h2><p class="muted">Pick up to ${MAX} services and line them up in one visit.</p><button class="btn pri big" data-tab="book">Book a visit</button></div>`}
       ${isMember() ? `<div class="card" style="flex-direction:row;justify-content:space-between;align-items:center"><span><span class="eyebrow">Member</span><br><b>RKVR Unlimited</b><br><span class="muted small">Recovery services as often as you like</span></span><span class="disp" style="font-size:44px;color:var(--accentText)">∞</span></div>`
         : `<button class="card" data-tab="member" style="text-align:left;color:var(--fg);border-color:var(--iceLine);background:var(--iceBg)"><b style="font-size:17px">Join RKVR · unlimited for ${money(MONTHLY())}/mo</b><span class="muted small">Cryo, red light, compression and massage chairs as often as you like. Founding rate ends ${CUTOFF()}.</span><b style="color:var(--ice)">See how →</b></button>`}
       ${up.length > 1 ? `<div style="display:flex;justify-content:space-between;align-items:baseline"><h2 class="h2">Coming up</h2><button class="link" data-tab="visits">All visits</button></div>${up.slice(1, 3).map(x => visitCard(x, false)).join('')}` : ''}
@@ -342,8 +343,12 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
   /* ---------------- visits / membership / account ---------------- */
   function vVisits() {
     const up = upcoming();
-    const past = S.visits.filter(v => v.status === 'done' || v.status === 'no_show').slice(0, 20);
-    const pastRow = v => { const sp = spaById(v.spa_id); const b = v.booking_id && S.bookings.find(x => x.id === v.booking_id); const names = b ? itemsOf(b).map(s => s.name) : (v.service_ids || []).map(id => (svcById(id) || {}).name).filter(Boolean); return `<div class="kv"><span><b>${esc(names.join(' + ') || 'Visit')}</b><br><span class="muted small">${esc(fmtDay(v.day))} · RKVR ${esc(sp ? sp.name : '')}</span></span><span class="chip">${v.status === 'no_show' ? 'Missed' : 'Done'}</span></div>`; };
+    const visitDays = new Set(S.visits.map(v => v.booking_id + '|' + v.day));
+    const missed = S.bookings.filter(b => b.repeat === 'once' && b.status === 'booked' && spaById(b.spa_id)).map(b => { const sp = spaById(b.spa_id), d = local(b.starts_at, sp.time_zone).date; return { b, d, sp }; })
+      .filter(x => x.d < todayIn(x.sp.time_zone).date && !visitDays.has(x.b.id + '|' + x.d))
+      .map(x => ({ id: 'm' + x.b.id, spa_id: x.b.spa_id, day: x.d, booking_id: x.b.id, status: 'not_checked_in', service_ids: [] }));
+    const past = S.visits.filter(v => v.status === 'done' || v.status === 'no_show').concat(missed).sort((a, b) => b.day.localeCompare(a.day)).slice(0, 20);
+    const pastRow = v => { const sp = spaById(v.spa_id); const b = v.booking_id && S.bookings.find(x => x.id === v.booking_id); const names = b ? itemsOf(b).map(s => s.name) : (v.service_ids || []).map(id => (svcById(id) || {}).name).filter(Boolean); return `<div class="kv"><span><b>${esc(names.join(' + ') || 'Visit')}</b><br><span class="muted small">${esc(fmtDay(v.day))} · RKVR ${esc(sp ? sp.name : '')}</span></span><span class="chip">${v.status === 'no_show' ? 'Missed' : v.status === 'not_checked_in' ? 'Not checked in' : 'Done'}</span></div>`; };
     return `<h1 class="h1">Visits</h1>
       ${up.length ? up.map(x => visitCard(x, x.o.today)).join('') : `<div class="card"><p class="muted">Nothing booked yet.</p><button class="btn pri big" data-tab="book">Book a visit</button></div>`}
       ${past.length ? `<h2 class="h2" style="margin-top:8px">Past visits</h2><div class="card" style="gap:0">${past.map(pastRow).join('')}</div>` : ''}`;
