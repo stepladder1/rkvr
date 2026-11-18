@@ -62,6 +62,7 @@ p { margin: 0; }
 .select { background: var(--panel); border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 10px; min-height: 36px; }
 .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
 .pill-sample { background: var(--warn-bg); color: var(--warn); }
+.pill-sample.pill-live { background: var(--good-bg, rgba(46,160,67,.15)); color: var(--good, #2ea043); }
 .who { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
 .who img { width: 26px; height: 26px; border-radius: 50%; }
 .tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
@@ -380,7 +381,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       <div class="top-tools">
         <label class="label" for="loc" style="letter-spacing:.08em">Location</label>
         <select id="loc" class="select"></select>
-        <span class="pill pill-sample" title="Network activity is sample data until the apps run on the RKVR backend">Sample data</span>
+        <span class="pill pill-sample" id="data-pill" title="Network activity is sample data until the apps run on the RKVR backend">Sample data</span>
         <span class="who" id="who"></span>
       </div>
     </div>
@@ -620,7 +621,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   const suiteById = id => SUITES.find(s => s.id === id);
   const inLoc = s => state.loc === 'all' || String(s.loc) === state.loc;
   const suites = () => SUITES.filter(inLoc);
-  const share = () => { const all = SUITES.reduce((a, s) => a + s.members, 0); return suites().reduce((a, s) => a + s.members, 0) / all; };
+  const share = () => { if (isLive()) return 1; const all = SUITES.reduce((a, s) => a + s.members, 0); return all ? suites().reduce((a, s) => a + s.members, 0) / all : 1; };
   const suiteLabel = s => 'RKVR ' + s.studio;
   const locShort = s => LOCS[s.loc];
   const flagOn = k => {
@@ -650,7 +651,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   function metrics() {
     const S = suites(), st = state.settings, sh = share();
     const members = S.reduce((a, s) => a + s.members, 0);
-    const mrr = members * st.planPrice;
+    const mrr = isLive() ? SUITES.filter(inLoc).reduce((a, s) => a + s.members, 0) * st.planPrice : members * st.planPrice;
     const issued = members * st.credits;
     const redeemed = S.reduce((a, s) => a + s.credits, 0);
     const payouts = redeemed * st.payout;
@@ -658,18 +659,164 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     const rentBilled = S.reduce((a, s) => a + (s.cycle === 'Weekly' ? s.rent * 4 : s.rent), 0);
     const rentPaid = S.filter(s => s.status === 'Paid').reduce((a, s) => a + (s.cycle === 'Weekly' ? s.rent * 4 : s.rent), 0);
     const visibleProducts = PRODUCTS.filter(p => flagOn('shop') && flagOn(catFlag(p.cat)) && prodOn('shop:' + PRODUCT_IMG[p.name]));
-    const shopRev = PRODUCTS.reduce((a, p) => a + p.price * p.orders, 0) * sh;
-    const shopOrders = PRODUCTS.reduce((a, p) => a + p.orders, 0) * sh;
+    const shopRev = isLive() ? 0 : PRODUCTS.reduce((a, p) => a + p.price * p.orders, 0) * sh;
+    const shopOrders = isLive() ? 0 : PRODUCTS.reduce((a, p) => a + p.orders, 0) * sh;
     const overdue = S.filter(s => s.status === 'Overdue');
     const unpaid = S.filter(s => s.status === 'Unpaid');
     const openReq = REQUESTS.filter(r => reqStatus(r) !== 'Done' && inLoc(suiteById(r.suite)));
     const staleReq = openReq.filter(reqWaiting);
-    const perCredit = st.planPrice / Math.max(1, st.credits);
+    // Unlimited membership: what one member service is worth = membership revenue ÷ services used
+    const perCredit = redeemed ? mrr / redeemed : st.planPrice;
     const expiring = Math.round((issued - redeemed) * 0.35);
     return { S, members, mrr, issued, redeemed, payouts, services, rentBilled, rentPaid, shopRev, shopOrders, overdue, unpaid, openReq, staleReq, perCredit, margin: perCredit - st.payout, expiring, visibleProducts,
-      clients: S.reduce((a, s) => a + Math.round(s.members * 2.4), 0),
-      waitlist: S.reduce((a, s) => a + Math.round(s.members * 0.45), 0),
+      clients: isLive() ? LIVE.clients : S.reduce((a, s) => a + Math.round(s.members * 2.4), 0),
+      waitlist: isLive() ? LIVE.waitlist : S.reduce((a, s) => a + Math.round(s.members * 0.45), 0),
       gross: services + (CR() ? mrr : 0) + shopRev + rentPaid };
+  }
+
+
+  /* ---------------- live data (RKVR database) ----------------
+     When HQ staff are signed in, the sample constants above are refilled from Supabase in place,
+     so every tab keeps its layout but shows real spas, clients, members, visits, rent and requests.
+     Shop, supply orders and marketing stay sample until those go live. */
+  const LIVE = { on: false, at: null, waitlist: 0, clients: 0, err: null, monthLabel: '' };
+  const isLive = () => LIVE.on;
+  const sampleNote = txt => isLive() ? '' : txt;
+  const ymd = d => d.toISOString().slice(0, 10);
+  const CAT_WORD = { cryo: 'Cryo', red: 'Red light', comp: 'Compression', chair: 'Massage chair', iv: 'IV', wl: 'Weight loss', tw: 'TeleWellness' };
+  const REQ_KIND = { plumbing: 'Plumbing', electrical: 'Electrical', hvac: 'HVAC', access: 'Access', other: 'Other' };
+  const REQ_ST = { open: 'Open', scheduled: 'Scheduled', in_progress: 'In progress', done: 'Done' };
+  const shortDate = d => new Date(String(d).length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const ago = ts => { const m = Math.max(1, Math.round((Date.now() - Date.parse(ts)) / 60000)); return m < 60 ? m + ' min' : m < 1440 ? Math.round(m / 60) + ' hr' : Math.round(m / 1440) + ' d'; };
+  async function chunked(ids, mk) { const out = []; for (let i = 0; i < ids.length; i += 100) out.push(...((await mk(ids.slice(i, i + 100))) || [])); return out; }
+
+  async function loadLive() {
+    const C = window.RKVR_CLOUD;
+    if (!C || !C.profile || C.profile.role !== 'hq_admin') return;
+    const now = new Date(), y = now.getFullYear();
+    const monthStart = ymd(new Date(Date.UTC(y, now.getMonth(), 1)));
+    const since = ymd(new Date(Math.min(Date.UTC(y, 0, 1), Date.now() - 63 * 864e5)));
+    try {
+      const [spas, mems, visits, clients, invoices, reqs, msgs, waits, bookings, svcs] = await Promise.all([
+        C.rest('spas?select=id,slug,name,market,phenix_suites,suite_count,status,bookings_paused,rent_cycle,created_at,operator:operator_id(full_name,email)&order=name'),
+        C.rest('memberships?select=id,client_id,status,rate_cents,is_founding,home_spa_id,started_at,canceled_at,created_at'),
+        C.rest('visits?select=id,spa_id,day,status,pay,amount_cents,paid_at,client_id,guest_name,service_ids,booking_id,checked_in_at&day=gte.' + since + '&order=checked_in_at.desc&limit=20000'),
+        C.rest('profiles?select=id,full_name,email,home_spa_id,created_at&role=eq.client&limit=20000'),
+        C.rest('invoices?select=id,spa_id,number,cycle,due_date,total_cents,status,paid_method,paid_at,period_start&order=period_start.desc'),
+        C.rest('service_requests?select=*&order=created_at.desc&limit=300'),
+        C.rest('request_messages?select=*&order=created_at&limit=2000'),
+        C.rest('spa_waitlist?select=spa_id').catch(() => []),
+        C.rest('bookings?select=id,spa_id,starts_at,client_id,status,created_at&status=in.(booked,checked_in,completed)&starts_at=gte.' + since + '&limit=20000'),
+        C.rest('services?select=id,spa_id,name,category,member_included,price_cents')
+      ]);
+      const bIds = Array.from(new Set(visits.filter(v => v.booking_id).map(v => v.booking_id)));
+      const items = await chunked(bIds, ids => C.rest('booking_items?select=booking_id,service_id&booking_id=in.(' + ids.join(',') + ')'));
+      const svcById = {}; svcs.forEach(x => { svcById[x.id] = x; });
+      const itemsOf = v => v.booking_id ? items.filter(i => i.booking_id === v.booking_id).map(i => svcById[i.service_id]).filter(Boolean) : (v.service_ids || []).map(id => svcById[id]).filter(Boolean);
+      const nameOf = {}; clients.forEach(c => { nameOf[c.id] = c.full_name || c.email; });
+      const live = m => /active|past_due/.test(m.status);
+
+      // markets and spas
+      const openSpas = spas.filter(x => x.status === 'open' || x.status === 'paused');
+      LOCS.length = 0; Array.from(new Set(openSpas.map(x => x.market))).forEach(m => LOCS.push(m));
+      SOON_LOCS.length = 0; Array.from(new Set(spas.filter(x => /coming_soon|buildout|signed/.test(x.status)).map(x => x.market).filter(m => !LOCS.includes(m)))).forEach(m => SOON_LOCS.push(m));
+      PHENIX.interested = spas.filter(x => x.status === 'interested').length + spas.filter(x => /signed|buildout|coming_soon|open|paused/.test(x.status)).length;
+      PHENIX.signed = spas.filter(x => /signed|buildout|coming_soon|open|paused/.test(x.status)).length;
+      PHENIX.buildout = spas.filter(x => /buildout|coming_soon|open|paused/.test(x.status)).length;
+      const month = visits.filter(v => v.day >= monthStart);
+      const weekAgo4 = Date.now() - 28 * 864e5;
+      SUITES.length = 0;
+      openSpas.forEach(sp => {
+        const inv = invoices.find(i => i.spa_id === sp.id);
+        const mv = month.filter(v => v.spa_id === sp.id);
+        const memberUsed = mv.filter(v => (v.pay === 'member' || v.pay === 'join') && v.status !== 'no_show').reduce((a, v) => a + itemsOf(v).filter(x => x.member_included).length, 0);
+        const recent = bookings.filter(b => b.spa_id === sp.id && Date.parse(b.starts_at) >= weekAgo4 && Date.parse(b.starts_at) <= Date.now()).length
+          + visits.filter(v => v.spa_id === sp.id && !v.booking_id && Date.parse(v.checked_in_at) >= weekAgo4).length;
+        const cats = Array.from(new Set(svcs.filter(x => x.spa_id === sp.id).map(x => x.category)));
+        SUITES.push({
+          id: sp.id, slug: sp.slug, loc: LOCS.indexOf(sp.market), no: sp.phenix_suites || '—', suites: sp.suite_count || 1, studio: sp.name,
+          pro: sp.operator ? (sp.operator.full_name || sp.operator.email) : 'No operator yet', spec: cats.map(c => CAT_WORD[c] || c).join(' · '),
+          team: 1, book: Math.round(recent / 4), coll: Math.round(mv.filter(v => v.paid_at).reduce((a, v) => a + v.amount_cents, 0) / 100),
+          cycle: sp.rent_cycle === 'weekly' ? 'Weekly' : 'Monthly', rent: inv ? Math.round(inv.total_cents / 100) : 0,
+          status: inv ? ({ paid: 'Paid', overdue: 'Overdue', open: 'Unpaid', draft: 'Draft', void: 'Void' }[inv.status] || 'Unpaid') : 'No invoice',
+          method: inv && inv.paid_method ? inv.paid_method.toUpperCase().replace('CARD', 'Card') : '', invoice: inv || null,
+          members: mems.filter(m => live(m) && m.home_spa_id === sp.id).length, credits: memberUsed
+        });
+        if (sp.bookings_paused) state.paused[sp.id] = true; else delete state.paused[sp.id];
+      });
+
+      // 8 weeks of volume, in $k
+      const wkStart = i => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - d.getDay() - (7 - i) * 7); return d; };
+      WEEKS.length = 0; const ranges = [];
+      for (let i = 0; i < 8; i++) { const a = wkStart(i), b = new Date(a.getTime() + 7 * 864e5); ranges.push([a, b]); WEEKS.push(a.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })); }
+      const inR = (ts, r) => { const t = Date.parse(ts); return t >= r[0].getTime() && t < r[1].getTime(); };
+      const stream = k => ALL_STREAMS.find(x => x.key === k);
+      stream('services').v = ranges.map(r => visits.filter(v => v.paid_at && inR(v.paid_at, r)).reduce((a, v) => a + v.amount_cents, 0) / 100000);
+      stream('members').v = ranges.map(r => mems.filter(m => (m.started_at || m.created_at) && Date.parse(m.started_at || m.created_at) < r[1].getTime() && (!m.canceled_at || Date.parse(m.canceled_at) > r[0].getTime()) && m.status !== 'pending')
+        .reduce((a, m) => a + m.rate_cents, 0) / 4.33 / 100000);
+      stream('shop').v = ranges.map(() => 0);
+      stream('rent').v = ranges.map(r => invoices.filter(i => i.paid_at && inR(i.paid_at, r)).reduce((a, i) => a + i.total_cents, 0) / 100000);
+
+      // members with no visit in 3+ weeks
+      const lastVisit = {}; visits.filter(v => v.client_id && v.status === 'done').forEach(v => { if (!lastVisit[v.client_id] || v.day > lastVisit[v.client_id]) lastVisit[v.client_id] = v.day; });
+      const cut = ymd(new Date(Date.now() - 21 * 864e5));
+      AT_RISK.length = 0;
+      mems.filter(live).forEach(m => {
+        const lv = lastVisit[m.client_id], started = (m.started_at || m.created_at || '').slice(0, 10);
+        if ((lv && lv < cut) || (!lv && started && started < cut)) AT_RISK.push({ name: nameOf[m.client_id] || 'Member', suite: m.home_spa_id || (SUITES[0] && SUITES[0].id), last: lv ? shortDate(lv) : 'No visits yet', left: '—' });
+      });
+
+      // repair requests and their messages
+      REQUESTS.length = 0;
+      reqs.forEach(r => {
+        const ms = msgs.filter(x => x.request_id === r.id);
+        REQUESTS.push({ id: r.number || r.id.slice(0, 6).toUpperCase(), dbId: r.id, suite: r.spa_id, what: r.title, type: REQ_KIND[r.kind] || 'Other',
+          age: Math.round((Date.now() - Date.parse(r.created_at)) / 36e5), status: REQ_ST[r.status] || 'Open', urgent: r.urgency === 'blocking',
+          filed: new Date(r.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }), note: r.note || '',
+          updates: ms.filter(x => x.from_rkvr).map(x => ({ from: 'rkvr', at: new Date(x.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }), text: x.body, status: REQ_ST[x.status] || undefined, eta: x.eta || undefined })) });
+      });
+
+      // live activity: latest check-ins, joins and requests
+      const feed = [];
+      visits.slice(0, 40).forEach(v => {
+        const sp = SUITES.find(x => x.id === v.spa_id); if (!sp) return;
+        const who = nameOf[v.client_id] || v.guest_name || 'A walk-in';
+        const what = itemsOf(v).map(x => x.name).join(' + ');
+        feed.push({ ts: v.checked_in_at, kind: v.paid_at && v.pay === 'alacarte' ? 'Payment' : v.pay === 'member' ? 'Members' : 'Booking',
+          text: `${who} ${v.status === 'done' ? 'visited' : 'checked in at'} RKVR ${sp.studio}${what ? ' · ' + what : ''}${v.paid_at && v.amount_cents ? ' · paid ' + fmt(v.amount_cents / 100) : ''}`, suite: sp.id });
+      });
+      mems.filter(m => m.started_at).forEach(m => { const sp = SUITES.find(x => x.id === m.home_spa_id) || SUITES[0]; if (sp) feed.push({ ts: m.started_at, kind: 'Members', text: `${nameOf[m.client_id] || 'Someone'} joined RKVR Unlimited · ${fmt(m.rate_cents / 100)}/mo`, suite: sp.id }); });
+      reqs.slice(0, 10).forEach(r => { if (SUITES.find(x => x.id === r.spa_id)) feed.push({ ts: r.created_at, kind: 'Request', text: `RKVR ${SUITES.find(x => x.id === r.spa_id).studio} filed ${r.number || 'a request'} · ${r.title}`, suite: r.spa_id }); });
+      FEED.length = 0;
+      feed.sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts)).slice(0, 12).forEach(f => FEED.push(Object.assign(f, { t: ago(f.ts) })));
+
+      // client directory
+      const yStart = y + '-01-01';
+      CLIENTS_CACHE = clients.map(c => {
+        const cm = mems.filter(m => m.client_id === c.id), cur = cm.find(live), was = cm.find(m => m.status === 'canceled');
+        const cv = visits.filter(v => v.client_id === c.id && v.status !== 'no_show');
+        const lv = cv[0];
+        const alc = v => v.pay === 'alacarte' && v.paid_at;
+        const mtdV = cv.filter(v => v.day >= monthStart && alc(v)), ytdV = cv.filter(v => v.day >= yStart && alc(v));
+        const spaId = c.home_spa_id || (lv && lv.spa_id) || (SUITES[0] && SUITES[0].id);
+        return { id: c.id, name: c.full_name || c.email, email: c.email, spa: spaId,
+          plan: cur ? (cur.is_founding ? 'founding' : 'member') : was ? 'former' : 'alacarte',
+          active: !!lv && Date.parse(lv.day) >= Date.now() - 60 * 864e5, days: lv ? Math.round((Date.now() - Date.parse(lv.day)) / 864e5) : 999,
+          used: cv.filter(v => v.day >= monthStart && (v.pay === 'member' || v.pay === 'join')).reduce((a, v) => a + itemsOf(v).filter(x => x.member_included).length, 0),
+          mtd: mtdV.reduce((a, v) => a + v.amount_cents, 0) / 100, mtdN: mtdV.length, ytd: ytdV.reduce((a, v) => a + v.amount_cents, 0) / 100,
+          last: lv ? (itemsOf(lv).map(x => x.name).join(' + ') || 'Visit') : 'No visits yet', lastDate: lv ? shortDate(lv.day) : '—',
+          since: new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) };
+      });
+      LIVE.clients = clients.length; LIVE.waitlist = waits.length;
+      LIVE.monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      LIVE.on = true; LIVE.at = new Date(); LIVE.err = null;
+      if (!SUITES.find(x => String(x.loc) === state.loc)) state.loc = 'all';
+      renderLocSelect();
+    } catch (e) {
+      LIVE.err = e.message; console.warn('[RKVR HQ] live data failed', e);
+      if (!LIVE.on) toast('Couldn’t load live data: ' + e.message);
+    }
+    render();
   }
 
   /* ---------------- rendering ---------------- */
@@ -705,7 +852,9 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   function scopeName() { return state.loc === 'all' ? 'All RKVR spas' : LOCS[+state.loc]; }
 
   function head(title, sub) {
-    return `<div class="page-head"><div><h1>${title}</h1><p>${sub}</p></div><div class="stamp">${esc(scopeName())} · October 2026, month to date</div></div>`;
+    const pill = document.getElementById('data-pill');
+    if (pill && isLive()) { pill.textContent = 'Live data'; pill.title = 'Spas, clients, members, visits, rent and requests come from the RKVR database. Shop, supply and marketing are still sample.'; pill.classList.add('pill-live'); }
+    return `<div class="page-head"><div><h1>${title}</h1><p>${sub}</p></div><div class="stamp">${esc(scopeName())} · ${isLive() ? esc(LIVE.monthLabel) : 'October 2026'}, month to date</div></div>`;
   }
 
   function statusChip(s) {
@@ -721,29 +870,31 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     const sh = share();
     const STREAMS = ALL_STREAMS.filter(s => CR() || s.key !== 'members');
     const W = 640, H = 250, L = 46, R = 8, T = 10, B = 26;
-    const totals = WEEKS.map((_, i) => STREAMS.reduce((a, s) => a + s.v[i] * sh, 0));
-    const rawMax = Math.max(...totals);
-    const step = rawMax > 40 ? 10 : rawMax > 16 ? 5 : rawMax > 6 ? 2 : 1;
+    const small = Math.max(...WEEKS.map((_, i) => STREAMS.reduce((a, s) => a + s.v[i] * sh, 0))) < 2;   // under $2k a week: show dollars
+    const U = small ? 1000 : 1, lab = v => small ? '$' + Math.round(v) : '$' + v + 'k', labF = v => small ? '$' + Math.round(v) : '$' + v.toFixed(1) + 'k';
+    const totals = WEEKS.map((_, i) => STREAMS.reduce((a, s) => a + s.v[i] * sh * U, 0));
+    const rawMax = Math.max(1, ...totals);
+    const step = Math.max(1, Math.pow(10, Math.floor(Math.log10(rawMax))) * (rawMax / Math.pow(10, Math.floor(Math.log10(rawMax))) > 4 ? 1 : rawMax / Math.pow(10, Math.floor(Math.log10(rawMax))) > 2 ? 0.5 : 0.25));
     const max = Math.ceil(rawMax / step) * step;
     const y = v => T + (H - T - B) * (1 - v / max);
     const bw = (W - L - R) / WEEKS.length;
     let g = '';
     for (let v = 0; v <= max + 0.001; v += step) {
-      g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">$${v}k</text>`;
+      g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${lab(v)}</text>`;
     }
     let bars = '';
     WEEKS.forEach((w, i) => {
       let acc = 0;
       const x = L + i * bw + bw * 0.18, wdt = bw * 0.64;
       STREAMS.forEach(s => {
-        const v = s.v[i] * sh;
-        bars += `<rect x="${x.toFixed(1)}" y="${y(acc + v).toFixed(1)}" width="${wdt.toFixed(1)}" height="${(y(acc) - y(acc + v)).toFixed(1)}" fill="${s.color}"><title>${w} · ${s.name}: $${v.toFixed(1)}k</title></rect>`;
+        const v = s.v[i] * sh * U;
+        bars += `<rect x="${x.toFixed(1)}" y="${y(acc + v).toFixed(1)}" width="${wdt.toFixed(1)}" height="${(y(acc) - y(acc + v)).toFixed(1)}" fill="${s.color}"><title>${w} · ${s.name}: ${labF(v)}</title></rect>`;
         acc += v;
       });
       bars += `<text x="${(x + wdt / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle">${w}</text>`;
-      if (i === WEEKS.length - 1) bars += `<text x="${(x + wdt / 2).toFixed(1)}" y="${(y(acc) - 6).toFixed(1)}" text-anchor="middle" style="fill:var(--fg);font-weight:600">$${acc.toFixed(1)}k</text>`;
+      if (i === WEEKS.length - 1) bars += `<text x="${(x + wdt / 2).toFixed(1)}" y="${(y(acc) - 6).toFixed(1)}" text-anchor="middle" style="fill:var(--fg);font-weight:600">${labF(acc)}</text>`;
     });
-    const last = STREAMS.map(s => `<span><i style="background:${s.color}"></i>${s.name} <b>$${(s.v[7] * sh).toFixed(1)}k</b></span>`).join('');
+    const last = STREAMS.map(s => `<span><i style="background:${s.color}"></i>${s.name} <b>${labF(s.v[7] * sh * U)}</b></span>`).join('');
     return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Weekly gross volume by stream, last 8 weeks">${g}${bars}</svg><div class="legend">${last}</div></div>`;
   }
 
@@ -751,27 +902,27 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     const sh = share(), streams = ALL_STREAMS.filter(x => CR() || x.key !== 'members');
     const wk = i => streams.reduce((a, x) => a + x.v[i] * sh, 0);
     const last = wk(7), prev = wk(6), avg = WEEKS.reduce((a, _, i) => a + wk(i), 0) / WEEKS.length;
-    const ch = (last - prev) / prev * 100;
-    return `<div class="chart-sum"><div><span class="label">This week</span><b>$${last.toFixed(1)}k</b></div><div><span class="label">Vs last week</span><b class="${ch >= 0 ? 'up' : ''}">${ch >= 0 ? '+' : '−'}${Math.abs(ch).toFixed(1)}%</b></div><div><span class="label">8-week average</span><b>$${avg.toFixed(1)}k</b></div></div>`;
+    const ch = prev ? (last - prev) / prev * 100 : 0;
+    return `<div class="chart-sum"><div><span class="label">This week</span><b>${last < 2 ? '$' + Math.round(last * 1000) : '$' + last.toFixed(1) + 'k'}</b></div><div><span class="label">Vs last week</span><b class="${ch >= 0 ? 'up' : ''}">${ch >= 0 ? '+' : '−'}${Math.abs(ch).toFixed(1)}%</b></div><div><span class="label">8-week average</span><b>${avg < 2 ? '$' + Math.round(avg * 1000) : '$' + avg.toFixed(1) + 'k'}</b></div></div>`;
   }
 
   function renderOverview() {
     const m = metrics();
     const alerts = [];
-    m.overdue.forEach(s => alerts.push({ cls: 'bad', t: `${suiteLabel(s)} rent is overdue`, d: `${fmt(s.rent)} · invoice due Sep 1 · ${locShort(s)}`, act: `<button class="btn" data-remind="${s.id}">${state.reminded[s.id] ? 'Reminder sent' : 'Send reminder'}</button>`, go: null }));
+    m.overdue.forEach(s => alerts.push({ cls: 'bad', t: `${suiteLabel(s)} rent is overdue`, d: `${fmt(s.rent)} · invoice due ${isLive() && s.invoice ? shortDate(s.invoice.due_date) : 'Sep 1'} · ${locShort(s)}`, act: `<button class="btn" data-remind="${s.id}">${state.reminded[s.id] ? 'Reminder sent' : 'Send reminder'}</button>`, go: null }));
     if (m.margin < 0 && flagOn('creditCheckin')) alerts.push({ cls: 'bad', t: 'Each redeemed service loses money', d: `A service brings in $${m.perCredit.toFixed(2)} of membership revenue but pays the operator ${fmt(state.settings.payout)}. Review pricing in Controls.`, act: '<button class="btn" data-goto="controls">Review</button>' });
     m.staleReq.forEach(r => { const s = suiteById(r.suite); alerts.push({ cls: 'warn', t: `${r.id} open ${Math.round(r.age / 24)} days · ${r.what}`, d: `${suiteLabel(s)} · no reply to the operator yet`, act: `<button class="btn" data-req-jump="${r.id}">Reply</button>` }); });
     REQUESTS.filter(r => r.urgent && reqStatus(r) !== 'Done' && !reqUpdates(r).length && inLoc(suiteById(r.suite))).forEach(r => { const s = suiteById(r.suite); alerts.push({ cls: 'bad', t: `Urgent: ${r.what}`, d: `${r.id} · ${suiteLabel(s)} · filed ${r.age} hrs ago`, act: '<button class="btn" data-goto="requests">Open</button>' }); });
     if (m.unpaid.length) alerts.push({ cls: 'warn', t: `${m.unpaid.length} rent invoice${m.unpaid.length > 1 ? 's' : ''} due this week`, d: m.unpaid.map(suiteLabel).join(', '), act: '<button class="btn" data-goto="payments">View</button>' });
-    if (CR()) alerts.push({ cls: 'ice', t: `${num(m.expiring)} member services unused · reset Nov 1`, d: 'Owners can offer open slots to these members from RKVR Pro.', act: '' });
+
     m.S.filter(s => s.lowStock).forEach(s => alerts.push({ cls: 'ice', t: `${s.studio} is low on stock`, d: 'Below par on B12 and NAD+ vials; a draft order is waiting.', act: '' }));
 
     const feed = FEED.filter(f => inLoc(suiteById(f.suite)) && (CR() || (f.kind !== 'Credits' && f.kind !== 'Members'))).map(f => CR() || !f.alt ? f : Object.assign({}, f, { text: f.alt }));
-    return head('Network overview', 'Every RKVR spa inside the Phenix Salon Suites network: ' + SUITES.length + ' open across ' + LOCS.length + ' markets, ' + SOON_LOCS.join(' and ') + ' next. Sample data.') + `
+    return head('Network overview', 'Every RKVR spa inside the Phenix Salon Suites network: ' + SUITES.length + ' open across ' + LOCS.length + ' markets' + (SOON_LOCS.length ? ', ' + SOON_LOCS.join(' and ') + ' next' : '') + '.' + sampleNote(' Sample data.')) + `
       <div class="kpis">
         ${kpi('Gross volume', fmtK(m.gross), CR() ? 'Services, memberships, shop and rent' : 'Services, shop and rent')}
         ${CR() ? kpi('Active members', num(m.members), fmt(m.mrr) + ' monthly recurring') : kpi('Clients', num(m.clients), 'Paying per visit')}
-        ${CR() ? kpi('Services redeemed', num(m.redeemed), 'of ' + num(m.issued) + ' issued · ' + fmtK(m.payouts) + ' owed to operators', m.margin < 0) : kpi('Membership waitlist', num(m.waitlist), 'Member services launch later')}
+        ${CR() ? kpi('Member services used', num(m.redeemed), fmtK(m.payouts) + ' owed to operators this month', m.margin < 0) : kpi('Membership waitlist', num(m.waitlist), 'Member services launch later')}
         ${kpi('Rent collected', fmtK(m.rentPaid), 'of ' + fmtK(m.rentBilled) + ' billed · ' + m.overdue.length + ' overdue', m.overdue.length > 0)}
         ${kpi('Shop orders', num(m.shopOrders), fmtK(m.shopRev) + ' in sales')}
         ${kpi('Open requests', m.openReq.length, m.staleReq.length + ' waiting over 48 hours', m.staleReq.length > 0)}
@@ -813,22 +964,22 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   function renderSuites() {
     const m = metrics();
     const S = m.S;
-    const avgBook = S.reduce((a, s) => a + s.book, 0) / S.length;
+    const avgBook = S.length ? S.reduce((a, s) => a + s.book, 0) / S.length : 0;
     const paused = S.filter(s => state.paused[s.id]).length;
     const used = S.reduce((a, s) => a + s.suites, 0), P = PHENIX;
     const stages = [['Phenix locations', P.locations], ['With empty suites', P.withRoom], ['Operators interested', P.interested], ['Signed', P.signed], ['In build-out', P.buildout], ['Open', SUITES.length]];
     return head('RKVR spas', 'One RKVR spa per Phenix Salon Suites location, run by a Wellness Pro who rents 1–3 empty suites. Pause a spa to stop new client bookings there.') + `
       <div class="kpis">
         ${kpi('Open spas', S.length, paused ? paused + ' paused for bookings' : 'All open for bookings')}
-        ${kpi('Phenix suites in use', used, 'About ' + (used / S.length).toFixed(1) + ' per spa')}
+        ${kpi('Phenix suites in use', used, S.length ? 'About ' + (used / S.length).toFixed(1) + ' per spa' : '')}
         ${kpi('Services collected', fmtK(m.services), 'Through Tap to Pay and the client app')}
         ${kpi('Bookings per spa', avgBook.toFixed(0), 'Weekly average')}
-        ${kpi('Top spa', esc(S.slice().sort((a, b) => b.coll - a.coll)[0].studio), fmt(Math.max(...S.map(s => s.coll))) + ' this month')}
+        ${S.length ? kpi('Top spa', esc(S.slice().sort((a, b) => b.coll - a.coll)[0].studio), fmt(Math.max(...S.map(s => s.coll))) + ' this month') : ''}
       </div>
       <section class="panel" style="margin-bottom:16px"><div class="panel-head"><h2>All spas</h2><span class="note">${canChange() ? 'Switch off Bookings to pause a spa' : 'View only'}</span></div>${suitesTable(false)}</section>
       <section class="panel"><div class="panel-head"><h2>Rollout across Phenix</h2><span class="note">Next markets: ${SOON_LOCS.join(', ')}</span></div>
         <div class="funnel">${stages.map((x, i) => `<div class="fn-row"><span>${x[0]}</span><div class="fn-bar"><i style="width:${Math.max(2, x[1] / P.locations * 100)}%"></i></div><b>${num(x[1])}</b></div>`).join('')}</div>
-        <p class="cell-sub" style="margin-top:10px">An RKVR spa uses suites a Phenix location already has empty, so each spa is new revenue for that location. Sample numbers.</p></section>`;
+        <p class="cell-sub" style="margin-top:10px">An RKVR spa uses suites a Phenix location already has empty, so each spa is new revenue for that location.${isLive() ? ' Phenix totals are planning figures; the rest comes from the spas list.' : ' Sample numbers.'}</p></section>`;
   }
 
   function renderClientsOnly() {
@@ -906,13 +1057,13 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     const act = all.filter(c => c.active).length, mem = CR() ? all.filter(c => c.plan === 'founding' || c.plan === 'member').length : 0;
     const chip = (k, v, label) => `<button aria-pressed="${(f[k] || 'all') === v}" data-cl-${k}="${v}">${label}</button>`;
     const b = clientBody();
-    return `<section class="panel" style="margin-top:16px"><div class="panel-head"><h2>All clients</h2><span class="note">${num(all.length)} sample clients · ${num(act)} active · ${num(all.length - act)} inactive${CR() ? ' · ' + num(mem) + ' members' : ''}</span></div>
+    return `<section class="panel" style="margin-top:16px"><div class="panel-head"><h2>All clients</h2><span class="note">${num(all.length)} ${isLive() ? '' : 'sample '}clients · ${num(act)} active · ${num(all.length - act)} inactive${CR() ? ' · ' + num(mem) + ' members' : ''}</span></div>
       <div class="cl-filters"><input class="input" id="cl-q" placeholder="Search by name" aria-label="Search clients by name" value="${esc(f.q || '')}">
         <div class="chips" role="group" aria-label="Status">${chip('status', 'all', 'All')}${chip('status', 'active', 'Active')}${chip('status', 'inactive', 'Inactive')}</div>
         ${CR() ? `<div class="chips" role="group" aria-label="Plan">${chip('plan', 'all', 'All plans')}${chip('plan', 'members', 'Members')}${chip('plan', 'alacarte', 'À la carte')}${chip('plan', 'former', 'Former members')}</div>` : ''}</div>
       <div class="tbl-wrap"><table><thead><tr><th>Client</th><th>Home spa</th><th>Status</th><th>Plan</th><th>This month</th><th class="num">À la carte YTD</th><th>Last visit</th></tr></thead><tbody id="cl-body">${b.html || '<tr><td colspan="7" class="cell-sub">No clients match.</td></tr>'}</tbody></table></div>
       <div class="rec-foot"><span id="cl-count">Showing ${Math.min(b.n, (f.lim || 25))} of ${num(b.n)}</span>${b.more ? '<button class="linkish" data-cl-more="1">Show 25 more</button>' : ''}</div>
-      <p class="cell-sub" style="margin-top:6px">Active means a visit in the last 60 days. “This month” shows member services used, or à la carte spend for non-members. Sample data.</p></section>`;
+      <p class="cell-sub" style="margin-top:6px">Active means a visit in the last 60 days. “This month” shows member services used, or à la carte spend for non-members.${sampleNote(' Sample data.')}</p></section>`;
   }
 
   function renderMembers() {
@@ -942,7 +1093,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   function renderPayments() {
     const m = metrics(), st = state.settings;
     const invoices = m.S.map(s => {
-      const no = (s.cycle === 'Weekly' ? 'RK-W0831-' : 'RK-0912-') + s.id.replace('sd-', '');
+      const no = isLive() ? (s.invoice ? s.invoice.number : 'No invoice yet') : (s.cycle === 'Weekly' ? 'RK-W0831-' : 'RK-0912-') + s.id.replace('sd-', '');
       return `<tr><td><div class="cell-main">${no}</div><div class="cell-sub">${s.cycle}</div></td><td>${esc(suiteLabel(s))}</td><td class="num">${fmt(s.rent)}</td><td>${statusChip(s.status)}</td><td>${s.method ? s.method : '<span class="cell-sub">—</span>'}</td><td>${s.status === 'Paid' ? '' : `<button class="btn" data-remind="${s.id}" ${state.reminded[s.id] ? 'disabled' : ''}>${state.reminded[s.id] ? 'Reminder sent' : 'Send reminder'}</button>`}</td></tr>`;
     }).join('');
     const payouts = m.S.map(s => `<tr><td>${esc(suiteLabel(s))}</td><td class="num">${s.credits}</td><td class="num">${fmt(s.credits * st.payout)}</td><td>${statusChip('Open')}</td></tr>`).join('');
@@ -994,7 +1145,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     const maxSup = Math.max(...supByCat.map(x => x.v)), m0 = metrics();
     const liveShop = PRODUCTS.filter(p => flagOn('shop') && flagOn(catFlag(p.cat)) && prodOn('shop:' + PRODUCT_IMG[p.name])).length;
     const liveSup = SUPPLY_CATALOG.filter(x => flagOn('supply') && flagOn(catFlag(x.cat)) && prodOn('supply:' + x.id)).length;
-    return head('Shop and supply', 'What clients can buy in the RKVR app and what owners can reorder wholesale. Switch any category or product on or off.') + `
+    return head('Shop and supply', 'What clients can buy in the RKVR app and what owners can reorder wholesale. Switch any category or product on or off.') + `${isLive() ? '<div class="banner banner-ice"><span><b>Sample data on this page.</b> Online shop checkout isn’t live yet, so these products and orders are examples.</span></div>' : ''}
       ${flagOn('shop') ? '' : '<div class="banner banner-warn"><span><b>The Shop is off.</b> Clients don’t see the Shop tab. Turn it on in Controls.</span></div>'}
       <div class="kpis">
         ${kpi('Shop sales', fmtK(sales), PRODUCTS.reduce((a, p) => a + p.orders, 0) + ' orders · network-wide')}
@@ -1263,7 +1414,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
 
     const ruleSw = (k, name, desc) => `<div class="flag"><div class="flag-text"><div class="flag-name">${name}</div><div class="flag-desc">${desc}</div></div><span class="flag-state">${rules[k] ? 'On' : 'Off'}</span><button class="switch" role="switch" aria-checked="${!!rules[k]}" aria-label="${esc(name)}" data-mkrule="${k}" ${ro}></button></div>`;
 
-    return head('Marketing', 'Send network campaigns to clients across RKVR, and set the rules owners follow when they message their own clients.') + `
+    return head('Marketing', 'Send network campaigns to clients across RKVR, and set the rules owners follow when they message their own clients.') + `${isLive() ? '<div class="banner banner-ice"><span><b>Sample data on this page.</b> Campaigns aren’t connected to texting and email yet, so these are examples.</span></div>' : ''}
       ${flagOn('marketing') ? '' : '<div class="banner banner-warn"><span><b>Integrated marketing is off.</b> Owners can’t send campaigns from RKVR Pro. Network campaigns from HQ still go out. Turn it on in Controls.</span></div>'}
       ${state.mode === 'readonly' ? '<div class="banner banner-warn"><span><b>View only.</b> Only RKVR admins with edit access can send campaigns or change owner rules.</span></div>' : ''}
       <div class="kpis">
@@ -1520,6 +1671,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     return `<article class="rec" aria-label="${esc(r.title)}">${intro}${preview}${finish}</article>`;
   }
   function recsPanel(limit, tabbed, area, title) {
+    if (isLive()) return '';   // recommended messages draft from sample clients; back when texting and email are connected
     const all = hqRecs(), meta = state.recMeta;
     const recs = area ? all.filter(r => r.area === area) : all.filter(r => r.area !== 'rent' || r.id === 'rent-overdue');
     const hidden = Object.keys(meta.snoozed).length + Object.keys(meta.dismissed).length;
@@ -1601,6 +1753,10 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     if (paused[id]) delete paused[id]; else paused[id] = true;
     state.paused = paused;
     render();
+    if (isLive()) {
+      try { await window.RKVR_CLOUD.rest('spas?id=eq.' + id, { method: 'PATCH', body: { bookings_paused: !!paused[id] } }); }
+      catch (e) { toast('Couldn’t change bookings: ' + e.message); await loadLive(); return; }
+    }
     const ok = await writeDoc('config/suites', { paused });
     if (ok) { const msg = (paused[id] ? 'Paused bookings at ' : 'Reopened bookings at ') + s.studio; toast(msg); addLog(msg); }
   }
@@ -1668,6 +1824,17 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     const text = (d.text || '').trim();
     if (!text) { toast('Write a message or pick a quick reply first.'); document.getElementById('rq-text-' + id)?.focus(); return; }
     const at = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    if (isLive() && r.dbId) {
+      const C = window.RKVR_CLOUD, dbSt = { Open: 'open', Scheduled: 'scheduled', 'In progress': 'in_progress', Done: 'done' }[d.status] || 'open';
+      try {
+        await C.rest('request_messages', { method: 'POST', prefer: 'return=minimal', body: { request_id: r.dbId, author_id: C.profile.id, from_rkvr: true, body: text, status: dbSt, eta: (d.eta || '').trim() || null } });
+        await C.rest('service_requests?id=eq.' + r.dbId, { method: 'PATCH', body: { status: dbSt, eta: (d.eta || '').trim() || null, updated_at: new Date().toISOString() } });
+        state.reqDraft = Object.assign({}, state.reqDraft, { [id]: {} });
+        toast('Update sent to ' + s.pro + ' in RKVR Pro'); addLog('Sent ' + id + ' update to ' + s.studio + ' · ' + d.status);
+        await loadLive();
+      } catch (e) { toast('Couldn’t send: ' + e.message); }
+      return;
+    }
     const u = { from: 'rkvr', at, text, status: d.status, eta: (d.eta || '').trim() || null, by: state.me || null, texted: !!d.text2 };
     const live = Object.assign({}, state.reqLive[id] || {});
     live.updates = (live.updates || []).concat([u]); live.status = d.status;
@@ -1828,6 +1995,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
       if (p.role !== 'hq_admin') { showNoAccess(p); return; }
       ungate();
       user = C.user; db = C.db;
+      loadLive(); setInterval(() => { if (!document.hidden) loadLive(); }, 60000);
       const w = $('#who');
       w.innerHTML = `<span>${esc(p.full_name || p.email)} · Admin</span><button class="btn btn-sm" type="button" data-signout="1">Sign out</button>`;
       renderLocSelect();

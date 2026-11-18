@@ -154,7 +154,7 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
   /* ---------------- data ---------------- */
   async function loadCatalog() {
     const [spas, svcs, plans] = await Promise.all([
-      C.rest('spas?select=id,slug,name,city,state,address,time_zone,status,hours&status=in.(open,coming_soon)&order=name'),
+      C.rest('spas?select=id,slug,name,city,state,address,time_zone,status,hours,bookings_paused&status=in.(open,coming_soon)&order=name'),
       C.rest('services?select=id,spa_id,name,category,minutes,price_cents,member_included,sort&active=eq.true&order=sort'),
       C.rest('membership_plans?select=*&id=eq.rkvr')
     ]);
@@ -300,6 +300,7 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
   function vBook() {
     const sp = bkSpa(), b = S.bk;
     if (!sp) return `<h1 class="h1">Book</h1><div class="card"><p class="muted">No RKVR spa is taking bookings yet. Check back soon.</p></div>`;
+    if (sp.bookings_paused) return `<h1 class="h1">Book</h1><div class="card"><h2 class="h2">RKVR ${esc(sp.name)}</h2><p class="muted">Not taking online bookings right now. Call the spa or walk in.</p></div>`;
     if (b.done) return bkDone();
     const steps = `<div class="steps">${['Services', 'Time', 'Confirm'].map((n, i) => `<span class="${b.step === i + 1 ? 'on' : b.step > i + 1 ? 'done' : ''}">${i + 1} · ${n}</span>`).join('')}</div>`;
     const svcs = S.svcs.filter(s => s.spa_id === sp.id);

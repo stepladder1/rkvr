@@ -392,7 +392,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
   function utcToZoned(iso, tz) { const p = tzParts(Date.parse(iso), tz); return { date: p.year + '-' + String(p.month).padStart(2, '0') + '-' + String(p.day).padStart(2, '0'), mins: (p.hour % 24) * 60 + p.minute }; }
   async function loadCatalog() {
     const [spas, svcs] = await Promise.all([
-      C.rest('spas?select=id,slug,name,market,city,state,zip,address,time_zone,lat,lng,hours,status&status=in.(open,coming_soon)&order=name'),
+      C.rest('spas?select=id,slug,name,market,city,state,zip,address,time_zone,lat,lng,hours,status,bookings_paused&status=in.(open,coming_soon)&order=name'),
       C.rest('services?select=id,spa_id,name,category,minutes,price_cents,member_included,sort,providers(name,title)&active=eq.true&order=sort')
     ]);
     if (!spas || !spas.length) return;
@@ -408,7 +408,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
           svcs: groups[c].map(v => [v.name, v.minutes, v.price_cents / 100, v.category, v.id, v.member_included]) };
       });
       LOCS.push({ id: sp.slug, uuid: sp.id, city: sp.market || sp.city, name: sp.name, area: [sp.city, sp.state].filter(Boolean).join(', '), open: sp.status === 'open',
-        tz: sp.time_zone, lat: sp.lat, lng: sp.lng, hours: sp.hours || '', suites,
+        tz: sp.time_zone, lat: sp.lat, lng: sp.lng, hours: sp.hours || '', suites, paused: !!sp.bookings_paused,
         address: sp.address ? [sp.address, sp.city, [sp.state, sp.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ') : [sp.city, sp.state].filter(Boolean).join(', ') });
     });
     OPEN = LOCS.filter(l => l.open); SOON = LOCS.filter(l => !l.open);
@@ -687,7 +687,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     const stepper = `<div class="stepper">${steps.map((x, i) => `<span class="${i === b.step ? 'on' : i < b.step ? 'done' : ''}">${i + 1} · ${x}</span>`).join('')}</div>`;
     let body = '';
     if (b.step === 0) {
-      body = `<h2 class="display" style="font-size:44px;margin-bottom:14px">Where are you booking?</h2><div class="grid g2">${LOCS.map(l => l.open ? `<button class="card" style="text-align:left;cursor:pointer" data-bk-loc="${l.id}"><p class="eyebrow">Now open · ${l.city}</p><span class="display" style="font-size:36px">${l.name}</span><span class="small">${esc(l.address)}</span><span class="muted small">${locCats(l)}</span></button>` : `<div class="card" style="opacity:.6"><p class="eyebrow">${l.area}</p><span class="display" style="font-size:30px">${l.name}</span><span class="tag" style="align-self:flex-start">Coming soon</span></div>`).join('')}</div>`;
+      body = `<h2 class="display" style="font-size:44px;margin-bottom:14px">Where are you booking?</h2><div class="grid g2">${LOCS.map(l => l.open && l.paused ? `<div class="card" style="opacity:.6"><p class="eyebrow">${esc(l.area)}</p><h3>RKVR ${esc(l.name)}</h3><p class="muted small">Not taking online bookings right now. Call or walk in.</p></div>` : l.open ? `<button class="card" style="text-align:left;cursor:pointer" data-bk-loc="${l.id}"><p class="eyebrow">Now open · ${l.city}</p><span class="display" style="font-size:36px">${l.name}</span><span class="small">${esc(l.address)}</span><span class="muted small">${locCats(l)}</span></button>` : `<div class="card" style="opacity:.6"><p class="eyebrow">${l.area}</p><span class="display" style="font-size:30px">${l.name}</span><span class="tag" style="align-self:flex-start">Coming soon</span></div>`).join('')}</div>`;
     } else if (b.step === 1) {
       const l = locById(b.loc);
       body = `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><h2 class="display" style="font-size:44px">Pick up to 3 services</h2><button class="linkish" data-bk-step="0">Change location</button></div>
