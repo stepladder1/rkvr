@@ -62,15 +62,19 @@ exports.handler = async event => {
   try {
     let note = 'ignored';
     const o = evt.data && evt.data.object;
-    if ((evt.type === 'checkout.session.completed' || evt.type === 'checkout.session.async_payment_succeeded') && o.mode === 'payment') {
+    // A "Your account" destination also gets SalonHQ's own events: skip anything that isn't RKVR's
+    const getSub = async id => { try { return await stripe('GET', 'subscriptions/' + id, null, as); } catch (e) { if (/No such subscription|resource_missing/i.test(e.message)) return null; throw e; } };
+    if (o && o.object === 'checkout.session' && !(o.metadata && (o.metadata.rkvr_client_id || o.metadata.rkvr_kind))) {
+      note = 'not RKVR';
+    } else if ((evt.type === 'checkout.session.completed' || evt.type === 'checkout.session.async_payment_succeeded') && o.mode === 'payment') {
       note = await markPaid(o);
     } else if (evt.type === 'checkout.session.completed' && o.mode === 'subscription' && o.subscription) {
-      note = await syncSubscription(await stripe('GET', 'subscriptions/' + o.subscription, null, as));
+      const sub = await getSub(o.subscription); note = sub ? await syncSubscription(sub) : 'not RKVR';
     } else if (/^customer\.subscription\.(created|updated|deleted|paused|resumed)$/.test(evt.type)) {
       note = await syncSubscription(o);
     } else if (evt.type === 'invoice.payment_failed' || evt.type === 'invoice.paid') {
       const subId = o.subscription || (o.parent && o.parent.subscription_details && o.parent.subscription_details.subscription);
-      if (subId) note = await syncSubscription(await stripe('GET', 'subscriptions/' + subId, null, as));
+      if (subId) { const sub = await getSub(subId); note = sub ? await syncSubscription(sub) : 'not RKVR'; }
     }
     console.log('[stripe-webhook]', evt.type, evt.account || 'platform', note);
     return { statusCode: 200, body: JSON.stringify({ received: true, note }) };
