@@ -136,10 +136,12 @@ async function customerFor(p) {
   return c.id;
 }
 
+// Stripe fills in {CHECKOUT_SESSION_ID} on the way back, so the app can confirm the payment itself
+function withSession(url) { const [base, hash] = url.split('#'); return base + '&cs={CHECKOUT_SESSION_ID}' + (hash ? '#' + hash : ''); }
 function withParam(url, k, v) { const [base, hash] = url.split('#'); return base + (base.includes('?') ? '&' : '?') + k + '=' + encodeURIComponent(v) + (hash ? '#' + hash : ''); }
 
 function allowedReturn(url) {
   try { const u = new URL(url); return ORIGINS.includes(u.origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(u.origin); } catch (_) { return false; }
 }
 
-module.exports = { reply, stripe, db, caller, verifyStripe, need, allowedReturn, ORIGINS, RKVR_ACCOUNT, isStaffFor, findOrCreateClient, customerFor, withParam };
+module.exports = { reply, stripe, db, caller, verifyStripe, need, allowedReturn, ORIGINS, RKVR_ACCOUNT, isStaffFor, findOrCreateClient, customerFor, withParam, withSession };

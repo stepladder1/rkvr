@@ -216,6 +216,7 @@ main { flex: 1; padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 96px)
     let saved = null; try { saved = localStorage.getItem(SPA_KEY); } catch (_) {}
     S.spa = S.spas.find(s => s.slug === saved) || S.spas[0];
     S.gate = null; render();
+    const csM = /[?&]cs=(cs_[A-Za-z0-9_]+)/.exec(location.search); if (csM) { try { await C.callFn('checkout-confirm', { session_id: csM[1] }); } catch (e) { console.warn('[RKVR] confirm', e); } }
     const q = new URLSearchParams(location.search);
     if (q.has('paid') || q.has('joined')) { try { history.replaceState(null, '', location.pathname); } catch (_) {} toast(q.has('joined') ? 'Membership payment received. Welcome to RKVR!' : 'Payment received ✓'); }
     try { await loadSpa(); } catch (e) { toast('Couldn’t load everything: ' + e.message); }

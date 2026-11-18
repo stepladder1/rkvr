@@ -188,6 +188,8 @@ main { flex: 1; padding: 20px 20px calc(env(safe-area-inset-bottom, 0px) + 96px)
     S.loadingMine = false;
     if (C.linkType) toast('Welcome, ' + firstName() + '. You’re signed in.');
     render();
+    const csM = /[?&]cs=(cs_[A-Za-z0-9_]+)/.exec(location.search); if (csM) { try { await C.callFn('checkout-confirm', { session_id: csM[1] }); } catch (e) { console.warn('[RKVR] confirm', e); } }
+    if (csM) { try { await loadMine(); } catch (_) {} render(); }
     const paidM = /[?&]paid=([^&#]+)/.exec(location.search);
     if (paidM) {
       try { history.replaceState(null, '', location.pathname); } catch (_) {}

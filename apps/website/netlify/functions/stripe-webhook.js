@@ -43,13 +43,16 @@ async function markPaid(session) {
   return 'not an RKVR payment';
 }
 
+exports.syncSubscription = (...a) => syncSubscription(...a);
+exports.markPaid = (...a) => markPaid(...a);
+
 exports.handler = async event => {
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Use POST' };
   const raw = event.isBase64Encoded ? Buffer.from(event.body || '', 'base64').toString('utf8') : (event.body || '');
   const sig = event.headers['stripe-signature'] || event.headers['Stripe-Signature'];
   let secret;
   try { secret = need('STRIPE_WEBHOOK_SECRET'); } catch (e) { return { statusCode: 500, body: e.message }; }
-  if (!verifyStripe(raw, sig, secret)) return { statusCode: 400, body: 'Bad signature' };
+  if (!verifyStripe(raw, sig, secret)) { console.error('[stripe-webhook] bad signature: STRIPE_WEBHOOK_SECRET does not match this endpoint'); return { statusCode: 400, body: 'Bad signature' }; }
   const evt = JSON.parse(raw);
   // With RKVR as a connected account, events arrive tagged with that account. Ignore anyone else's.
   const acct = evt.account || null;
@@ -68,8 +71,10 @@ exports.handler = async event => {
       const subId = o.subscription || (o.parent && o.parent.subscription_details && o.parent.subscription_details.subscription);
       if (subId) note = await syncSubscription(await stripe('GET', 'subscriptions/' + subId, null, as));
     }
+    console.log('[stripe-webhook]', evt.type, evt.account || 'platform', note);
     return { statusCode: 200, body: JSON.stringify({ received: true, note }) };
   } catch (e) {
+    console.error('[stripe-webhook] failed', evt.type, e.message);
     return { statusCode: 500, body: e.message };   // Stripe retries on errors
   }
 };

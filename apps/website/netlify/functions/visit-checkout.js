@@ -2,7 +2,7 @@
 //  • body.booking_id: a booked visit, paid ahead by the client (website, app) or by staff.
 //  • body.visit_id: a visit at the desk (walk-in or checked in), paid on the iPad. Staff only, or the visit's client.
 // The amount always comes from the database, never from the browser. Membership-covered services are free.
-const { reply, stripe, db, caller, allowedReturn, isStaffFor, customerFor, withParam } = require('../lib/shared');
+const { reply, stripe, db, caller, allowedReturn, isStaffFor, customerFor, withParam, withSession } = require('../lib/shared');
 
 async function activeMember(clientId) {
   if (!clientId) return false;
@@ -67,7 +67,7 @@ exports.handler = async event => {
       line_items: items,
       metadata: meta,
       payment_intent_data: { metadata: meta, description: 'RKVR visit' },
-      success_url: withParam(back, 'paid', id),
+      success_url: withSession(withParam(back, 'paid', id)),
       cancel_url: back
     });
     return reply(event, 200, { url: session.url, amount_cents: amount });

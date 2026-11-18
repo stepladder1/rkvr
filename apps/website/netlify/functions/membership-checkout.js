@@ -3,7 +3,7 @@
 //  • Spa staff (front-desk iPad, RKVR Pro) can sign someone up: body.for = { name, email, phone, spa_id, visit_id }.
 //    Their RKVR account is made if they don't have one yet.
 // Founding rate if they join by the plan's cutoff date (locked in for as long as they stay).
-const { reply, stripe, db, caller, allowedReturn, isStaffFor, findOrCreateClient, customerFor, withParam } = require('../lib/shared');
+const { reply, stripe, db, caller, allowedReturn, isStaffFor, findOrCreateClient, customerFor, withParam, withSession } = require('../lib/shared');
 
 exports.handler = async event => {
   if (event.httpMethod === 'OPTIONS') return reply(event, 204, {});
@@ -48,7 +48,7 @@ exports.handler = async event => {
       subscription_data: { metadata: meta },
       metadata: meta,
       allow_promotion_codes: 'true',
-      success_url: withParam(back, 'joined', '1'),
+      success_url: withSession(withParam(back, 'joined', '1')),
       cancel_url: back
     });
     return reply(event, 200, { url: session.url });

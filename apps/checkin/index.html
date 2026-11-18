@@ -247,6 +247,9 @@ h1, h2, p { margin: 0; }
       return false;
     }
   }
+  async function confirmReturn() {
+    const csM = /[?&]cs=(cs_[A-Za-z0-9_]+)/.exec(location.search); if (csM) { try { await C.callFn('checkout-confirm', { session_id: csM[1] }); } catch (e) { console.warn('[RKVR] confirm', e); } }
+  }
   function restoreReturn() {
     let m = null; try { m = JSON.parse(sessionStorage.getItem(RETURN_KEY) || 'null'); sessionStorage.removeItem(RETURN_KEY); } catch (_) {}
     const q = new URLSearchParams(location.search), ok = q.has('paid') || q.has('joined');
@@ -309,6 +312,7 @@ h1, h2, p { margin: 0; }
     try { S.pin = localStorage.getItem(PIN_KEY); } catch (_) {}
     S.gate = null; S.gateMsg = '';
     render();
+    await confirmReturn();
     restoreReturn();
     render();
     await loadSpa(); startPolling();

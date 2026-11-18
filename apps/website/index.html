@@ -503,6 +503,7 @@ footer button { display: block; background: none; border: 0; padding: 3px 0; col
     if (C.linkError) toast(C.linkError);
     if (C.signedIn) {
       try { S.user = profileToUser(await C.loadProfile()); if (S.user) { await loadMyBookings(); await loadMember(); } } catch (e) { console.warn('[RKVR] account not loaded', e); }
+      const csM = /[?&]cs=(cs_[A-Za-z0-9_]+)/.exec(location.search); if (csM) { try { await C.callFn('checkout-confirm', { session_id: csM[1] }); } catch (e) { console.warn('[RKVR] confirm', e); } }
       const paidM = /[?&]paid=([^&#]+)/.exec(location.search);
       if (S.user && paidM) {
         try { history.replaceState(null, '', location.pathname + location.hash); } catch (_) {}
