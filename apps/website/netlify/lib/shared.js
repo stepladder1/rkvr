@@ -1,7 +1,7 @@
 // Shared helpers for RKVR's Netlify Functions. Runs on Netlify's servers, never in the browser.
 // Secrets come from Netlify → Project configuration → Environment variables:
 //   STRIPE_SECRET_KEY      sk_test_… (test) or sk_live_… (live)
-//   STRIPE_WEBHOOK_SECRET  whsec_…  (from the Stripe webhook endpoint)
+//   STRIPE_WEBHOOK_SECRET  whsec_…  (from the Stripe webhook endpoint; several allowed, comma-separated)
 //   SUPABASE_SECRET_KEY    Supabase secret key (sb_secret_…) or legacy service_role key
 //   STRIPE_ACCOUNT_ID      acct_… RKVR's connected account under the SalonHQ platform. When set, every
 //                          customer, checkout and subscription is created inside RKVR's account.

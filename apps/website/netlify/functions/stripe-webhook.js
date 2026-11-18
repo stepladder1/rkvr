@@ -52,7 +52,8 @@ exports.handler = async event => {
   const sig = event.headers['stripe-signature'] || event.headers['Stripe-Signature'];
   let secret;
   try { secret = need('STRIPE_WEBHOOK_SECRET'); } catch (e) { return { statusCode: 500, body: e.message }; }
-  if (!verifyStripe(raw, sig, secret)) { console.error('[stripe-webhook] bad signature: STRIPE_WEBHOOK_SECRET does not match this endpoint'); return { statusCode: 400, body: 'Bad signature' }; }
+  // One secret per Stripe destination; several can be listed, separated by commas
+  if (!String(secret).split(',').map(x => x.trim()).filter(Boolean).some(sec => verifyStripe(raw, sig, sec))) { console.error('[stripe-webhook] bad signature: STRIPE_WEBHOOK_SECRET does not match this endpoint'); return { statusCode: 400, body: 'Bad signature' }; }
   const evt = JSON.parse(raw);
   // With RKVR as a connected account, events arrive tagged with that account. Ignore anyone else's.
   const acct = evt.account || null;
