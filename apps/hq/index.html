@@ -816,7 +816,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
         const spaId = c.home_spa_id || (lv && lv.spa_id) || (SUITES[0] && SUITES[0].id);
         return { id: c.id, name: c.full_name || c.email, email: c.email, spa: spaId,
           plan: cur ? (cur.is_founding ? 'founding' : 'member') : was ? 'former' : 'alacarte',
-          active: !!lv && Date.parse(lv.day) >= Date.now() - 60 * 864e5, days: lv ? Math.round((Date.now() - Date.parse(lv.day)) / 864e5) : 999,
+          active: !!cur || (!!lv && Date.parse(lv.day) >= Date.now() - 60 * 864e5),   // members are always active days: lv ? Math.round((Date.now() - Date.parse(lv.day)) / 864e5) : 999,
           used: cv.filter(v => v.day >= monthStart && (v.pay === 'member' || v.pay === 'join')).reduce((a, v) => a + itemsOf(v).filter(x => x.member_included).length, 0),
           mtd: mtdV.reduce((a, v) => a + v.amount_cents, 0) / 100, mtdN: mtdV.length, ytd: ytdV.reduce((a, v) => a + v.amount_cents, 0) / 100,
           last: lv ? (itemsOf(lv).map(x => x.name).join(' + ') || 'Visit') : 'No visits yet', lastDate: lv ? shortDate(lv.day) : '—',
@@ -1083,7 +1083,7 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
         ${CR() ? `<div class="chips" role="group" aria-label="Plan">${chip('plan', 'all', 'All plans')}${chip('plan', 'members', 'Members')}${chip('plan', 'alacarte', 'À la carte')}${chip('plan', 'former', 'Former members')}</div>` : ''}</div>
       <div class="tbl-wrap"><table><thead><tr><th>Client</th><th>Home spa</th><th>Status</th><th>Plan</th><th>This month</th><th class="num">À la carte YTD</th><th>Last visit</th></tr></thead><tbody id="cl-body">${b.html || '<tr><td colspan="7" class="cell-sub">No clients match.</td></tr>'}</tbody></table></div>
       <div class="rec-foot"><span id="cl-count">Showing ${Math.min(b.n, (f.lim || 25))} of ${num(b.n)}</span>${b.more ? '<button class="linkish" data-cl-more="1">Show 25 more</button>' : ''}</div>
-      <p class="cell-sub" style="margin-top:6px">Active means a visit in the last 60 days. “This month” shows member services used, or à la carte spend for non-members.${sampleNote(' Sample data.')}</p></section>`;
+      <p class="cell-sub" style="margin-top:6px">Active means a current member, or a visit in the last 60 days. “This month” shows member services used, or à la carte spend for non-members.${sampleNote(' Sample data.')}</p></section>`;
   }
 
   function renderMembers() {
