@@ -24,4 +24,4 @@ Bump `VERSION` in `apps/client/sw.js` and `apps/pro/sw.js` whenever their `index
 
 ## Secrets
 
-Never commit keys. Public values (Supabase project URL and publishable key, Stripe `pk_` key) go in the apps' config. Secret values (Stripe secret key, Supabase service role key, Twilio auth token, Resend API key) live only in Supabase project secrets.
+Never commit keys. Public values (Supabase project URL and publishable key, Stripe `pk_` key) go in the apps' config. Secret values (Stripe secret key, Supabase service role key, Twilio auth token, Resend API key) live only in Netlify environment variables on the website project (rkvr).

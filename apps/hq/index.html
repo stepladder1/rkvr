@@ -704,6 +704,26 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     catch (e) { state.stripe = { error: e.message }; }
     render();
   }
+  // Text messages (Twilio): status, the on/off switch (hq_docs config/sms) and recent texts
+  async function loadSms() {
+    const C = window.RKVR_CLOUD; if (!C || !isSuper()) return;
+    state.sms = Object.assign({}, state.sms, { loading: true }); render();
+    const [info, cfg, log] = await Promise.all([
+      C.callFn('sms-admin', { status: true }).catch(e => ({ error: e.message })),
+      C.rest('hq_docs?select=data&path=eq.config/sms').catch(() => null),
+      C.rest('sms_log?select=kind,to_phone,body,status,error,created_at,spa:spa_id(name)&order=created_at.desc&limit=15').catch(() => null)
+    ]);
+    state.sms = { info, on: !!(cfg && cfg[0] && cfg[0].data && cfg[0].data.on), log: log || [], noTable: log === null };
+    render();
+  }
+  async function setSms(on) {
+    if (!isSuper()) { toast('Only Super Admins can switch texts on or off.'); return; }
+    const ok = await writeDoc('config/sms', { on });
+    if (!ok) return;
+    state.sms = Object.assign({}, state.sms, { on });
+    addLog(on ? 'Switched client texts on' : 'Switched client texts off');
+    toast(on ? 'Texts are on' : 'Texts are off'); render();
+  }
   async function setLiveData(on) {
     if (!window.RKVR_CLOUD) { toast('Live data needs the online dashboard.'); return; }
     if (!canChange()) { toast('Only HQ admins can switch this.'); return; }
@@ -1403,7 +1423,19 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
           ${sp.errors && sp.errors.length ? `<div class="banner banner-warn"><span>${esc(sp.errors.join(' · '))}</span></div>` : ''}
           ${sp.due && sp.due.length ? `<p class="cell-sub">Stripe still needs ${sp.due.length} ${sp.due.length === 1 ? 'item' : 'items'}: ${esc(sp.due.slice(0, 6).map(x => x.replace(/^.*\./, '').replace(/_/g, ' ')).join(', '))}${sp.due.length > 6 ? '…' : ''}.</p>` : sp.charges ? '<p class="cell-sub">All set. Members and visits can be paid online.</p>' : ''}` : '<p class="cell-sub">Check whether RKVR can take card payments, and finish its Stripe sign-up.</p>'}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn btn-primary" type="button" id="stripe-onboard">${sp.charges ? 'Update RKVR’s Stripe details' : 'Finish RKVR’s Stripe sign-up'}</button><button class="btn" type="button" id="stripe-status">Check status</button></div></section>` : '';
-    return head('Controls', 'Turn features on or off across both apps and set the membership economics.') + modeBanner + stripePanel + `
+    if (window.RKVR_CLOUD && isSuper() && !state.sms) setTimeout(loadSms, 0);
+    const sm = state.sms || { loading: true }, si = sm.info || {};
+    const KIND = { confirm: 'Booking confirmation', reminder: 'Reminder', welcome: 'Member welcome', staff: 'Staff alert', test: 'Test', inbound: 'Reply' };
+    const smsRows = (sm.log || []).map(l => `<div class="log-row"><span><span class="st ${l.status === 'sent' || l.status === 'start' ? 'st-good' : l.status === 'failed' || l.status === 'stop' ? 'st-bad' : 'st-off'}">${esc(l.status)}</span> <b>${esc(KIND[l.kind] || l.kind)}</b> · ${esc(l.to_phone || '')}${l.spa && l.spa.name ? ' · ' + esc(l.spa.name) : ''}<span class="cell-sub" style="display:block">${esc(l.status === 'sent' || l.kind === 'inbound' ? (l.body || '') : (l.error || l.status))}</span></span><time class="cell-sub">${relTime(l.created_at)}</time><span></span></div>`).join('');
+    const smsPanel = window.RKVR_CLOUD && isSuper() ? `<section class="panel" style="margin-bottom:16px"><div class="panel-head"><h2>Text messages (Twilio)</h2><span class="note">Booking confirmations, day-before reminders, member welcomes, staff alerts</span></div>
+      ${sm.loading ? '<p class="cell-sub">Checking Twilio…</p>' : si.error ? `<div class="banner banner-warn"><span>${esc(si.error)}</span></div>`
+        : !si.configured ? '<div class="banner banner-warn"><span>Twilio isn’t connected yet. Add RKVR’s Twilio details in Netlify (see the setup steps), then click Check status.</span></div>'
+        : `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">${statusChip(si.accountStatus === 'active' ? 'Live' : 'Paused')}<span>Twilio ${esc(si.account || 'account')}${si.trial ? ' (trial: texts only reach verified numbers)' : ''}</span> · <span>Sends from ${esc(si.sender || '—')}</span></div>`}
+      <div style="display:flex;align-items:center;gap:10px;margin:6px 0 10px"><button class="switch" role="switch" aria-checked="${!!sm.on}" aria-label="Send texts to clients" id="sms-switch"></button><span>${sm.on ? 'Texts are <b>on</b>. Clients who ticked “Text me” get them.' : 'Texts are <b>off</b>. Nothing is sent until you switch this on.'}</span></div>
+      <form id="sms-test-form" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label for="sms-test" class="cell-sub">Send a test text to</label><input id="sms-test" type="tel" inputmode="tel" placeholder="(619) 555-0100" style="max-width:180px" required><button class="btn" type="submit">Send test</button><button class="btn" type="button" id="sms-status">Check status</button></form>
+      ${sm.noTable ? '<p class="cell-sub" style="margin-top:10px">Run the text-messages SQL in Supabase to see sent texts here.</p>' : `<h3 style="margin:14px 0 6px;font-size:14px">Recent texts</h3>${smsRows || '<div class="empty">No texts yet.</div>'}`}
+    </section>` : '';
+    return head('Controls', 'Turn features on or off across both apps and set the membership economics.') + modeBanner + stripePanel + smsPanel + `
       <div class="grid cols-2">
         <section class="panel"><div class="panel-head"><h2>Feature switches</h2><span class="note">${Object.values(state.flags).filter(Boolean).length} of ${Object.keys(state.flags).length} on</span></div>
           ${FLAG_GROUPS.map(g => `<div class="flag-group"><h3>${g.title}</h3><p>${g.blurb}${g.parent && !flagOn(g.parent) ? ' Off while the Shop is off.' : ''}</p>${g.items.map(i => flagRow(i, g)).join('')}</div>`).join('')}
@@ -2172,6 +2204,8 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
     }
     if (t.dataset.pause) { togglePause(t.dataset.pause); return; }
     if (t.id === 'stripe-status') { stripeStatus(); return; }
+    if (t.id === 'sms-status') { loadSms(); return; }
+    if (t.id === 'sms-switch') { setSms(t.getAttribute('aria-checked') !== 'true'); return; }
     if (t.id === 'stripe-onboard') {
       t.disabled = true; t.textContent = 'Opening Stripe…';
       window.RKVR_CLOUD.callFn('stripe-onboarding', {}).then(r => { location.href = r.url; }, err => { t.disabled = false; t.textContent = 'Try again'; toast(err.message); });
@@ -2257,6 +2291,14 @@ body.gated .tabs, body.gated .top-tools > :not(.who) { display: none !important;
   $('#loc').addEventListener('change', e => { state.loc = e.target.value; try { localStorage.setItem('rkvr-hq-loc', state.loc); } catch (_) {} render(); });
 
   document.addEventListener('submit', async e => {
+    if (e.target.id === 'sms-test-form') {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type=submit]'), to = $('#sms-test').value.trim();
+      btn.disabled = true; btn.textContent = 'Sending…';
+      try { await window.RKVR_CLOUD.callFn('sms-admin', { test: to }); toast('Test text sent to ' + to); loadSms(); }
+      catch (err) { toast(err.message); btn.disabled = false; btn.textContent = 'Send test'; }
+      return;
+    }
     if (e.target.id === 'login-form') {
       e.preventDefault();
       const b = e.target.querySelector('button[type=submit]'); b.disabled = true;

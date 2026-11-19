@@ -7,3 +7,7 @@
 [functions]
   directory = "apps/website/netlify/functions"
   node_bundler = "esbuild"
+
+# Texts (Twilio): every 2 minutes, send the confirmations, reminders and welcomes that are due
+[functions."sms-cron"]
+  schedule = "*/2 * * * *"
