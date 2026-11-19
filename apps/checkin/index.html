@@ -534,7 +534,7 @@ h1, h2, p { margin: 0; }
     if (c.path === 'join' && c.joinedOnline) {
       return `<div class="done">${TICK}<h1 class="disp" style="font-size:88px;line-height:.9">Welcome to RKVR.</h1>
         <p style="color:var(--soft);font-size:23px;max-width:680px;line-height:1.45">You’re an RKVR Unlimited member. Get the RKVR app to book and check in from your phone: sign in with the email you just used.</p>
-        <div class="band" style="max-width:780px;gap:24px"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-size:17px">Get the RKVR app</b><span style="font-size:15px;color:var(--soft)">Scan with your phone camera, then sign in with the same email.</span></span><img class="qr" src="qr-app.svg" width="92" height="92" alt="QR code to get the RKVR app"></div>${back}</div>`;
+        <div class="band" style="max-width:420px;gap:20px;justify-content:flex-start;padding:12px 18px 12px 12px"><img class="qr" src="qr-app.svg" width="112" height="112" style="padding:0" alt="QR code to get the RKVR app"><span style="display:flex;flex-direction:column;gap:6px"><b class="applogo">Get the ${LOGO} app</b><span style="font-size:16px;color:var(--soft);letter-spacing:.02em">Join. Book. Recover.</span></span></div>${back}</div>`;
     }
     if (c.path === 'join') {
       return `<div class="done">${TICK}<h1 class="disp" style="font-size:88px;line-height:.9">Great choice.</h1>
@@ -554,8 +554,8 @@ h1, h2, p { margin: 0; }
       <h1 class="disp" style="font-size:88px;line-height:.9">${c.path === 'walkin' ? 'You’re in.' : 'You’re checked in.'}</h1>
       <p style="color:var(--soft);font-size:23px;max-width:680px;line-height:1.45">First up: <b style="color:var(--accentText)">${esc(f.name)}</b>${ROOM[f.category] ? ' in the ' + ROOM[f.category] : ''}. A team member will meet you there.</p>
       <p class="muted" style="font-size:17px">${fine}</p>
-      ${!upsell ? `<div class="band" style="max-width:780px;gap:24px"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-size:17px">Next time, check in from your phone.</b><span style="font-size:15px;color:var(--soft)">Scan to get the RKVR app: book, check in and see your membership.</span></span><img class="qr" src="qr-app.svg" width="92" height="92" alt="QR code to get the RKVR app"></div>` : ''}
-      ${upsell ? `<div class="band" style="max-width:780px;gap:24px"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-size:17px">Today is ${money(listPrice(its))} à la carte.</b><span style="font-size:15px;color:var(--soft)">Members get unlimited recovery for ${money(MONTHLY())} a month. Founding rate ends ${CUTOFF()}. Scan to join.</span></span>${QR(92)}</div>` : ''}
+      ${!upsell ? `<div class="band" style="max-width:420px;gap:20px;justify-content:flex-start;padding:12px 18px 12px 12px"><img class="qr" src="qr-app.svg" width="112" height="112" style="padding:0" alt="QR code to get the RKVR app"><span style="display:flex;flex-direction:column;gap:6px"><b class="applogo">Get the ${LOGO} app</b><span style="font-size:16px;color:var(--soft);letter-spacing:.02em">Join. Book. Recover.</span></span></div>` : ''}
+      ${upsell ? `<div class="band" style="max-width:420px;gap:20px;justify-content:flex-start;padding:12px 18px 12px 12px"><img class="qr" src="qr-app.svg" width="112" height="112" style="padding:0" alt="QR code to get the RKVR app"><span style="display:flex;flex-direction:column;gap:6px"><b style="font-size:17px">Today is ${money(listPrice(its))} à la carte.</b><span style="font-size:15px;color:var(--soft)">Members get unlimited recovery for ${money(MONTHLY())} a month. Founding rate ends ${CUTOFF()}. Scan to join.</span></span>${QR(92)}</div>` : ''}
       ${back}</div>`;
   }
 
